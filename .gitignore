@@ -1,0 +1,90 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+dist/
+build/
+.next/
+
+# React / Vue / Angular
+coverage/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+*.egg-info/
+
+# Java / Spring
+target/
+*.class
+*.jar
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+
+# Go
+*.exe
+*.test
+*.out
+
+# Rust
+target/
+Cargo.lock
+
+# Elixir
+_build/
+deps/
+*.ez
+
+# Ruby
+.bundle/
+vendor/bundle/
+*.gem
+
+# Docker
+*.log
+
+# Kubernetes
+*.secret.yaml
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+
+# Generated assets
+uploads/
+storage/

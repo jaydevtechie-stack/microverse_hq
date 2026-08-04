@@ -1,0 +1,52 @@
+services:
+
+  nginx:
+    image: nginx:latest
+    container_name: mv-nginx
+    ports:
+      - "80:80"
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: mv-keycloak
+    command:
+      - start-dev
+    ports:
+      - "8081:8080"
+
+  postgres:
+    image: postgres:latest
+    container_name: mv-postgres
+    environment:
+      POSTGRES_DB: microverse
+      POSTGRES_USER: microverse
+      POSTGRES_PASSWORD: microverse
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:latest
+    container_name: mv-redis
+    ports:
+      - "6379:6379"
+
+  rabbitmq:
+    image: rabbitmq:management
+    container_name: mv-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  mongodb:
+    image: mongo:latest
+    container_name: mv-mongodb
+    ports:
+      - "27017:27017"
+
+  minio:
+    image: minio/minio
+    container_name: mv-minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
