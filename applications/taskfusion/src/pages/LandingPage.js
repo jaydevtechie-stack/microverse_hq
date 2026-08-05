@@ -1,12 +1,15 @@
 // src/pages/LandingPage.js
 import React from 'react';
-import { login } from '../services/keycloak';
+import { login, getKeycloak } from '../services/keycloak';
 
-// Public/anonymous surface, served on microverse.local. Authenticated
-// users never see this — App.js routes them straight to the dashboard
-// host instead. Registration (customer / analyst) is deliberately left
-// out for now, pending a real role-vetting flow design.
+// Public front door, served on microverse.local. Logged-in users can
+// land here too (e.g. via the navbar logo) — the Login button just
+// hides itself when there's already a session. Registration
+// (customer / analyst) is deliberately left out for now, pending a
+// real role-vetting flow design.
 const LandingPage = () => {
+  const keycloak = getKeycloak();
+
   return (
     <div
       style={{
@@ -41,21 +44,23 @@ const LandingPage = () => {
           time tracking to billing — keeps its own tech and its own
           personality, all orchestrated behind a single front door.
         </p>
-        <button
-          onClick={() => login()}
-          style={{
-            background: 'var(--mv-color-primary)',
-            color: 'var(--mv-color-primary-contrast)',
-            border: 'none',
-            borderRadius: 'var(--mv-radius)',
-            padding: '12px 32px',
-            fontSize: 15,
-            fontWeight: 600,
-            cursor: 'pointer',
-          }}
-        >
-          Login
-        </button>
+        {!keycloak?.authenticated && (
+          <button
+            onClick={() => login()}
+            style={{
+              background: 'var(--mv-color-primary)',
+              color: 'var(--mv-color-primary-contrast)',
+              border: 'none',
+              borderRadius: 'var(--mv-radius)',
+              padding: '12px 32px',
+              fontSize: 15,
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            Login
+          </button>
+        )}
       </div>
     </div>
   );

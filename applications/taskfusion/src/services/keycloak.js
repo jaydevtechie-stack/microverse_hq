@@ -40,6 +40,11 @@ export const login = (redirectUri) => {
   keycloak.login({ redirectUri: redirectUri || `${withHostnamePrefix(true)}/dashboard` });
 };
 
+// The public landing page only exists on the non-"dashboard." host, so
+// linking to it from the dashboard host needs a real cross-origin URL,
+// not a client-side route.
+export const landingUrl = () => `${withHostnamePrefix(false)}/`;
+
 export const getKeycloak = () => keycloak;
 export const getToken = () => keycloak.token;
 

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { IconBell, IconSun, IconMoon } from '@tabler/icons-react';
-import { logout } from '../services/keycloak';
+import { logout, landingUrl } from '../services/keycloak';
 import { useTheme } from '../context/ThemeContext';
 
 function initialsFor(keycloak) {
@@ -31,8 +31,10 @@ const Navbar = ({ keycloak }) => {
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-        <Link
-          to="/"
+        {/* Real anchor, not a router Link — the landing page only lives
+            on the non-dashboard host, so this is a cross-origin hop */}
+        <a
+          href={landingUrl()}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -51,7 +53,7 @@ const Navbar = ({ keycloak }) => {
             }}
           />
           <span style={{ fontWeight: 500, fontSize: 14 }}>Microverse</span>
-        </Link>
+        </a>
 
         {keycloak.authenticated && (
           <>
