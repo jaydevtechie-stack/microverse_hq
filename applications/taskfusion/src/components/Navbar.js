@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { IconBell, IconSun, IconMoon } from '@tabler/icons-react';
-import { logout, landingUrl } from '../services/keycloak';
+import { logout, landingUrl, hostUrlForSubdomain, isOnMicrosite } from '../services/keycloak';
 import { useTheme } from '../context/ThemeContext';
 
 function initialsFor(keycloak) {
@@ -22,13 +22,29 @@ const navLinkStyle = (isActive) => ({
   textDecoration: 'none',
 });
 
+// Dashboard/Customer/Analyst all live on the platform host. From a
+// microsite (e.g. gofeeler.microverse.local) these need a real
+// cross-origin hop, not a client-side route — from the platform host
+// itself, a router Link keeps navigation fast.
+const PlatformNavLink = ({ to, active, children }) => {
+  if (isOnMicrosite()) {
+    return (
+      <a href={`${hostUrlForSubdomain(null)}${to}`} style={navLinkStyle(false)}>
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link to={to} style={navLinkStyle(active)}>
+      {children}
+    </Link>
+  );
+};
+
 const Navbar = ({ keycloak }) => {
   const { theme, toggleTheme } = useTheme();
   const { pathname } = useLocation();
-  // "/" only means Dashboard on the dashboard host — on the public host
-  // it's the landing page, which this navbar can now also appear on.
-  const isDashboardHost = window.location.hostname.startsWith('dashboard.');
-  const isDashboard = pathname === '/dashboard' || (isDashboardHost && pathname === '/');
+  const isDashboard = pathname === '/dashboard';
 
   return (
     <nav
@@ -44,8 +60,8 @@ const Navbar = ({ keycloak }) => {
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-        {/* Real anchor, not a router Link — the landing page only lives
-            on the non-dashboard host, so this is a cross-origin hop */}
+        {/* Real anchor, not a router Link — on a microsite this is a
+            cross-origin hop back to the platform host */}
         <a
           href={landingUrl()}
           style={{
@@ -70,24 +86,24 @@ const Navbar = ({ keycloak }) => {
 
         {keycloak.authenticated && (
           <>
-            <Link to="/dashboard" style={navLinkStyle(isDashboard)}>
+            <PlatformNavLink to="/dashboard" active={isDashboard}>
               Dashboard
-            </Link>
+            </PlatformNavLink>
 
             {/* Customer/Analyst links are role-gated the same way their
                 routes are in App.js — platform:project-manager sees both */}
             {(keycloak.hasRealmRole('platform:customer') ||
               keycloak.hasRealmRole('platform:project-manager')) && (
-              <Link to="/customer" style={navLinkStyle(pathname === '/customer')}>
+              <PlatformNavLink to="/customer" active={pathname === '/customer'}>
                 Customers
-              </Link>
+              </PlatformNavLink>
             )}
 
             {(keycloak.hasRealmRole('platform:analyst') ||
               keycloak.hasRealmRole('platform:project-manager')) && (
-              <Link to="/analyst" style={navLinkStyle(pathname === '/analyst')}>
+              <PlatformNavLink to="/analyst" active={pathname === '/analyst'}>
                 Analysts
-              </Link>
+              </PlatformNavLink>
             )}
 
             {/* Orders / Djaboard: business-services/order-service and
@@ -116,45 +132,39 @@ const Navbar = ({ keycloak }) => {
           {theme === 'dark' ? <IconSun size={16} /> : <IconMoon size={16} />}
         </button>
 
-        {keycloak.authenticated ? (
-          <>
-            <IconBell size={16} color="var(--mv-text-muted)" aria-hidden="true" />
-            <div
-              title={keycloak.tokenParsed.preferred_username}
-              style={{
-                width: 26,
-                height: 26,
-                borderRadius: '50%',
-                background: 'var(--mv-avatar-bg)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--mv-avatar-text)',
-                fontSize: 11,
-                fontWeight: 500,
-              }}
-            >
-              {initialsFor(keycloak)}
-            </div>
-            <button
-              type="button"
-              onClick={logout}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--mv-text-muted)',
-                fontSize: 13,
-                cursor: 'pointer',
-              }}
-            >
-              Logout
-            </button>
-          </>
-        ) : (
-          <Link to="/login" style={{ color: 'var(--mv-color-primary)', fontSize: 13 }}>
-            Login
-          </Link>
-        )}
+        {/* Navbar only ever renders for an authenticated session (see
+            App.js) — no unauthenticated branch needed here */}
+        <IconBell size={16} color="var(--mv-text-muted)" aria-hidden="true" />
+        <div
+          title={keycloak.tokenParsed.preferred_username}
+          style={{
+            width: 26,
+            height: 26,
+            borderRadius: '50%',
+            background: 'var(--mv-avatar-bg)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--mv-avatar-text)',
+            fontSize: 11,
+            fontWeight: 500,
+          }}
+        >
+          {initialsFor(keycloak)}
+        </div>
+        <button
+          type="button"
+          onClick={logout}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--mv-text-muted)',
+            fontSize: 13,
+            cursor: 'pointer',
+          }}
+        >
+          Logout
+        </button>
       </div>
     </nav>
   );

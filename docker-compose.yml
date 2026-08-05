@@ -1,6 +1,7 @@
 services:
 
   microverse-nginx:
+    profiles: ["gofeeler"]
     build:
       context: ./infrastructure/nginx
     container_name: microverse-nginx
@@ -19,6 +20,7 @@ services:
 
 
   microverse-keycloak:
+    profiles: ["gofeeler"]
     image: quay.io/keycloak/keycloak:latest
     container_name: microverse-keycloak
 
@@ -56,6 +58,7 @@ services:
 
 
   microverse-taskfusion:
+    profiles: ["gofeeler"]
     build:
       # repo root, not ./applications/taskfusion — the build needs to
       # reach branding/mv-1.0 (see Dockerfile)
@@ -74,6 +77,7 @@ services:
 
 
   microverse-postgis:
+    profiles: ["gofeeler"]
     image: postgis/postgis:latest
     container_name: microverse-postgis
 
@@ -84,12 +88,21 @@ services:
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      # only runs on a brand-new (empty) postgres_data volume — see
+      # infrastructure/postgis/init/ for what's in here and why
+      - ./infrastructure/postgis/init:/docker-entrypoint-initdb.d:ro
 
     networks:
       - microverse-network
 
 
   microverse-mongodb:
+    # GoFeeler's home: raw uploaded content (chat/email/comment exports)
+    # varies too much in shape for relational columns, and the sentiment
+    # result is just metadata riding alongside it — Mongo's sweet spot.
+    # task-service/rustledger/order-service stay on Postgres on purpose
+    # (row locking, ACID, relational joins).
+    profiles: ["gofeeler", "mongodb"]
     image: mongo:latest
     container_name: microverse-mongodb
 
@@ -101,6 +114,7 @@ services:
 
 
   microverse-redis:
+    profiles: ["redis"]
     image: redis:latest
     container_name: microverse-redis
 
@@ -110,6 +124,7 @@ services:
 
 
   microverse-rabbitmq:
+    profiles: ["rabbitmq"]
     image: rabbitmq:management
     container_name: microverse-rabbitmq
 
@@ -119,6 +134,7 @@ services:
 
 
   microverse-kafka:
+    profiles: ["kafka"]
     image: apache/kafka:latest
     container_name: microverse-kafka
 
@@ -144,6 +160,7 @@ services:
 
 
   microverse-minio:
+    profiles: ["gofeeler"]
     image: minio/minio
     container_name: microverse-minio
 
@@ -164,14 +181,23 @@ services:
 
 
   microverse-gofeeler:
+    profiles: ["gofeeler"]
     build:
       context: ./domain-services/gofeeler
     container_name: microverse-gofeeler
+    environment:
+      # Not read by the Go app yet — /analyze is still stateless
+      # keyword-matching with nothing persisted. Wired ahead of that
+      # work so the connection is there when it lands.
+      MONGO_URL: mongodb://microverse-mongodb:27017/gofeeler
+    depends_on:
+      - microverse-mongodb
     networks:
       - microverse-network
 
 
   microverse-netcruncher:
+    profiles: ["netcruncher"]
     build:
       context: ./domain-services/netcruncher
     container_name: microverse-netcruncher
@@ -180,6 +206,7 @@ services:
 
 
   microverse-pyreel:
+    profiles: ["pyreel"]
     build:
       context: ./domain-services/pyreel
     container_name: microverse-pyreel
@@ -192,6 +219,7 @@ services:
 
 
   microverse-springpix:
+    profiles: ["springpix"]
     build:
       context: ./domain-services/springpix
     container_name: microverse-springpix
@@ -210,6 +238,7 @@ services:
 
 
   microverse-elixtempo:
+    profiles: ["elixtempo"]
     build:
       context: ./domain-services/elixtempo
     container_name: microverse-elixtempo
@@ -226,6 +255,7 @@ services:
 
 
   microverse-rustledger:
+    profiles: ["rustledger"]
     build:
       context: ./domain-services/rustledger
     container_name: microverse-rustledger
@@ -243,6 +273,7 @@ services:
 
 
   microverse-mailhog:
+    profiles: ["mailhog"]
     image: mailhog/mailhog:latest
     container_name: microverse-mailhog
     networks:
@@ -250,6 +281,7 @@ services:
 
 
   microverse-email-service:
+    profiles: ["email-service"]
     build:
       context: ./platform-services/email-service
     container_name: microverse-email-service
@@ -263,6 +295,7 @@ services:
 
 
   microverse-notification-service:
+    profiles: ["notification-service"]
     build:
       context: ./platform-services/notification-service
     container_name: microverse-notification-service
@@ -271,13 +304,14 @@ services:
 
 
   microverse-task-service:
+    profiles: ["gofeeler"]
     build:
       context: ./business-services/task-service
     container_name: microverse-task-service
     environment:
-      MONGO_URL: mongodb://microverse-mongodb:27017/taskDB
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@microverse-postgis:5432/${POSTGRES_DB}
     depends_on:
-      - microverse-mongodb
+      - microverse-postgis
     networks:
       - microverse-network
 
