@@ -1,0 +1,41 @@
+definitions:
+  model.SentimentRequest:
+    properties:
+      text:
+        type: string
+    required:
+    - text
+    type: object
+  model.SentimentResponse:
+    properties:
+      confidence:
+        type: number
+      sentiment:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /analyze:
+    post:
+      consumes:
+      - application/json
+      description: Returns sentiment (positive, negative, neutral) of given text
+      parameters:
+      - description: Text to analyze
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.SentimentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.SentimentResponse'
+      summary: Analyze sentiment
+      tags:
+      - sentiment
+swagger: "2.0"
