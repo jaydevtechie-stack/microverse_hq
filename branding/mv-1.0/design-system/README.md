@@ -8,29 +8,38 @@ properties with no build step, so it can be linked directly from a Keycloak
 
 ## Palette
 
-Extracted from the mv-1.0 brand's Bootswatch builds (Flatly = light,
-Darkly = dark), kept as reference/compiled bundles at
-`../themes/{light,dark}/bootstrap.min.css`.
+Navy/cyan — matches the dashboard mockups in this folder
+(`microverse_navbar_light_dark.html`, `microverse_dashboard_full_page*.html`),
+which are the source of truth for these values. The Bootswatch builds at
+`../themes/{light,dark}/bootstrap.min.css` predate this palette and are now
+just historical reference, not something to keep in sync with `tokens.css`
+going forward.
 
-| Token                  | Light     | Dark      |
-| ----------------------- | --------- | --------- |
-| `--mv-color-primary`    | `#2c3e50` | `#375a7f` |
-| `--mv-color-secondary`  | `#95a5a6` | `#444444` |
-| `--mv-color-success`    | `#18bc9c` | `#00bc8c` |
-| `--mv-color-info`       | `#3498db` | `#3498db` |
-| `--mv-color-warning`    | `#f39c12` | `#f39c12` |
-| `--mv-color-danger`     | `#e74c3c` | `#e74c3c` |
-| `--mv-color-light`      | `#ecf0f1` | `#adb5bd` |
-| `--mv-color-dark`       | `#7b8a8b` | `#303030` |
-| `--mv-bg`                | `#ffffff` | `#222222` |
-| `--mv-text`              | `#212529` | `#dee2e6` |
-| `--mv-border`            | `#dee2e6` | `#444444` |
+| Token                     | Light     | Dark      |
+| --------------------------- | --------- | --------- |
+| `--mv-color-primary`        | `#0ea5d9` | `#4dd8ff` |
+| `--mv-color-primary-contrast` | `#04203b` | `#04203b` |
+| `--mv-bg`                    | `#f5f8ff` | `#05061a` |
+| `--mv-bg-elevated`           | `#ffffff` | `#0b0f2e` |
+| `--mv-text`                  | `#0b0f2e` | `#e8f4ff` |
+| `--mv-text-muted`            | `#4a5a8a` | `#9bb8e0` |
+| `--mv-border`                | `#c9d9f5` | `#1e2a6b` |
+| `--mv-avatar-bg`             | `#0ea5d9` | `#2d5fdb` |
+| `--mv-badge-bg`              | `#b4b2a9` | `#5f5e5a` |
 
-Font: `Lato` (with system-font fallbacks). If the brand palette ever
-changes, update `tokens.css` and the two Bootswatch builds together — they
-describe the same palette from two angles (runtime CSS vars vs. a compiled
-Bootstrap build) and are expected to stay in sync manually; there's no
-codegen between them at this project's current scale.
+`--mv-color-secondary/success/info/warning/danger/light/dark` are
+untouched Bootstrap semantic colors, still available for generic
+components (alerts, form validation) — the dashboard mockups don't
+exercise them, so there was nothing to update there.
+
+Per-service accent colors (one per language, e.g. Go = cyan, Python =
+amber, Elixir = purple, Rust = rust-orange, Ruby = red) are **not**
+design-system tokens — they live as a local config in whatever component
+renders the service grid (e.g. `applications/taskfusion`'s dashboard
+page), since they're specific to that one feature rather than
+universal.
+
+Font: `Lato` (with system-font fallbacks).
 
 ## Dark mode
 
