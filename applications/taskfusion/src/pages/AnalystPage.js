@@ -18,6 +18,7 @@ const AnalystPage = () => (
   >
     <ProfileHeader
       avatarShape="circle"
+      roleType="analyst"
       initials={ANALYST.initials}
       name={ANALYST.name}
       subtitle={

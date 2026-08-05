@@ -8,7 +8,9 @@ import Navbar from './components/Navbar';
 import Dashboard from './pages/Dashboard';  // Example protected page
 import CustomerPage from './pages/CustomerPage';
 import AnalystPage from './pages/AnalystPage';
-import GofeelerPage from './pages/GofeelerPage';
+import GofeelerSplitView from './pages/GofeelerSplitView';
+import CreateOrderPage from './pages/CreateOrderPage';
+import TaskDetailPage from './pages/TaskDetailPage';
 
 // microverse.local carries everything platform-side (landing page,
 // /dashboard, /customer, /analyst — path-based). Domain services get
@@ -40,10 +42,17 @@ const App = () => {
       });
   }, []);
 
-  // PrivateRoute component to protect routes. `roles`, when given, is a
-  // list of realm roles (see ARCHITECTURE.md's `{service}:{function}`
-  // convention) — the route renders if the user holds at least one.
-  const PrivateRoute = ({ element, keycloak, roles }) => {
+  // PrivateRoute component to protect routes.
+  // `roles` — the route renders if the user holds at least one (OR).
+  //   Used for platform-function-only checks, e.g. /customer just needs
+  //   platform:customer OR platform:project-manager.
+  // `requireAllRoles` — the route renders only if the user holds every
+  //   one (AND). Used for the two-dimensional model (see
+  //   ARCHITECTURE.md's Roles and permissions) where a service-scoped
+  //   action needs both a platform function AND a service scope, e.g.
+  //   GoFeeler's Create Order page needs platform:customer AND
+  //   service:gofeeler — either alone isn't enough.
+  const PrivateRoute = ({ element, keycloak, roles, requireAllRoles }) => {
     if (!keycloak) {
       // Optionally, you can show a loader or a spinner while keycloak is loading
       return <div>Loading...</div>;
@@ -54,6 +63,10 @@ const App = () => {
     }
 
     if (roles && !roles.some((role) => keycloak.hasRealmRole(role))) {
+      return <RedirectToLanding />;
+    }
+
+    if (requireAllRoles && !requireAllRoles.every((role) => keycloak.hasRealmRole(role))) {
       return <RedirectToLanding />;
     }
 
@@ -75,8 +88,11 @@ const App = () => {
               path="/"
               element={
                 isGofeelerHost ? (
+                  // Any staff-side platform role + service:gofeeler can view
+                  // this page — PM sees every task, analyst/reviewer see only
+                  // their own (GofeelerListPanel does that filtering internally)
                   <PrivateRoute
-                    element={<GofeelerPage />}
+                    element={<GofeelerSplitView />}
                     keycloak={keycloak}
                     roles={['service:gofeeler']}
                   />
@@ -109,6 +125,37 @@ const App = () => {
                   element={<AnalystPage />}
                   keycloak={keycloak}
                   roles={['platform:analyst', 'platform:project-manager']}
+                />
+              }
+            />
+
+            {/* On the gofeeler microsite, /create and /task/:id render
+                inside the same split-view shell as "/" (a panel next to
+                the list, not a whole new page) — elsewhere they're
+                standalone full pages, e.g. CustomerPage's "+ New order"
+                link on the platform host */}
+            <Route
+              path="/create"
+              element={
+                <PrivateRoute
+                  element={isGofeelerHost ? <GofeelerSplitView /> : <CreateOrderPage />}
+                  keycloak={keycloak}
+                  requireAllRoles={['platform:customer', 'service:gofeeler']}
+                />
+              }
+            />
+
+            {/* Only gofeeler tasks exist right now, so this is gated the
+                same as the gofeeler task list itself — will need to key
+                off the fetched task's own `service` field once other
+                domain services have tasks too */}
+            <Route
+              path="/task/:id"
+              element={
+                <PrivateRoute
+                  element={isGofeelerHost ? <GofeelerSplitView /> : <TaskDetailPage />}
+                  keycloak={keycloak}
+                  roles={['service:gofeeler']}
                 />
               }
             />
