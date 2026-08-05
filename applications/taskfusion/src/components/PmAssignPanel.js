@@ -11,9 +11,16 @@ const CANDIDATES = [
 ];
 
 // Assign is a stub — no PATCH /api/tasks/:id yet (ROADMAP.md Branch 4).
-// Picking a name just shows the confirmation banner locally.
+// Picking a name just stages it; the Assign button shows the
+// confirmation banner locally rather than actually submitting.
 const PmAssignPanel = () => {
   const [picked, setPicked] = useState('');
+  const [assigned, setAssigned] = useState(false);
+
+  const pick = (name) => {
+    setPicked(name);
+    setAssigned(false);
+  };
 
   return (
     <div>
@@ -36,7 +43,7 @@ const PmAssignPanel = () => {
         {CANDIDATES.map((c) => (
           <span
             key={c.name}
-            onClick={() => setPicked(c.name)}
+            onClick={() => pick(c.name)}
             style={{
               color: c.color,
               fontSize: c.fontSize,
@@ -57,7 +64,7 @@ const PmAssignPanel = () => {
       </p>
       <select
         value={picked}
-        onChange={(e) => setPicked(e.target.value)}
+        onChange={(e) => pick(e.target.value)}
         style={{
           width: '100%',
           background: 'var(--mv-bg)',
@@ -66,7 +73,7 @@ const PmAssignPanel = () => {
           padding: '9px 12px',
           color: 'var(--mv-text)',
           fontSize: 13,
-          marginBottom: picked ? 12 : 0,
+          marginBottom: 14,
           boxSizing: 'border-box',
         }}
       >
@@ -76,7 +83,27 @@ const PmAssignPanel = () => {
         ))}
       </select>
 
-      {picked && (
+      <button
+        type="button"
+        disabled={!picked}
+        onClick={() => setAssigned(true)}
+        style={{
+          width: '100%',
+          padding: '10px 0',
+          background: picked ? 'var(--mv-color-primary)' : 'var(--mv-badge-bg)',
+          color: picked ? 'var(--mv-color-primary-contrast)' : 'var(--mv-badge-text)',
+          fontWeight: 500,
+          fontSize: 13,
+          border: 'none',
+          borderRadius: 8,
+          cursor: picked ? 'pointer' : 'not-allowed',
+          marginBottom: assigned ? 12 : 0,
+        }}
+      >
+        {picked ? `Assign to ${picked}` : 'Assign'}
+      </button>
+
+      {assigned && (
         <div
           style={{
             background: 'color-mix(in srgb, var(--mv-color-primary) 13%, transparent)',
@@ -87,7 +114,7 @@ const PmAssignPanel = () => {
             fontSize: 12,
           }}
         >
-          Assigning to {picked} — order will move to "analyst" status
+          Assigned to {picked} — order will move to "analyst" status
         </div>
       )}
     </div>
