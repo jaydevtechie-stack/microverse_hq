@@ -1,52 +1,149 @@
 services:
 
-  nginx:
-    image: nginx:latest
-    container_name: mv-nginx
+  microverse-nginx:
+    build:
+      context: ./infrastructure/nginx
+    container_name: microverse-nginx
     ports:
       - "80:80"
+      - "443:443"
+    volumes:
+      - ./infrastructure/secrets:/etc/nginx/certs:ro
+    depends_on:
+      microverse-keycloak:
+        condition: service_healthy
+      microverse-taskfusion:
+        condition: service_started
+    networks:
+      - microverse-network
 
-  keycloak:
+
+  microverse-keycloak:
     image: quay.io/keycloak/keycloak:latest
-    container_name: mv-keycloak
+    container_name: microverse-keycloak
+
     command:
       - start-dev
-    ports:
-      - "8081:8080"
+      - --import-realm
 
-  postgres:
-    image: postgres:latest
-    container_name: mv-postgres
     environment:
-      POSTGRES_DB: microverse
-      POSTGRES_USER: microverse
-      POSTGRES_PASSWORD: microverse
-    ports:
-      - "5432:5432"
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_USER}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_PASSWORD}
 
-  redis:
-    image: redis:latest
-    container_name: mv-redis
-    ports:
-      - "6379:6379"
+      KC_PROXY_HEADERS: xforwarded
+      KC_HOSTNAME: sso.microverse.local
+      KC_HEALTH_ENABLED: "true"
 
-  rabbitmq:
-    image: rabbitmq:management
-    container_name: mv-rabbitmq
-    ports:
-      - "5672:5672"
-      - "15672:15672"
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+      - ./infrastructure/keycloak/realm-export:/opt/keycloak/data/import
+      - ./infrastructure/keycloak/themes/microverse:/opt/keycloak/themes/microverse:ro
 
-  mongodb:
+    healthcheck:
+      # the keycloak image has no curl/wget; use bash's /dev/tcp instead
+      test:
+        [
+          "CMD-SHELL",
+          "exec 3<>/dev/tcp/127.0.0.1/9000 && echo -e 'GET /health/ready HTTP/1.1\r\nhost: localhost\r\nConnection: close\r\n\r\n' >&3 && timeout 5 cat <&3 | grep -q '\"status\": \"UP\"'"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+
+    networks:
+      - microverse-network
+
+
+  microverse-taskfusion:
+    build:
+      context: ./applications/taskfusion
+      args:
+        REACT_APP_KEYCLOAK_URL: ${TASKFUSION_KEYCLOAK_URL}
+        REACT_APP_KEYCLOAK_REALM: ${TASKFUSION_KEYCLOAK_REALM}
+        REACT_APP_KEYCLOAK_CLIENT_ID: ${TASKFUSION_KEYCLOAK_CLIENT_ID}
+    container_name: microverse-taskfusion
+    depends_on:
+      microverse-keycloak:
+        condition: service_healthy
+    networks:
+      - microverse-network
+
+
+  microverse-postgis:
+    image: postgis/postgis:latest
+    container_name: microverse-postgis
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    networks:
+      - microverse-network
+
+
+  microverse-mongodb:
     image: mongo:latest
-    container_name: mv-mongodb
-    ports:
-      - "27017:27017"
+    container_name: microverse-mongodb
 
-  minio:
+    volumes:
+      - mongodb_data:/data/db
+
+    networks:
+      - microverse-network
+
+
+  microverse-redis:
+    image: redis:latest
+    container_name: microverse-redis
+
+    networks:
+      - microverse-network
+
+
+
+  microverse-rabbitmq:
+    image: rabbitmq:management
+    container_name: microverse-rabbitmq
+
+    networks:
+      - microverse-network
+
+
+
+  microverse-minio:
     image: minio/minio
-    container_name: mv-minio
-    command: server /data --console-address ":9001"
-    ports:
-      - "9000:9000"
-      - "9001:9001"
+    container_name: microverse-minio
+
+    command:
+      - server
+      - /data
+
+    environment:
+      MINIO_ROOT_USER: ${MINIO_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD}
+
+    volumes:
+      - minio_data:/data
+
+    networks:
+      - microverse-network
+
+
+
+volumes:
+
+  keycloak_data:
+  postgres_data:
+  mongodb_data:
+  minio_data:
+
+
+
+networks:
+
+  microverse-network:
+    driver: bridge

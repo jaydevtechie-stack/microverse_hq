@@ -1,0 +1,6 @@
+// Import Bootstrap's SCSS source files (you can customize this)
+@import '~bootstrap/scss/bootstrap';
+
+// Import custom SCSS overrides
+@import 'variables';  // Override Bootstrap variables here if needed
+@import 'custom';     // Your custom styles for the app

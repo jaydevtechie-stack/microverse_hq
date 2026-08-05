@@ -12,6 +12,11 @@ Thumbs.db
 .env.*
 !.env.example
 
+# TLS certificates/keys (dev self-signed material)
+infrastructure/secrets/*.key
+infrastructure/secrets/*.crt
+infrastructure/secrets/*.pem
+
 # Node
 node_modules/
 npm-debug.log*
