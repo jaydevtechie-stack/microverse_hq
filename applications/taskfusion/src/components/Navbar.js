@@ -1,6 +1,6 @@
 // src/components/Navbar.js
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { IconBell, IconSun, IconMoon } from '@tabler/icons-react';
 import { logout, landingUrl } from '../services/keycloak';
 import { useTheme } from '../context/ThemeContext';
@@ -14,8 +14,21 @@ function initialsFor(keycloak) {
   return username.slice(0, 2).toUpperCase() || '?';
 }
 
+const navLinkStyle = (isActive) => ({
+  color: isActive ? 'var(--mv-color-primary)' : 'var(--mv-text-muted)',
+  fontSize: 13,
+  borderBottom: isActive ? '2px solid var(--mv-color-primary)' : '2px solid transparent',
+  paddingBottom: 2,
+  textDecoration: 'none',
+});
+
 const Navbar = ({ keycloak }) => {
   const { theme, toggleTheme } = useTheme();
+  const { pathname } = useLocation();
+  // "/" only means Dashboard on the dashboard host — on the public host
+  // it's the landing page, which this navbar can now also appear on.
+  const isDashboardHost = window.location.hostname.startsWith('dashboard.');
+  const isDashboard = pathname === '/dashboard' || (isDashboardHost && pathname === '/');
 
   return (
     <nav
@@ -57,16 +70,7 @@ const Navbar = ({ keycloak }) => {
 
         {keycloak.authenticated && (
           <>
-            <Link
-              to="/dashboard"
-              style={{
-                color: 'var(--mv-color-primary)',
-                fontSize: 13,
-                borderBottom: '2px solid var(--mv-color-primary)',
-                paddingBottom: 2,
-                textDecoration: 'none',
-              }}
-            >
+            <Link to="/dashboard" style={navLinkStyle(isDashboard)}>
               Dashboard
             </Link>
 
@@ -74,20 +78,14 @@ const Navbar = ({ keycloak }) => {
                 routes are in App.js — platform:project-manager sees both */}
             {(keycloak.hasRealmRole('platform:customer') ||
               keycloak.hasRealmRole('platform:project-manager')) && (
-              <Link
-                to="/customer"
-                style={{ color: 'var(--mv-text-muted)', fontSize: 13, textDecoration: 'none' }}
-              >
+              <Link to="/customer" style={navLinkStyle(pathname === '/customer')}>
                 Customers
               </Link>
             )}
 
             {(keycloak.hasRealmRole('platform:analyst') ||
               keycloak.hasRealmRole('platform:project-manager')) && (
-              <Link
-                to="/analyst"
-                style={{ color: 'var(--mv-text-muted)', fontSize: 13, textDecoration: 'none' }}
-              >
+              <Link to="/analyst" style={navLinkStyle(pathname === '/analyst')}>
                 Analysts
               </Link>
             )}
