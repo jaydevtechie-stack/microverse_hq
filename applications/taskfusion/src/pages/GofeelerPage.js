@@ -1,8 +1,16 @@
 // src/pages/GofeelerPage.js
 import React, { useEffect, useState } from 'react';
+import { getKeycloak } from '../services/keycloak';
 import TaskStatusBadge from '../components/TaskStatusBadge';
 
+// A PM sees every Gofeeler task; an analyst/reviewer sees only the
+// ones assigned to them (assignee is only populated while a task is
+// actively theirs — see ARCHITECTURE.md's assignee/owner table).
 const GofeelerPage = () => {
+  const keycloak = getKeycloak();
+  const isPM = keycloak?.hasRealmRole('platform:project-manager');
+  const username = keycloak?.tokenParsed?.preferred_username;
+
   const [tasks, setTasks] = useState(null);
   const [error, setError] = useState(null);
 
@@ -16,6 +24,8 @@ const GofeelerPage = () => {
       .catch((err) => setError(err.message));
   }, []);
 
+  const visibleTasks = isPM ? tasks : tasks?.filter((task) => task.assignee === username);
+
   return (
     <div
       style={{
@@ -27,10 +37,12 @@ const GofeelerPage = () => {
       }}
     >
       <p style={{ color: 'var(--mv-text)', fontSize: 15, fontWeight: 500, margin: '0 0 4px' }}>
-        Gofeeler tasks
+        {isPM ? 'Gofeeler tasks' : 'Your Gofeeler tasks'}
       </p>
       <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 18px' }}>
-        Every task tagged for the Gofeeler service, across all statuses.
+        {isPM
+          ? 'Every task tagged for the Gofeeler service, across all statuses.'
+          : 'Tasks currently assigned to you as analyst or reviewer.'}
       </p>
 
       {error && (
@@ -43,13 +55,15 @@ const GofeelerPage = () => {
         <p style={{ color: 'var(--mv-text-muted)', fontSize: 13 }}>Loading tasks…</p>
       )}
 
-      {tasks && tasks.length === 0 && (
-        <p style={{ color: 'var(--mv-text-muted)', fontSize: 13 }}>No tasks yet.</p>
+      {visibleTasks && visibleTasks.length === 0 && (
+        <p style={{ color: 'var(--mv-text-muted)', fontSize: 13 }}>
+          {isPM ? 'No tasks yet.' : 'No tasks assigned to you right now.'}
+        </p>
       )}
 
-      {tasks && tasks.length > 0 && (
+      {visibleTasks && visibleTasks.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {tasks.map((task) => (
+          {visibleTasks.map((task) => (
             <div
               key={task.id}
               style={{
