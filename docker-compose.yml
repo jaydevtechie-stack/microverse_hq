@@ -114,6 +114,31 @@ services:
 
 
 
+  microverse-kafka:
+    image: apache/kafka:latest
+    container_name: microverse-kafka
+
+    environment:
+      # single-node KRaft mode — no Zookeeper needed
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://microverse-kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@microverse-kafka:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+
+    networks:
+      - microverse-network
+
+
+
   microverse-minio:
     image: minio/minio
     container_name: microverse-minio
@@ -134,12 +159,93 @@ services:
 
 
 
+  microverse-gofeeler:
+    build:
+      context: ./domain-services/gofeeler
+    container_name: microverse-gofeeler
+    networks:
+      - microverse-network
+
+
+  microverse-netcruncher:
+    build:
+      context: ./domain-services/netcruncher
+    container_name: microverse-netcruncher
+    networks:
+      - microverse-network
+
+
+  microverse-pyreel:
+    build:
+      context: ./domain-services/pyreel
+    container_name: microverse-pyreel
+    environment:
+      RABBITMQ_HOST: microverse-rabbitmq
+    depends_on:
+      - microverse-rabbitmq
+    networks:
+      - microverse-network
+
+
+  microverse-springpix:
+    build:
+      context: ./domain-services/springpix
+    container_name: microverse-springpix
+    environment:
+      # points the AWS S3 SDK at MinIO instead of real AWS — no AWS account
+      # needed. Swap these for real AWS creds and drop S3_ENDPOINT to go live.
+      AWS_ACCESS_KEY_ID: ${MINIO_USER}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_PASSWORD}
+      AWS_REGION: ${AWS_REGION}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME}
+      S3_ENDPOINT: http://microverse-minio:9000
+    depends_on:
+      - microverse-minio
+    networks:
+      - microverse-network
+
+
+  microverse-elixtempo:
+    build:
+      context: ./domain-services/elixtempo
+    container_name: microverse-elixtempo
+    environment:
+      PHX_SERVER: "true"
+      PORT: 4000
+      PHX_HOST: localhost
+      SECRET_KEY_BASE: ${ELIXTEMPO_SECRET_KEY_BASE}
+      KAFKA_BROKERS: microverse-kafka:9092
+    depends_on:
+      - microverse-kafka
+    networks:
+      - microverse-network
+
+
+  microverse-rustledger:
+    build:
+      context: ./domain-services/rustledger
+    container_name: microverse-rustledger
+    environment:
+      PORT: 8080
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@microverse-postgis:5432/${POSTGRES_DB}
+      KAFKA_BROKERS: microverse-kafka:9092
+      DEFAULT_HOURLY_RATE_CENTS: ${RUSTLEDGER_HOURLY_RATE_CENTS}
+      DEFAULT_CURRENCY: ${RUSTLEDGER_CURRENCY}
+    depends_on:
+      - microverse-postgis
+      - microverse-kafka
+    networks:
+      - microverse-network
+
+
+
 volumes:
 
   keycloak_data:
   postgres_data:
   mongodb_data:
   minio_data:
+  kafka_data:
 
 
 
