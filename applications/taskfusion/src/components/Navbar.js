@@ -67,6 +67,29 @@ const Navbar = ({ keycloak }) => {
             >
               Dashboard
             </Link>
+
+            {/* Customer/Analyst links are role-gated the same way their
+                routes are in App.js — platform:project-manager sees both */}
+            {(keycloak.hasRealmRole('platform:customer') ||
+              keycloak.hasRealmRole('platform:project-manager')) && (
+              <Link
+                to="/customer"
+                style={{ color: 'var(--mv-text-muted)', fontSize: 13, textDecoration: 'none' }}
+              >
+                Customers
+              </Link>
+            )}
+
+            {(keycloak.hasRealmRole('platform:analyst') ||
+              keycloak.hasRealmRole('platform:project-manager')) && (
+              <Link
+                to="/analyst"
+                style={{ color: 'var(--mv-text-muted)', fontSize: 13, textDecoration: 'none' }}
+              >
+                Analysts
+              </Link>
+            )}
+
             {/* Orders / Djaboard: business-services/order-service and
                 domain-services/djaboard don't have their own pages yet —
                 placeholders until those exist, not real links */}
