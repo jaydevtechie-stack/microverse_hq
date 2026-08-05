@@ -1,10 +1,10 @@
-// backend/task-service/server.js
+// business-services/task-service/server.js
 
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 const taskRoutes = require('./routes/task-routes');
 const { initPolling } = require('./cron/task-polling');
+const { ensureSchema } = require('./db');
 
 const app = express();
 
@@ -15,15 +15,15 @@ app.use(express.json());  // for parsing application/json
 // Routes
 app.use('/api', taskRoutes);
 
-// MongoDB Connection
-const MONGO_URL = process.env.MONGO_URL || 'mongodb://microverse-mongodb:27017/taskDB';
-mongoose.connect(MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true })
+// Postgres connection — creates the tasks table on first boot if it's
+// not there yet (no separate migration tool for a table this small).
+ensureSchema()
   .then(() => {
-    console.log('Connected to MongoDB');
+    console.log('Connected to Postgres, tasks table ready');
     initPolling(); // Start task polling logic
   })
   .catch((error) => {
-    console.error('MongoDB connection error:', error);
+    console.error('Postgres connection error:', error);
   });
 
 // Start server
