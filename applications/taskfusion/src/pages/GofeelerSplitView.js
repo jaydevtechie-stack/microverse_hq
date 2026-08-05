@@ -1,21 +1,10 @@
 // src/pages/GofeelerSplitView.js
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import GofeelerListPanel from '../components/GofeelerListPanel';
 import TaskDetailContent from '../components/TaskDetailContent';
 import CreateOrderForm from '../components/CreateOrderForm';
-
-const MOBILE_BREAKPOINT = 640;
-
-function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(window.innerWidth < MOBILE_BREAKPOINT);
-  useEffect(() => {
-    const onResize = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
-  return isMobile;
-}
+import useIsMobile from '../hooks/useIsMobile';
 
 // The Gofeeler landing page — a master-detail split view (converted
 // from gofeeler_landing_page_split_view_v1.html). Desktop: list stays
@@ -42,9 +31,9 @@ const GofeelerSplitView = () => {
         border: '0.5px solid var(--mv-border)',
         borderRadius: 'var(--mv-radius-lg)',
         margin: 'var(--mv-space-3)',
-        maxWidth: isMobile ? '100%' : 720,
-        height: '70vh',
-        minHeight: 420,
+        maxWidth: '100%',
+        height: 'calc(100vh - 120px)',
+        minHeight: 300,
         overflow: 'hidden',
       }}
     >

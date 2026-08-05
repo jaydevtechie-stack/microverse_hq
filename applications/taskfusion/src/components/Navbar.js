@@ -1,10 +1,11 @@
 // src/components/Navbar.js
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { IconBell, IconSun, IconMoon } from '@tabler/icons-react';
+import { IconBell, IconSun, IconMoon, IconMenu2, IconX } from '@tabler/icons-react';
 import { logout, landingUrl, hostUrlForSubdomain, isOnMicrosite } from '../services/keycloak';
 import { useTheme } from '../context/ThemeContext';
 import { avatarColorsForKeycloak } from '../utils/avatarColors';
+import useIsMobile from '../hooks/useIsMobile';
 
 function initialsFor(keycloak) {
   const claims = keycloak.tokenParsed || {};
@@ -47,21 +48,116 @@ const Navbar = ({ keycloak }) => {
   const { pathname } = useLocation();
   const isDashboard = pathname === '/dashboard';
   const avatarColors = avatarColorsForKeycloak(keycloak);
+  const isMobile = useIsMobile();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const isCustomerOrPM =
+    keycloak.hasRealmRole('platform:customer') || keycloak.hasRealmRole('platform:project-manager');
+  const isAnalystOrPM =
+    keycloak.hasRealmRole('platform:analyst') || keycloak.hasRealmRole('platform:project-manager');
+
+  const navLinks = (
+    <>
+      <PlatformNavLink to="/dashboard" active={isDashboard}>
+        Dashboard
+      </PlatformNavLink>
+
+      {/* Customer/Analyst links are role-gated the same way their
+          routes are in App.js — platform:project-manager sees both */}
+      {isCustomerOrPM && (
+        <PlatformNavLink to="/customer" active={pathname === '/customer'}>
+          Customers
+        </PlatformNavLink>
+      )}
+
+      {isAnalystOrPM && (
+        <PlatformNavLink to="/analyst" active={pathname === '/analyst'}>
+          Analysts
+        </PlatformNavLink>
+      )}
+
+      {/* Orders / Djaboard: business-services/order-service and
+          domain-services/djaboard don't have their own pages yet —
+          placeholders until those exist, not real links */}
+      <span style={{ color: 'var(--mv-text-muted)', fontSize: 13 }}>Orders</span>
+      <span style={{ color: 'var(--mv-text-muted)', fontSize: 13 }}>Djaboard</span>
+    </>
+  );
+
+  const themeToggleButton = (
+    <button
+      type="button"
+      onClick={toggleTheme}
+      aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+      style={{
+        background: 'none',
+        border: 'none',
+        padding: 0,
+        display: 'flex',
+        cursor: 'pointer',
+        color: 'var(--mv-text-muted)',
+      }}
+    >
+      {theme === 'dark' ? <IconSun size={16} /> : <IconMoon size={16} />}
+    </button>
+  );
+
+  const avatarChip = (
+    <div
+      title={keycloak.tokenParsed.preferred_username}
+      style={{
+        width: 26,
+        height: 26,
+        borderRadius: '50%',
+        background: avatarColors.bg,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: avatarColors.fg,
+        fontSize: 11,
+        fontWeight: 500,
+        flexShrink: 0,
+      }}
+    >
+      {initialsFor(keycloak)}
+    </div>
+  );
+
+  const logoutButton = (
+    <button
+      type="button"
+      onClick={logout}
+      style={{
+        background: 'none',
+        border: 'none',
+        color: 'var(--mv-text-muted)',
+        fontSize: 13,
+        cursor: 'pointer',
+        padding: 0,
+      }}
+    >
+      Logout
+    </button>
+  );
 
   return (
     <nav
       style={{
+        // Explicit stacking context so this renders above LandingPage's
+        // position:fixed background image rather than behind it — plain
+        // static-position siblings otherwise lose to a fixed element.
+        position: 'relative',
+        zIndex: 1,
         background: 'var(--mv-bg-elevated)',
         border: '0.5px solid var(--mv-border)',
         borderRadius: 'var(--mv-radius-lg)',
         padding: '14px 18px',
         margin: 'var(--mv-space-3)',
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
+        flexDirection: 'column',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         {/* Real anchor, not a router Link — on a microsite this is a
             cross-origin hop back to the platform host */}
         <a
@@ -86,88 +182,68 @@ const Navbar = ({ keycloak }) => {
           <span style={{ fontWeight: 500, fontSize: 14 }}>Microverse</span>
         </a>
 
-        {keycloak.authenticated && (
-          <>
-            <PlatformNavLink to="/dashboard" active={isDashboard}>
-              Dashboard
-            </PlatformNavLink>
-
-            {/* Customer/Analyst links are role-gated the same way their
-                routes are in App.js — platform:project-manager sees both */}
-            {(keycloak.hasRealmRole('platform:customer') ||
-              keycloak.hasRealmRole('platform:project-manager')) && (
-              <PlatformNavLink to="/customer" active={pathname === '/customer'}>
-                Customers
-              </PlatformNavLink>
-            )}
-
-            {(keycloak.hasRealmRole('platform:analyst') ||
-              keycloak.hasRealmRole('platform:project-manager')) && (
-              <PlatformNavLink to="/analyst" active={pathname === '/analyst'}>
-                Analysts
-              </PlatformNavLink>
-            )}
-
-            {/* Orders / Djaboard: business-services/order-service and
-                domain-services/djaboard don't have their own pages yet —
-                placeholders until those exist, not real links */}
-            <span style={{ color: 'var(--mv-text-muted)', fontSize: 13 }}>Orders</span>
-            <span style={{ color: 'var(--mv-text-muted)', fontSize: 13 }}>Djaboard</span>
-          </>
+        {isMobile ? (
+          keycloak.authenticated && (
+            <button
+              type="button"
+              onClick={() => setMenuOpen((open) => !open)}
+              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+              style={{
+                background: 'none',
+                border: 'none',
+                display: 'flex',
+                cursor: 'pointer',
+                color: 'var(--mv-text-muted)',
+              }}
+            >
+              {menuOpen ? <IconX size={20} /> : <IconMenu2 size={20} />}
+            </button>
+          )
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginLeft: 20, flex: 1 }}>
+            {keycloak.authenticated && navLinks}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginLeft: 'auto' }}>
+              {themeToggleButton}
+              <IconBell size={16} color="var(--mv-text-muted)" aria-hidden="true" />
+              {avatarChip}
+              {logoutButton}
+            </div>
+          </div>
         )}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        <button
-          type="button"
-          onClick={toggleTheme}
-          aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-          style={{
-            background: 'none',
-            border: 'none',
-            padding: 0,
-            display: 'flex',
-            cursor: 'pointer',
-            color: 'var(--mv-text-muted)',
-          }}
-        >
-          {theme === 'dark' ? <IconSun size={16} /> : <IconMoon size={16} />}
-        </button>
-
-        {/* Navbar only ever renders for an authenticated session (see
-            App.js) — no unauthenticated branch needed here */}
-        <IconBell size={16} color="var(--mv-text-muted)" aria-hidden="true" />
+      {isMobile && menuOpen && keycloak.authenticated && (
         <div
-          title={keycloak.tokenParsed.preferred_username}
           style={{
-            width: 26,
-            height: 26,
-            borderRadius: '50%',
-            background: avatarColors.bg,
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: avatarColors.fg,
-            fontSize: 11,
-            fontWeight: 500,
+            flexDirection: 'column',
+            gap: 14,
+            marginTop: 16,
+            paddingTop: 14,
+            borderTop: '0.5px solid var(--mv-border)',
           }}
         >
-          {initialsFor(keycloak)}
+          {navLinks}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 14,
+              marginTop: 4,
+              paddingTop: 14,
+              borderTop: '0.5px solid var(--mv-border)',
+            }}
+          >
+            {themeToggleButton}
+            <IconBell size={16} color="var(--mv-text-muted)" aria-hidden="true" />
+            {avatarChip}
+            <span style={{ color: 'var(--mv-text-muted)', fontSize: 13 }}>
+              {keycloak.tokenParsed.preferred_username}
+            </span>
+            <div style={{ marginLeft: 'auto' }}>{logoutButton}</div>
+          </div>
         </div>
-        <button
-          type="button"
-          onClick={logout}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--mv-text-muted)',
-            fontSize: 13,
-            cursor: 'pointer',
-          }}
-        >
-          Logout
-        </button>
-      </div>
+      )}
     </nav>
   );
 };
