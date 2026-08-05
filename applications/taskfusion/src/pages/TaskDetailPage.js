@@ -1,8 +1,13 @@
 // src/pages/TaskDetailPage.js
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { getKeycloak } from '../services/keycloak';
 import TaskStatusBadge from '../components/TaskStatusBadge';
 import CloseButton from '../components/CloseButton';
+import PmAssignPanel from '../components/PmAssignPanel';
+import AnalystPanel from '../components/AnalystPanel';
+import ReviewerPanel from '../components/ReviewerPanel';
+import CustomerProgressPanel from '../components/CustomerProgressPanel';
 
 const detailRowStyle = {
   display: 'flex',
@@ -12,11 +17,36 @@ const detailRowStyle = {
   fontSize: 13,
 };
 
-// Info display only — no role/status action buttons yet (Assign,
-// Analyse, Review, Done/Bill, Accept/Close). That's ROADMAP.md's
-// Branch 2, once dummy Order data and per-role actions are built.
+// Which action panel (if any) to show is (viewer's platform role, task's
+// current state) — see ARCHITECTURE.md's "UI pattern" note. A PM only
+// gets the assign picker while unassigned; an analyst/reviewer only get
+// their action while the task is actively assigned to them; a customer
+// only gets the progress/invoice view once there's something to show.
+function actionPanelFor({ task, isPM, isAnalyst, isReviewer, isCustomer, username }) {
+  if (isPM && task.status === 'unassigned') {
+    return <PmAssignPanel />;
+  }
+  if (isAnalyst && task.status === 'analyst' && task.assignee === username) {
+    return <AnalystPanel />;
+  }
+  if (isReviewer && task.status === 'reviewer' && task.assignee === username) {
+    return <ReviewerPanel task={task} />;
+  }
+  if (isCustomer && task.owner === username && ['done', 'paid', 'closed'].includes(task.status)) {
+    return <CustomerProgressPanel task={task} />;
+  }
+  return null;
+}
+
 const TaskDetailPage = () => {
   const { id } = useParams();
+  const keycloak = getKeycloak();
+  const username = keycloak?.tokenParsed?.preferred_username;
+  const isPM = keycloak?.hasRealmRole('platform:project-manager');
+  const isAnalyst = keycloak?.hasRealmRole('platform:analyst');
+  const isReviewer = keycloak?.hasRealmRole('platform:reviewer');
+  const isCustomer = keycloak?.hasRealmRole('platform:customer');
+
   const [task, setTask] = useState(null);
   const [error, setError] = useState(null);
 
@@ -29,6 +59,10 @@ const TaskDetailPage = () => {
       .then(setTask)
       .catch((err) => setError(err.message));
   }, [id]);
+
+  const actionPanel = task
+    ? actionPanelFor({ task, isPM, isAnalyst, isReviewer, isCustomer, username })
+    : null;
 
   return (
     <div
@@ -88,12 +122,14 @@ const TaskDetailPage = () => {
               {task.due_date ? new Date(task.due_date).toLocaleDateString() : '—'}
             </span>
           </div>
-          <div style={{ ...detailRowStyle, borderBottom: 'none' }}>
+          <div style={{ ...detailRowStyle, borderBottom: actionPanel ? '0.5px solid var(--mv-border)' : 'none' }}>
             <span style={{ color: 'var(--mv-text-muted)' }}>Created</span>
             <span style={{ color: 'var(--mv-text)' }}>
               {new Date(task.created_at).toLocaleDateString()}
             </span>
           </div>
+
+          {actionPanel && <div style={{ marginTop: 18 }}>{actionPanel}</div>}
         </>
       )}
     </div>
