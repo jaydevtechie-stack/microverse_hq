@@ -1,17 +1,67 @@
 // src/pages/LandingPage.js
 import React from 'react';
-import { login } from '../services/keycloak';
+import { login, getKeycloak } from '../services/keycloak';
 
+// Public front door, served on microverse.local. Logged-in users can
+// land here too (e.g. via the navbar logo) — the Login button just
+// hides itself when there's already a session. Registration
+// (customer / analyst) is deliberately left out for now, pending a
+// real role-vetting flow design.
 const LandingPage = () => {
+  const keycloak = getKeycloak();
+
   return (
-    <div>
-      <header>
-        <h1>Welcome to Taskfusion</h1>
-        <p>Manage your tasks, users, and more with Keycloak authentication.</p>
-        <button className="custom-button" onClick={() => login()}>
-          Login with Keycloak
-        </button>
-      </header>
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundImage: 'var(--mv-bg-image-url)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        padding: 'var(--mv-space-4)',
+      }}
+    >
+      <div
+        style={{
+          background: '#ffffff',
+          borderRadius: 'var(--mv-radius-lg)',
+          boxShadow: 'var(--mv-shadow)',
+          padding: 'var(--mv-space-5)',
+          maxWidth: 420,
+          width: '100%',
+          textAlign: 'center',
+        }}
+      >
+        <h1 style={{ color: '#0b0f2e', fontSize: 28, margin: '0 0 12px' }}>
+          Welcome to Microverse
+        </h1>
+        <p style={{ color: '#4a5a8a', fontSize: 14, lineHeight: 1.6, margin: '0 0 28px' }}>
+          Microverse started as a playground for exploring how a dozen
+          different languages and frameworks could work together as one
+          real platform. Every service here — from sentiment analysis to
+          time tracking to billing — keeps its own tech and its own
+          personality, all orchestrated behind a single front door.
+        </p>
+        {!keycloak?.authenticated && (
+          <button
+            onClick={() => login()}
+            style={{
+              background: 'var(--mv-color-primary)',
+              color: 'var(--mv-color-primary-contrast)',
+              border: 'none',
+              borderRadius: 'var(--mv-radius)',
+              padding: '12px 32px',
+              fontSize: 15,
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            Login
+          </button>
+        )}
+      </div>
     </div>
   );
 };

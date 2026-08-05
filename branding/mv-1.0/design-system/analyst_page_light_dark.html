@@ -1,0 +1,69 @@
+<h2 class="sr-only">Analyst profile page showing rating, efficiency stats, and current tasks, with a light/dark theme toggle</h2>
+<div id="an-wrap">
+<div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+  <div style="display:flex;gap:6px">
+    <button id="an-dark" style="padding:5px 12px;font-size:12px">Dark</button>
+    <button id="an-light" style="padding:5px 12px;font-size:12px">Light</button>
+  </div>
+</div>
+<div id="an-page" style="border-radius:16px;padding:20px">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
+    <div id="an-avatar" style="width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:500;font-size:15px">JD</div>
+    <div>
+      <p id="an-name" style="font-size:15px;font-weight:500;margin:0">Jane Doe</p>
+      <p id="an-sub" style="font-size:12px;margin:0">gofeeler:analyst · <i class="ti ti-star" style="font-size:11px;vertical-align:-1px" aria-hidden="true"></i> 4.8 rating</p>
+    </div>
+  </div>
+
+  <div id="an-metrics" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px"></div>
+
+  <p id="an-h1" style="font-size:13px;font-weight:500;margin:0 0 8px">Current tasks</p>
+  <div id="an-tasks" style="display:flex;flex-direction:column"></div>
+</div>
+</div>
+<script>
+const anThemes = {
+  dark: {bg:'#05061A',card:'#0B0F2E',border:'#1E2A6B',text:'#E8F4FF',sub:'#9BB8E0',accent:'#4DD8FF',accentText:'#04203B',metricBg:'#0B0F2E'},
+  light: {bg:'#F5F8FF',card:'#FFFFFF',border:'#C9D9F5',text:'#0B0F2E',sub:'#4A5A8A',accent:'#0EA5D9',accentText:'#04203B',metricBg:'#FFFFFF'}
+};
+const metrics = [
+  {label:'Tasks completed', value:'42'},
+  {label:'Avg turnaround', value:'1.8d'},
+  {label:'Efficiency', value:'93%'}
+];
+const anTasks = [
+  {id:'#1024', service:'Gofeeler', due:'due in 5 days', color:'ok'},
+  {id:'#1030', service:'Gofeeler', due:'due tomorrow', color:'warn'}
+];
+function renderAn(mode) {
+  const t = anThemes[mode];
+  document.getElementById('an-page').style.background = t.bg;
+  document.getElementById('an-avatar').style.background = t.accent;
+  document.getElementById('an-avatar').style.color = t.accentText;
+  document.getElementById('an-name').style.color = t.text;
+  document.getElementById('an-sub').style.color = t.sub;
+  document.getElementById('an-h1').style.color = t.text;
+  document.getElementById('an-dark').style.background = mode==='dark'?t.card:'transparent';
+  document.getElementById('an-dark').style.color = mode==='dark'?t.text:t.sub;
+  document.getElementById('an-light').style.background = mode==='light'?t.card:'transparent';
+  document.getElementById('an-light').style.color = mode==='light'?t.text:t.sub;
+
+  document.getElementById('an-metrics').innerHTML = metrics.map(m => `
+    <div style="background:${t.metricBg};border:0.5px solid ${t.border};border-radius:8px;padding:10px 12px">
+      <p style="color:${t.sub};font-size:11px;margin:0 0 4px">${m.label}</p>
+      <p style="color:${t.text};font-size:18px;font-weight:500;margin:0">${m.value}</p>
+    </div>`).join('');
+
+  document.getElementById('an-tasks').innerHTML = anTasks.map(tk => {
+    const dot = tk.color==='warn' ? '#EF9F27' : '#639922';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:0.5px solid ${t.border}">
+      <div style="width:7px;height:7px;border-radius:50%;background:${dot}"></div>
+      <span style="color:${t.text};font-size:13px;flex:1">${tk.id} · ${tk.service}</span>
+      <span style="color:${t.sub};font-size:12px">${tk.due}</span>
+    </div>`;
+  }).join('');
+}
+document.getElementById('an-dark').addEventListener('click', () => renderAn('dark'));
+document.getElementById('an-light').addEventListener('click', () => renderAn('light'));
+renderAn('dark');
+</script>

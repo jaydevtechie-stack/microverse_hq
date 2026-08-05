@@ -30,6 +30,11 @@ build/
 # React / Vue / Angular
 coverage/
 
+# Synced from branding/mv-1.0 by each frontend app's pre-start/pre-build
+# script (e.g. applications/taskfusion/scripts/sync-brand-assets.js) —
+# generated, not authored here
+applications/*/src/assets/brand/
+
 # Python
 __pycache__/
 *.py[cod]

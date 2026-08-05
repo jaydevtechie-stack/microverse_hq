@@ -1,0 +1,71 @@
+<h2 class="sr-only">Customer profile page showing company info, orders, and invoices, with a light/dark theme toggle</h2>
+<div id="cust-wrap">
+<div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+  <div style="display:flex;gap:6px">
+    <button id="cust-dark" style="padding:5px 12px;font-size:12px">Dark</button>
+    <button id="cust-light" style="padding:5px 12px;font-size:12px">Light</button>
+  </div>
+</div>
+<div id="cust-page" style="border-radius:16px;padding:20px">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
+    <div id="cust-avatar" style="width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:500;font-size:15px">AF</div>
+    <div>
+      <p id="cust-name" style="font-size:15px;font-weight:500;margin:0">Acme Forestry</p>
+      <p id="cust-sub" style="font-size:12px;margin:0">Company · 3 customer users</p>
+    </div>
+  </div>
+
+  <p id="cust-h1" style="font-size:13px;font-weight:500;margin:0 0 8px">Orders</p>
+  <div id="cust-orders" style="display:flex;flex-direction:column;margin-bottom:18px"></div>
+
+  <p id="cust-h2" style="font-size:13px;font-weight:500;margin:0 0 8px">Invoices</p>
+  <div id="cust-invoices" style="display:flex;flex-direction:column"></div>
+</div>
+</div>
+<script>
+const custThemes = {
+  dark: {bg:'#05061A',card:'#0B0F2E',border:'#1E2A6B',text:'#E8F4FF',sub:'#9BB8E0',accent:'#4DD8FF',accentText:'#04203B',btnBg:'#0B0F2E',btnOff:'transparent'},
+  light: {bg:'#F5F8FF',card:'#FFFFFF',border:'#C9D9F5',text:'#0B0F2E',sub:'#4A5A8A',accent:'#0EA5D9',accentText:'#04203B',btnBg:'#FFFFFF',btnOff:'transparent'}
+};
+const orders = [
+  {id:'#1024', service:'Gofeeler', status:'in progress'},
+  {id:'#1026', service:'Gofeeler', status:'overdue'},
+  {id:'#1031', service:'SpringPix', status:'unassigned'}
+];
+const invoices = [
+  {id:'INV-0091', amount:'$420.00', status:'paid'},
+  {id:'INV-0095', amount:'$180.00', status:'unpaid'}
+];
+function renderCust(mode) {
+  const t = custThemes[mode];
+  document.getElementById('cust-page').style.background = t.bg;
+  document.getElementById('cust-avatar').style.background = t.accent;
+  document.getElementById('cust-avatar').style.color = t.accentText;
+  document.getElementById('cust-name').style.color = t.text;
+  document.getElementById('cust-sub').style.color = t.sub;
+  document.getElementById('cust-h1').style.color = t.text;
+  document.getElementById('cust-h2').style.color = t.text;
+  document.getElementById('cust-dark').style.background = mode==='dark'?t.btnBg:t.btnOff;
+  document.getElementById('cust-dark').style.color = mode==='dark'?t.text:t.sub;
+  document.getElementById('cust-light').style.background = mode==='light'?t.btnBg:t.btnOff;
+  document.getElementById('cust-light').style.color = mode==='light'?t.text:t.sub;
+
+  const oWrap = document.getElementById('cust-orders');
+  oWrap.innerHTML = orders.map(o => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:0.5px solid ${t.border}">
+      <span style="color:${t.text};font-size:13px;flex:1">${o.id} · ${o.service}</span>
+      <span style="color:${t.accent};font-size:11px;background:${t.accent}22;padding:2px 8px;border-radius:10px">${o.status}</span>
+    </div>`).join('');
+
+  const iWrap = document.getElementById('cust-invoices');
+  iWrap.innerHTML = invoices.map(inv => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:0.5px solid ${t.border}">
+      <span style="color:${t.text};font-size:13px;flex:1">${inv.id}</span>
+      <span style="color:${t.sub};font-size:12px">${inv.amount}</span>
+      <span style="color:${inv.status==='paid'?t.accent:t.sub};font-size:11px">${inv.status}</span>
+    </div>`).join('');
+}
+document.getElementById('cust-dark').addEventListener('click', () => renderCust('dark'));
+document.getElementById('cust-light').addEventListener('click', () => renderCust('light'));
+renderCust('dark');
+</script>
