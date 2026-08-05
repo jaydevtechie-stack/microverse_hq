@@ -10,6 +10,7 @@ import CustomerPage from './pages/CustomerPage';
 import AnalystPage from './pages/AnalystPage';
 import GofeelerPage from './pages/GofeelerPage';
 import CreateOrderPage from './pages/CreateOrderPage';
+import TaskDetailPage from './pages/TaskDetailPage';
 
 // microverse.local carries everything platform-side (landing page,
 // /dashboard, /customer, /analyst — path-based). Domain services get
@@ -135,6 +136,21 @@ const App = () => {
                   element={<CreateOrderPage />}
                   keycloak={keycloak}
                   requireAllRoles={['platform:customer', 'service:gofeeler']}
+                />
+              }
+            />
+
+            {/* Only gofeeler tasks exist right now, so this is gated the
+                same as the gofeeler task list itself — will need to key
+                off the fetched task's own `service` field once other
+                domain services have tasks too */}
+            <Route
+              path="/task/:id"
+              element={
+                <PrivateRoute
+                  element={<TaskDetailPage />}
+                  keycloak={keycloak}
+                  roles={['service:gofeeler']}
                 />
               }
             />

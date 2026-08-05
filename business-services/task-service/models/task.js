@@ -9,6 +9,11 @@ async function findByService(service) {
   return rows;
 }
 
+async function findById(id) {
+  const { rows } = await pool.query('SELECT * FROM tasks WHERE id = $1', [id]);
+  return rows[0] || null;
+}
+
 async function pollingCounts() {
   const { rows } = await pool.query(`
     SELECT
@@ -23,4 +28,4 @@ async function pollingCounts() {
   return rows[0];
 }
 
-module.exports = { findByService, pollingCounts };
+module.exports = { findByService, findById, pollingCounts };
