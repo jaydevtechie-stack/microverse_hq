@@ -7,7 +7,7 @@ const CANDIDATES = [
   { name: 'Jane Doe', fontSize: 19, color: 'var(--mv-color-primary)', weight: 500 },
   { name: 'Agent-03', fontSize: 14, color: 'var(--mv-text-muted)', weight: 400 },
   { name: 'Mark', fontSize: 13, color: 'var(--mv-text-muted)', weight: 400 },
-  { name: 'Priya', fontSize: 11, color: 'var(--mv-badge-bg)', weight: 400 },
+  { name: 'John', fontSize: 11, color: 'var(--mv-badge-bg)', weight: 400 },
 ];
 
 // Assign is a stub — no PATCH /api/tasks/:id yet (ROADMAP.md Branch 4).

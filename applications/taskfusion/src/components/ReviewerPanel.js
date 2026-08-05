@@ -47,7 +47,7 @@ const ReviewerPanel = ({ task }) => {
         }}
       >
         <option>You (default — project manager)</option>
-        <option>Priya (dedicated reviewer)</option>
+        <option>John (dedicated reviewer)</option>
       </select>
 
       <div style={{ display: 'flex', gap: 10 }}>
