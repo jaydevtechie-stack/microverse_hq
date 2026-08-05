@@ -41,31 +41,58 @@ root element when a user picks a theme explicitly.
 
 ## Using it
 
-**Plain CSS / Keycloak theme** — link `tokens.css` directly, then use the
-custom properties (`var(--mv-color-primary)`, etc.) in your own stylesheet.
-The `microverse` Keycloak theme
-(`infrastructure/keycloak/themes/microverse/login/resources/css/`) does
-exactly this.
+Nothing consumes a hand-maintained copy of these files — every consumer
+either reads them live or has its build pull them in automatically. There
+should never be a second place to edit when the palette or logo changes.
 
-**React (or any Sass build)** — CSS custom properties work at runtime, but
-Bootstrap's Sass source uses its `$variables` at *compile* time (its color
-functions like `darken()` need real Sass values, not `var()`). So a
-Bootstrap-based app keeps a small Sass copy of the same hex values to feed
-Bootstrap's variables, e.g. `applications/taskfusion/src/assets/scss/_variables.scss`:
+**Keycloak theme** — `docker-compose.yml` bind-mounts this whole `mv-1.0`
+directory straight into the theme's resources
+(`./branding/mv-1.0:/opt/keycloak/themes/microverse/login/resources/branding:ro`),
+so `infrastructure/keycloak/themes/microverse/login/theme.properties`
+links `branding/design-system/tokens.css` directly — the real file, not a
+copy. Keycloak reads theme files from disk on every request in dev mode
+(no build/cache step), so this "just works".
 
-```scss
-$primary: #2c3e50;   // keep in sync with design-system/tokens.css --mv-color-primary
-$secondary: #95a5a6;
-// ...
-```
+**React (CRA) apps, e.g. taskfusion** — CRA's webpack config
+(`ModuleScopePlugin`) refuses to import anything outside `src/`, and it
+compiles to a static bundle anyway, so a live mount doesn't help the way
+it does for Keycloak. Instead, each app's build pulls the canonical files
+in automatically:
+- **Docker build**: the Dockerfile `COPY`s `branding/mv-1.0/...` straight
+  into `src/assets/brand/` as a build step (see
+  `applications/taskfusion/Dockerfile`) — this is why that image's build
+  context is the repo root, not just the app's own folder.
+- **Local dev** (`npm start` outside Docker): a `prestart`/`prebuild` npm
+  script (`scripts/sync-brand-assets.js`) does the same copy from the
+  local filesystem.
 
-and separately imports `tokens.css` globally so components can still use
-`var(--mv-*)` directly for anything not routed through Bootstrap's Sass
-(e.g. this repo's `Notification.js`-style custom components).
+  Either way, `src/assets/brand/` is gitignored (see root `.gitignore`)
+  — it's always generated, never authored in the app's own repo tree.
+  The copy mirrors `mv-1.0`'s own folder layout exactly
+  (`design-system/`, `logos/`, `images/`) so `tokens.css`'s relative
+  `../logos/...`, `../images/...` references resolve unmodified — no
+  path rewriting in the sync step.
 
-**Vue / Svelte (future admin / reports apps)** — import `tokens.css` once at
-the app root; there's no Sass compile-time constraint here, so the CSS
-custom properties are the single source, used directly.
+  Separately, Bootstrap's Sass source uses its `$variables` at *compile*
+  time (its color functions like `darken()` need real Sass values, not
+  `var()`), so a Bootstrap-based app also keeps a small literal-hex Sass
+  copy to feed Bootstrap's variables, e.g.
+  `applications/taskfusion/src/assets/scss/_variables.scss`:
+
+  ```scss
+  $primary: #2c3e50;   // keep in sync with design-system/tokens.css --mv-color-primary
+  $secondary: #95a5a6;
+  // ...
+  ```
+
+  This one genuinely can't be automated the same way (Sass color
+  functions need literal values) — it's the one place that still needs
+  manual sync when the palette changes.
+
+**Vue / Svelte (future admin / reports apps)** — same pattern as React:
+no Sass compile-time constraint, so just apply the "sync canonical files
+into the app's own src/ at build time" mechanism above and import
+`tokens.css` once at the app root.
 
 ## Assets
 

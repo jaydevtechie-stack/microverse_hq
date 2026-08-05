@@ -38,6 +38,7 @@ services:
       - keycloak_data:/opt/keycloak/data
       - ./infrastructure/keycloak/realm-export:/opt/keycloak/data/import
       - ./infrastructure/keycloak/themes/microverse:/opt/keycloak/themes/microverse:ro
+      - ./branding/mv-1.0:/opt/keycloak/themes/microverse/login/resources/branding:ro
 
     healthcheck:
       # the keycloak image has no curl/wget; use bash's /dev/tcp instead
@@ -56,7 +57,10 @@ services:
 
   microverse-taskfusion:
     build:
-      context: ./applications/taskfusion
+      # repo root, not ./applications/taskfusion — the build needs to
+      # reach branding/mv-1.0 (see Dockerfile)
+      context: .
+      dockerfile: applications/taskfusion/Dockerfile
       args:
         REACT_APP_KEYCLOAK_URL: ${TASKFUSION_KEYCLOAK_URL}
         REACT_APP_KEYCLOAK_REALM: ${TASKFUSION_KEYCLOAK_REALM}

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { logout } from '../services/keycloak';
-import logo from '../assets/brand/microverse-logo.png';
+import logo from '../assets/brand/logos/microverse-logo.png';
 
 const Navbar = ({ keycloak }) => {
   return (
