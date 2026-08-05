@@ -2,7 +2,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { findByService } = require('../models/task');
+const { findByService, findById } = require('../models/task');
 
 // Fetch tasks tagged with a given domain service, e.g. ?service=gofeeler.
 // The caller (taskfusion) is responsible for only requesting a service
@@ -19,6 +19,18 @@ router.get('/tasks', async (req, res) => {
     res.status(200).json(tasks);
   } catch (err) {
     res.status(500).json({ message: 'Error fetching tasks', error: err.message });
+  }
+});
+
+// Single task, for the detail page — no role/ownership check here yet,
+// same as GET /tasks; the frontend route is what's role-gated for now.
+router.get('/tasks/:id', async (req, res) => {
+  try {
+    const task = await findById(req.params.id);
+    if (!task) return res.status(404).json({ message: 'Task not found' });
+    res.status(200).json(task);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching task', error: err.message });
   }
 });
 

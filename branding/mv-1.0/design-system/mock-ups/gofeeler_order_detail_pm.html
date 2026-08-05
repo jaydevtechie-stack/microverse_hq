@@ -1,0 +1,44 @@
+<h2 class="sr-only">Order task detail page, project manager view, showing a word cloud recommendation and a plain dropdown for assigning an analyst</h2>
+<div style="background:#05061A;border-radius:16px;padding:20px;max-width:560px">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+    <span style="color:#9BB8E0;font-size:12px">Gofeeler · Order #1024 · viewing as project-manager</span>
+    <span style="background:#5F5E5A22;color:#9BB8E0;font-size:11px;padding:2px 10px;border-radius:10px">unassigned</span>
+  </div>
+  <p style="color:#E8F4FF;font-size:16px;font-weight:500;margin:0 0 4px">Q3 customer support chat review</p>
+  <p style="color:#9BB8E0;font-size:12px;margin:0 0 18px">
+    <span style="color:#4DD8FF;cursor:pointer">Acme Forestry</span> · due in 5 days
+  </p>
+
+  <p style="color:#9BB8E0;font-size:12px;margin:0 0 6px">Uploaded content</p>
+  <div style="background:#0B0F2E;border:0.5px solid #1E2A6B;border-radius:8px;padding:12px;color:#9BB8E0;font-size:12px;line-height:1.5;margin-bottom:18px">
+    "I've contacted support three times this week and still no resolution..."
+  </div>
+
+  <p style="color:#9BB8E0;font-size:12px;margin:0 0 10px">Recommended analysts</p>
+  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:14px;background:#0B0F2E;border:0.5px solid #1E2A6B;border-radius:10px;margin-bottom:14px">
+    <span onclick="pickAssignee('Jane Doe')" style="color:#4DD8FF;font-size:19px;cursor:pointer;font-weight:500">Jane Doe</span>
+    <span onclick="pickAssignee('Agent-03')" style="color:#9BB8E0;font-size:14px;cursor:pointer">Agent-03</span>
+    <span onclick="pickAssignee('Mark')" style="color:#9BB8E0;font-size:13px;cursor:pointer">Mark</span>
+    <span onclick="pickAssignee('Priya')" style="color:#5F5E5A;font-size:11px;cursor:pointer">Priya</span>
+  </div>
+  <p style="color:#5F5E5A;font-size:11px;margin:0 0 18px">Sized by predicted fit — from the recommendation agent</p>
+
+  <p style="color:#9BB8E0;font-size:12px;margin:0 0 6px">Or assign directly</p>
+  <select id="assignee-select" onchange="pickAssignee(this.value)" style="width:100%;background:#0B0F2E;border:0.5px solid #1E2A6B;border-radius:8px;padding:9px 12px;color:#E8F4FF;font-size:13px;margin-bottom:18px;box-sizing:border-box">
+    <option value="">Choose an analyst...</option>
+    <option>Jane Doe</option>
+    <option>Agent-03</option>
+    <option>Mark</option>
+    <option>Priya</option>
+  </select>
+
+  <div id="confirm" style="display:none;background:#4DD8FF22;border:0.5px solid #4DD8FF;border-radius:8px;padding:10px 12px;color:#4DD8FF;font-size:12px"></div>
+</div>
+<script>
+function pickAssignee(name) {
+  document.getElementById('assignee-select').value = name;
+  const c = document.getElementById('confirm');
+  c.style.display = 'block';
+  c.textContent = 'Assigning to ' + name + ' — order will move to "analyst" status';
+}
+</script>
