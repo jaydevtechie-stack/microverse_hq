@@ -22,6 +22,8 @@ export const SERVICES = [
     icon: IconMessage2,
     dark: { fg: '#4DD8FF', bg: '#4DD8FF22' },
     light: { fg: '#0EA5D9', bg: '#E0F7FC' },
+    subdomain: 'gofeeler',
+    requiredRole: 'service:gofeeler',
   },
   {
     key: 'springpix',
