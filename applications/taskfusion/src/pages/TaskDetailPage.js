@@ -1,7 +1,8 @@
 // src/pages/TaskDetailPage.js
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import TaskStatusBadge from '../components/TaskStatusBadge';
+import CloseButton from '../components/CloseButton';
 
 const detailRowStyle = {
   display: 'flex',
@@ -32,6 +33,7 @@ const TaskDetailPage = () => {
   return (
     <div
       style={{
+        position: 'relative',
         background: 'var(--mv-bg-elevated)',
         border: '0.5px solid var(--mv-border)',
         borderRadius: 'var(--mv-radius-lg)',
@@ -40,21 +42,16 @@ const TaskDetailPage = () => {
         maxWidth: 520,
       }}
     >
-      <Link
-        to="/"
-        style={{ color: 'var(--mv-text-muted)', fontSize: 12, textDecoration: 'none' }}
-      >
-        ← Back to tasks
-      </Link>
+      <CloseButton />
 
       {error && (
-        <p style={{ color: 'var(--mv-color-danger)', fontSize: 13, marginTop: 14 }}>
+        <p style={{ color: 'var(--mv-color-danger)', fontSize: 13 }}>
           Couldn't load task: {error}
         </p>
       )}
 
       {!error && !task && (
-        <p style={{ color: 'var(--mv-text-muted)', fontSize: 13, marginTop: 14 }}>Loading task…</p>
+        <p style={{ color: 'var(--mv-text-muted)', fontSize: 13 }}>Loading task…</p>
       )}
 
       {task && (

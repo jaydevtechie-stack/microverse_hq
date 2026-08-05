@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { IconUpload } from '@tabler/icons-react';
 import TagInput from '../components/TagInput';
+import CloseButton from '../components/CloseButton';
 
 const SENTIMENT_VOCAB = [
   'Positive',
@@ -49,6 +50,7 @@ const CreateOrderPage = () => {
   return (
     <div
       style={{
+        position: 'relative',
         background: 'var(--mv-bg-elevated)',
         border: '0.5px solid var(--mv-border)',
         borderRadius: 'var(--mv-radius-lg)',
@@ -57,6 +59,8 @@ const CreateOrderPage = () => {
         maxWidth: 520,
       }}
     >
+      <CloseButton />
+
       <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 4px' }}>
         Gofeeler · New order
       </p>
