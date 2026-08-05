@@ -25,6 +25,8 @@ Approach + technology notes for roadmap items that need more than a one-line bul
 **Storage:** A shared `tags` index in Elasticsearch, owned by `search-service` — not a per-service table. One document per tag (`{ name, created_at, usage_count }`). Any domain service that needs tag autocomplete queries the same index, rather than each service growing its own bespoke vocabulary.
 **Tech:** Elasticsearch's built-in fuzzy matching (`fuzziness: "AUTO"` on a match query) does the typo-tolerant matching server-side — no separate client-side fuzzy library (Fuse.js) needed. Frontend is a combobox pattern (`cmdk` or `downshift`) calling search-service's tag-suggest endpoint. Selected tags render as a chip cluster, not a literal size-by-frequency word cloud. `usage_count` could later power a genuine frequency-based view (e.g. "most common tags this month") as a separate analytics feature.
 
+**Implemented as:** `GET /tags/suggest?q=` on search-service, proxied through nginx at `/api/tags`. Fuzziness alone turned out not to be enough — edit distance between a short in-progress prefix ("urg") and the full word ("urgency") is way past what `fuzziness: AUTO` allows, so early keystrokes returned nothing. Fixed with a `bool`/`should` combining `match_bool_prefix` (catches mid-typing) and the fuzzy `match` (catches typos on an otherwise-complete word, e.g. "urgncy"). `POST /tags` does the upsert-or-bump-usage_count on pick/create, matched case-insensitively via a `name.keyword` field with a lowercase normalizer. `name.keyword` (not analyzed `name`) is deliberate for that lookup — fuzzy/prefix matching is for suggestions, not for deciding whether a submitted tag is "the same" as an existing one. Index gets seeded with the starter sentiment vocabulary (Positive/Negative/.../Escalation) on first creation only.
+
 ### MinIO architecture and permissions
 **Approach:** One shared bucket across all services (not bucket-per-service — avoids re-provisioning MinIO for every new domain service). Isolation happens in the object key structure instead: `{service}/{company_id}/{order_id}/{version}/{filename}` — e.g. `gofeeler/acme-forestry/1f0a3c9e-.../v1/support-chat-export.txt`. `order_id` is a UUID (see the ID convention below), not a sequential number — the key alone encodes enough for an access check without a DB lookup, and doesn't leak enumerable order volume.
 
@@ -77,7 +79,7 @@ Development is branched — each branch below is a discrete unit of work, roughl
 
 **Branch 3 — Create Order form functionality**
 - 🟢 3.1 Expand `asset-service` with MinIO (see Proposals — shared bucket, presigned URLs)
-- 🟢 3.2 Tags/sentiments component — Elasticsearch server-side fuzzy matching via `search-service` (see Proposals; not a client-side fuzzy library)
+- ✅ 3.2 Tags/sentiments component — Elasticsearch server-side fuzzy matching via `search-service` (see Proposals; not a client-side fuzzy library)
 - 🟢 3.3 Comments table for Task comments (separate table, not JSON — see Proposals in a future update for schema)
 
 **Branch 4 — Task detail functionality**
@@ -88,10 +90,11 @@ Development is branched — each branch below is a discrete unit of work, roughl
 - 🟡 Real text sentiment analysis via LLM, replacing the naive keyword matcher
 
 **Branch 6 — search-service integration**
-- 🟢 search-service + Elasticsearch added to the `gofeeler` docker profile (scaffolded, not yet queried)
+- ✅ search-service + Elasticsearch added to the `gofeeler` docker profile — genuinely queried now via the tag-suggest endpoint (Branch 3.2), not just scaffolded
 - 🟡 Real term search — search-service exposes a permission-scoped search endpoint (owner/assignee/company filter baked into the query, per the role model), React calls it rather than touching Elasticsearch directly
 
 **Still not branched yet**
+- 🟢 Migrate `task-service`'s `tasks.id` from `SERIAL` to `UUID` (`gen_random_uuid()` via pgcrypto) to match ARCHITECTURE.md's ID convention — noted while working on Branch 3.2, not done yet
 - 🟡 PM notification bell (unread count + popup) → clicking loads the Order/Task detail page
 - 🟡 PM approval → bill creation handoff to rustledger
 - 🟡 Hook into `event-bus` — emit a `sentiment.analyzed` event to the Kafka scroll per analysis
