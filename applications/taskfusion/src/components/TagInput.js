@@ -1,23 +1,56 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { IconX } from '@tabler/icons-react';
 
-// Structure/layout only for now — a plain case-insensitive substring
-// filter over a hardcoded vocab. Branch 3.2 (ROADMAP.md) replaces this
-// with search-service's Elasticsearch-backed fuzzy tag-suggest
-// endpoint; this local filter is just a stand-in for that shape.
-const TagInput = ({ vocab, selected, onChange }) => {
-  const [inputValue, setInputValue] = useState('');
+const DEBOUNCE_MS = 250;
 
-  const query = inputValue.trim().toLowerCase();
-  const matches = query
-    ? vocab.filter((v) => !selected.includes(v) && v.toLowerCase().includes(query)).slice(0, 4)
-    : [];
-  const exactMatch = matches.some((m) => m.toLowerCase() === query);
-  const showCreate = query.length > 1 && !exactMatch;
+// Suggestions come from search-service's Elasticsearch-backed
+// fuzzy-match endpoint (ROADMAP.md's "Sentiment tag input" proposal) —
+// debounced so every keystroke doesn't fire a request. Picking a
+// suggestion or creating a new tag both POST to the same shared
+// vocabulary (bumping usage_count if it already exists).
+const TagInput = ({ selected, onChange }) => {
+  const [inputValue, setInputValue] = useState('');
+  const [matches, setMatches] = useState([]);
+  const [exactMatch, setExactMatch] = useState(false);
+
+  useEffect(() => {
+    const query = inputValue.trim();
+    if (!query) {
+      setMatches([]);
+      setExactMatch(false);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      fetch(`/api/tags/suggest?q=${encodeURIComponent(query)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setMatches((data.matches || []).map((m) => m.name).filter((name) => !selected.includes(name)));
+          setExactMatch(data.exact_match);
+        })
+        .catch(() => {
+          setMatches([]);
+          setExactMatch(false);
+        });
+    }, DEBOUNCE_MS);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inputValue]);
+
+  const showCreate = inputValue.trim().length > 1 && !exactMatch;
 
   const addTag = (tag) => {
     if (!selected.includes(tag)) onChange([...selected, tag]);
     setInputValue('');
+    setMatches([]);
+    // Fire-and-forget — persists the tag / bumps its usage_count.
+    // Doesn't block the UI on it, same as this form's other stubs.
+    fetch('/api/tags', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: tag }),
+    }).catch(() => {});
   };
 
   const removeTag = (tag) => onChange(selected.filter((t) => t !== tag));

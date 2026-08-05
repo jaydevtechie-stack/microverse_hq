@@ -2,19 +2,6 @@ import React, { useState } from 'react';
 import { IconUpload } from '@tabler/icons-react';
 import TagInput from './TagInput';
 
-const SENTIMENT_VOCAB = [
-  'Positive',
-  'Negative',
-  'Neutral',
-  'Mixed',
-  'Sarcasm',
-  'Urgency',
-  'Frustration',
-  'Confusion',
-  'Gratitude',
-  'Escalation',
-];
-
 const fieldLabelStyle = {
   color: 'var(--mv-text-muted)',
   fontSize: 12,
@@ -69,7 +56,7 @@ const CreateOrderForm = () => {
 
       <label style={fieldLabelStyle}>Sentiment focus</label>
       <div style={{ marginBottom: 18 }}>
-        <TagInput vocab={SENTIMENT_VOCAB} selected={tags} onChange={setTags} />
+        <TagInput selected={tags} onChange={setTags} />
       </div>
 
       <label style={fieldLabelStyle}>Upload content</label>
