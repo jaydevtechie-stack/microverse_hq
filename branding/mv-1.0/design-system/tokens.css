@@ -7,10 +7,11 @@
  * required, so it can be linked directly from a Keycloak .ftl theme as
  * well as imported into any frontend framework.
  *
- * Values are extracted from the mv-1.0 brand's Bootswatch builds
- * (Flatly = light, Darkly = dark) in ../themes/{light,dark}/bootstrap.min.css,
- * so this file and those builds should be treated as describing the same
- * palette. If the brand palette changes, update both.
+ * Palette below (navy/cyan) matches the dashboard mockups in this same
+ * folder (microverse_navbar_light_dark.html,
+ * microverse_dashboard_full_page*.html) — those are the source of truth
+ * for the values, not the Bootswatch builds in ../themes/, which predate
+ * this palette and are now just historical reference.
  *
  * Dark mode: prefers-color-scheme is the default signal; [data-theme]
  * overrides it in either direction so an app-level theme toggle always wins.
@@ -18,8 +19,8 @@
 
 :root {
   /* Brand / semantic colors */
-  --mv-color-primary: #2c3e50;
-  --mv-color-primary-contrast: #ffffff;
+  --mv-color-primary: #0ea5d9;
+  --mv-color-primary-contrast: #04203b;
   --mv-color-secondary: #95a5a6;
   --mv-color-success: #18bc9c;
   --mv-color-info: #3498db;
@@ -29,11 +30,18 @@
   --mv-color-dark: #7b8a8b;
 
   /* Surfaces & text */
-  --mv-bg: #ffffff;
+  --mv-bg: #f5f8ff;
   --mv-bg-elevated: #ffffff;
-  --mv-text: #212529;
-  --mv-text-muted: #6c757d;
-  --mv-border: #dee2e6;
+  --mv-text: #0b0f2e;
+  --mv-text-muted: #4a5a8a;
+  --mv-border: #c9d9f5;
+
+  /* Avatar & neutral status badge — distinct from --mv-color-primary
+     because the mockups use a different shade for the avatar chip */
+  --mv-avatar-bg: #0ea5d9;
+  --mv-avatar-text: #04203b;
+  --mv-badge-bg: #b4b2a9;
+  --mv-badge-text: #2c2c2a;
 
   /* Typography */
   --mv-font-sans: Lato, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
@@ -63,8 +71,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --mv-color-primary: #375a7f;
-    --mv-color-primary-contrast: #ffffff;
+    --mv-color-primary: #4dd8ff;
+    --mv-color-primary-contrast: #04203b;
     --mv-color-secondary: #444444;
     --mv-color-success: #00bc8c;
     --mv-color-info: #3498db;
@@ -73,11 +81,16 @@
     --mv-color-light: #adb5bd;
     --mv-color-dark: #303030;
 
-    --mv-bg: #222222;
-    --mv-bg-elevated: #2b2b2b;
-    --mv-text: #dee2e6;
-    --mv-text-muted: #adb5bd;
-    --mv-border: #444444;
+    --mv-bg: #05061a;
+    --mv-bg-elevated: #0b0f2e;
+    --mv-text: #e8f4ff;
+    --mv-text-muted: #9bb8e0;
+    --mv-border: #1e2a6b;
+
+    --mv-avatar-bg: #2d5fdb;
+    --mv-avatar-text: #e8f4ff;
+    --mv-badge-bg: #5f5e5a;
+    --mv-badge-text: #f1efe8;
 
     --mv-shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.5);
     --mv-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.6);
@@ -85,8 +98,8 @@
 }
 
 [data-theme="dark"] {
-  --mv-color-primary: #375a7f;
-  --mv-color-primary-contrast: #ffffff;
+  --mv-color-primary: #4dd8ff;
+  --mv-color-primary-contrast: #04203b;
   --mv-color-secondary: #444444;
   --mv-color-success: #00bc8c;
   --mv-color-info: #3498db;
@@ -95,19 +108,24 @@
   --mv-color-light: #adb5bd;
   --mv-color-dark: #303030;
 
-  --mv-bg: #222222;
-  --mv-bg-elevated: #2b2b2b;
-  --mv-text: #dee2e6;
-  --mv-text-muted: #adb5bd;
-  --mv-border: #444444;
+  --mv-bg: #05061a;
+  --mv-bg-elevated: #0b0f2e;
+  --mv-text: #e8f4ff;
+  --mv-text-muted: #9bb8e0;
+  --mv-border: #1e2a6b;
+
+  --mv-avatar-bg: #2d5fdb;
+  --mv-avatar-text: #e8f4ff;
+  --mv-badge-bg: #5f5e5a;
+  --mv-badge-text: #f1efe8;
 
   --mv-shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.5);
   --mv-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.6);
 }
 
 [data-theme="light"] {
-  --mv-color-primary: #2c3e50;
-  --mv-color-primary-contrast: #ffffff;
+  --mv-color-primary: #0ea5d9;
+  --mv-color-primary-contrast: #04203b;
   --mv-color-secondary: #95a5a6;
   --mv-color-success: #18bc9c;
   --mv-color-info: #3498db;
@@ -116,11 +134,16 @@
   --mv-color-light: #ecf0f1;
   --mv-color-dark: #7b8a8b;
 
-  --mv-bg: #ffffff;
+  --mv-bg: #f5f8ff;
   --mv-bg-elevated: #ffffff;
-  --mv-text: #212529;
-  --mv-text-muted: #6c757d;
-  --mv-border: #dee2e6;
+  --mv-text: #0b0f2e;
+  --mv-text-muted: #4a5a8a;
+  --mv-border: #c9d9f5;
+
+  --mv-avatar-bg: #0ea5d9;
+  --mv-avatar-text: #04203b;
+  --mv-badge-bg: #b4b2a9;
+  --mv-badge-text: #2c2c2a;
 
   --mv-shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
   --mv-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
