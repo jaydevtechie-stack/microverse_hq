@@ -1,5 +1,6 @@
 // src/pages/GofeelerPage.js
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { getKeycloak } from '../services/keycloak';
 import TaskStatusBadge from '../components/TaskStatusBadge';
 
@@ -9,6 +10,7 @@ import TaskStatusBadge from '../components/TaskStatusBadge';
 const GofeelerPage = () => {
   const keycloak = getKeycloak();
   const isPM = keycloak?.hasRealmRole('platform:project-manager');
+  const isCustomer = keycloak?.hasRealmRole('platform:customer');
   const username = keycloak?.tokenParsed?.preferred_username;
 
   const [tasks, setTasks] = useState(null);
@@ -36,9 +38,26 @@ const GofeelerPage = () => {
         padding: '16px 18px',
       }}
     >
-      <p style={{ color: 'var(--mv-text)', fontSize: 15, fontWeight: 500, margin: '0 0 4px' }}>
-        {isPM ? 'Gofeeler tasks' : 'Your Gofeeler tasks'}
-      </p>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          marginBottom: 4,
+        }}
+      >
+        <p style={{ color: 'var(--mv-text)', fontSize: 15, fontWeight: 500, margin: 0 }}>
+          {isPM ? 'Gofeeler tasks' : 'Your Gofeeler tasks'}
+        </p>
+        {isCustomer && (
+          <Link
+            to="/create"
+            style={{ color: 'var(--mv-color-primary)', fontSize: 12, textDecoration: 'none' }}
+          >
+            + New order
+          </Link>
+        )}
+      </div>
       <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 18px' }}>
         {isPM
           ? 'Every task tagged for the Gofeeler service, across all statuses.'
@@ -64,14 +83,16 @@ const GofeelerPage = () => {
       {visibleTasks && visibleTasks.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           {visibleTasks.map((task) => (
-            <div
+            <Link
               key={task.id}
+              to={`/task/${task.id}`}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 10,
                 padding: '8px 4px',
                 borderBottom: '0.5px solid var(--mv-border)',
+                textDecoration: 'none',
               }}
             >
               <span style={{ color: 'var(--mv-text)', fontSize: 13, flex: 1 }}>{task.title}</span>
@@ -79,7 +100,7 @@ const GofeelerPage = () => {
                 {task.assignee || 'unassigned'}
               </span>
               <TaskStatusBadge status={task.status} />
-            </div>
+            </Link>
           ))}
         </div>
       )}
