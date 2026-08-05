@@ -26,11 +26,16 @@ User-facing applications and shared interface components.
 
 Shared capabilities used across the Microverse ecosystem.
 
-* User management
-* Notifications
-* Email delivery
-* Billing
-* File management
+| Service                                                              | Status    | Purpose                                              |
+| ---------------------------------------------------------------------- | --------- | ----------------------------------------------------- |
+| [order-service](platform-services/order-service/README.md)             | scaffold  | Customer creates an order, uploads media             |
+| [asset-service](platform-services/asset-service/README.md)             | scaffold  | Owns uploaded media — storage, versions, permissions |
+| [task-service](platform-services/task-service/README.md)               | partial   | PM assigns quests/tasks to analysts                  |
+| [notification-service](platform-services/notification-service/README.md) | partial | Decides who needs to know what                       |
+| [email-service](platform-services/email-service/README.md)             | working   | Sends email via MailHog                              |
+| [search-service](platform-services/search-service/README.md)           | scaffold  | Search for human users (Elasticsearch)               |
+| [tracking-service](platform-services/tracking-service/README.md)       | scaffold  | Middleware in front of ElixTempo                     |
+| [billing-service](platform-services/billing-service/README.md)         | scaffold  | Middleware in front of RustLedger                    |
 
 ### Domain Services
 
@@ -67,6 +72,7 @@ The foundations that allow Microverse to run.
 * Redis
 * RabbitMQ
 * Kafka
+* MailHog (dev email capture)
 * Docker
 * Kubernetes
 
