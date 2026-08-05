@@ -46,8 +46,9 @@ const App = () => {
     <ThemeProvider>
       <Router>
         <div>
-          {/* Show Navbar if Keycloak is initialized */}
-          {keycloak && <Navbar keycloak={keycloak} />}
+          {/* Only the dashboard host gets the app chrome — the public
+              landing page is a full-bleed, standalone front door */}
+          {isDashboardHost && keycloak && <Navbar keycloak={keycloak} />}
 
           {/* Define Routes */}
           <Routes>
