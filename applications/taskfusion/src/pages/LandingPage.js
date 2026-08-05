@@ -37,10 +37,9 @@ const LandingPage = () => {
         <p style={{ color: '#4a5a8a', fontSize: 14, lineHeight: 1.6, margin: '0 0 28px' }}>
           Microverse started as a playground for exploring how a dozen
           different languages and frameworks could work together as one
-          real platform, instead of one big app pretending to be many.
-          Every service here — from sentiment analysis to time tracking
-          to billing — keeps its own tech and its own personality, all
-          orchestrated behind a single front door.
+          real platform. Every service here — from sentiment analysis to
+          time tracking to billing — keeps its own tech and its own
+          personality, all orchestrated behind a single front door.
         </p>
         <button
           onClick={() => login()}
