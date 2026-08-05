@@ -13,7 +13,15 @@ const LandingPage = () => {
   return (
     <div
       style={{
-        minHeight: '100vh',
+        // Fixed + full viewport, not minHeight — so it fills exactly
+        // the screen regardless of the Navbar's own height when a
+        // logged-in user views this page (Navbar renders above it in
+        // document flow, which used to push total height past 100vh
+        // and cause a scrollbar). Taking this out of flow entirely
+        // also lets the Navbar visually sit above the background
+        // image instead of pushing it down.
+        position: 'fixed',
+        inset: 0,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
