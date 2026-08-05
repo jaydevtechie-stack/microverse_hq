@@ -268,7 +268,7 @@ services:
 
   microverse-task-service:
     build:
-      context: ./platform-services/task-service
+      context: ./business-services/task-service
     container_name: microverse-task-service
     environment:
       MONGO_URL: mongodb://microverse-mongodb:27017/taskDB
