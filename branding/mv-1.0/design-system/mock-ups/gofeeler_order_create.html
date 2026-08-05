@@ -1,0 +1,69 @@
+<h2 class="sr-only">GoFeeler create task form for customers, updated with an open-vocabulary autocomplete tag input for sentiment focus</h2>
+<div style="background:#05061A;border-radius:16px;padding:20px;max-width:520px">
+  <p style="color:#9BB8E0;font-size:12px;margin:0 0 4px">Gofeeler · New task</p>
+  <p style="color:#E8F4FF;font-size:16px;font-weight:500;margin:0 0 18px">Create sentiment analysis task</p>
+
+  <label style="color:#9BB8E0;font-size:12px;display:block;margin-bottom:6px">Title</label>
+  <input type="text" placeholder="e.g. Q3 customer support chat review" style="width:100%;background:#0B0F2E;border:0.5px solid #1E2A6B;border-radius:8px;padding:9px 12px;color:#E8F4FF;font-size:13px;margin-bottom:14px;box-sizing:border-box">
+
+  <label style="color:#9BB8E0;font-size:12px;display:block;margin-bottom:6px">Context (optional)</label>
+  <textarea placeholder="Anything the analyst should know before starting..." rows="3" style="width:100%;background:#0B0F2E;border:0.5px solid #1E2A6B;border-radius:8px;padding:9px 12px;color:#E8F4FF;font-size:13px;margin-bottom:14px;box-sizing:border-box;font-family:inherit;resize:none"></textarea>
+
+  <label style="color:#9BB8E0;font-size:12px;display:block;margin-bottom:6px">Sentiment focus</label>
+  <div style="position:relative;margin-bottom:8px">
+    <input id="tag-input" type="text" placeholder="Type a tag, e.g. 'urgncy'..." style="width:100%;background:#0B0F2E;border:0.5px solid #1E2A6B;border-radius:8px;padding:9px 12px;color:#E8F4FF;font-size:13px;box-sizing:border-box">
+    <div id="suggestions" style="position:absolute;top:100%;left:0;right:0;margin-top:4px;background:#0B0F2E;border:0.5px solid #1E2A6B;border-radius:8px;overflow:hidden;display:none;z-index:10"></div>
+  </div>
+  <p style="color:#5F5E5A;font-size:11px;margin:0 0 8px">Fuzzy-matched against search-service's shared tag index — new tags are added automatically</p>
+  <div id="cloud" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;min-height:28px"></div>
+
+  <label style="color:#9BB8E0;font-size:12px;display:block;margin-bottom:6px">Upload content</label>
+  <div style="border:1px dashed #1E2A6B;border-radius:10px;padding:22px;text-align:center;margin-bottom:18px">
+    <i class="ti ti-upload" style="color:#4DD8FF;font-size:22px" aria-hidden="true"></i>
+    <p style="color:#9BB8E0;font-size:12px;margin:8px 0 0">Drag a file here, or click to browse</p>
+    <p style="color:#5F5E5A;font-size:11px;margin:2px 0 0">Stored via asset-service → MinIO</p>
+  </div>
+
+  <button style="width:100%;padding:10px 0;background:#4DD8FF;color:#04203B;font-weight:500;font-size:13px;border-radius:8px" onclick="sendPrompt('Submit the new Gofeeler task')">Create task</button>
+</div>
+<script>
+const vocab = ['Positive','Negative','Neutral','Mixed','Sarcasm','Urgency','Frustration','Confusion','Gratitude','Escalation'];
+let selected = ['Negative','Urgency'];
+
+function editDistance(a, b) {
+  a = a.toLowerCase(); b = b.toLowerCase();
+  const dp = Array(a.length+1).fill().map(() => Array(b.length+1).fill(0));
+  for (let i=0;i<=a.length;i++) dp[i][0]=i;
+  for (let j=0;j<=b.length;j++) dp[0][j]=j;
+  for (let i=1;i<=a.length;i++) for (let j=1;j<=b.length;j++)
+    dp[i][j] = a[i-1]===b[j-1] ? dp[i-1][j-1] : 1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
+  return dp[a.length][b.length];
+}
+function renderCloud() {
+  const cloud = document.getElementById('cloud');
+  cloud.innerHTML = selected.map(t => `<span style="padding:5px 12px;font-size:12px;border-radius:14px;background:#4DD8FF22;color:#4DD8FF;display:flex;align-items:center;gap:6px">${t}<i class="ti ti-x" style="font-size:11px;cursor:pointer" onclick="removeTag('${t}')" aria-hidden="true"></i></span>`).join('');
+}
+function removeTag(t) { selected = selected.filter(x => x !== t); renderCloud(); }
+const input = document.getElementById('tag-input');
+const sugg = document.getElementById('suggestions');
+input.addEventListener('input', () => {
+  const q = input.value.trim();
+  if (!q) { sugg.style.display = 'none'; return; }
+  const matches = vocab.filter(v => !selected.includes(v))
+    .map(v => ({v, d: Math.min(editDistance(q, v), editDistance(q, v.slice(0, q.length)))}))
+    .filter(m => m.d <= 3 || m.v.toLowerCase().startsWith(q.toLowerCase()))
+    .sort((a,b) => a.d - b.d).slice(0,4);
+  const showCreate = matches.length === 0 || matches[0].d > 1;
+  let html = matches.map(m => `<div onclick="pickTag('${m.v}')" style="padding:8px 12px;color:#E8F4FF;font-size:13px;cursor:pointer" onmouseover="this.style.background='#1E2A6B'" onmouseout="this.style.background='transparent'">${m.v}</div>`).join('');
+  if (showCreate && q.length > 1) {
+    html += `<div onclick="pickTag('${q}')" style="padding:8px 12px;color:#4DD8FF;font-size:13px;cursor:pointer;border-top:0.5px solid #1E2A6B" onmouseover="this.style.background='#1E2A6B'" onmouseout="this.style.background='transparent'">+ Create "${q}"</div>`;
+  }
+  sugg.innerHTML = html;
+  sugg.style.display = html ? 'block' : 'none';
+});
+function pickTag(t) {
+  if (!selected.includes(t)) selected.push(t);
+  input.value = ''; sugg.style.display = 'none'; renderCloud();
+}
+renderCloud();
+</script>
