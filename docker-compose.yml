@@ -238,6 +238,46 @@ services:
       - microverse-network
 
 
+  microverse-mailhog:
+    image: mailhog/mailhog:latest
+    container_name: microverse-mailhog
+    networks:
+      - microverse-network
+
+
+  microverse-email-service:
+    build:
+      context: ./platform-services/email-service
+    container_name: microverse-email-service
+    environment:
+      PORT: 3000
+      MAILHOG_SMTP_SERVER: microverse-mailhog:1025
+    depends_on:
+      - microverse-mailhog
+    networks:
+      - microverse-network
+
+
+  microverse-notification-service:
+    build:
+      context: ./platform-services/notification-service
+    container_name: microverse-notification-service
+    networks:
+      - microverse-network
+
+
+  microverse-task-service:
+    build:
+      context: ./business-services/task-service
+    container_name: microverse-task-service
+    environment:
+      MONGO_URL: mongodb://microverse-mongodb:27017/taskDB
+    depends_on:
+      - microverse-mongodb
+    networks:
+      - microverse-network
+
+
 
 volumes:
 
