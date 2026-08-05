@@ -159,6 +159,38 @@ services:
 
 
 
+  microverse-elasticsearch:
+    profiles: ["gofeeler", "elasticsearch"]
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    container_name: microverse-elasticsearch
+
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+
+    networks:
+      - microverse-network
+
+
+  microverse-search-service:
+    profiles: ["gofeeler", "search-service"]
+    build:
+      context: ./platform-services/search-service
+    container_name: microverse-search-service
+    environment:
+      PORT: 8000
+      ELASTICSEARCH_URL: http://microverse-elasticsearch:9200
+    depends_on:
+      - microverse-elasticsearch
+    networks:
+      - microverse-network
+
+
+
   microverse-minio:
     profiles: ["gofeeler"]
     image: minio/minio
@@ -324,6 +356,7 @@ volumes:
   mongodb_data:
   minio_data:
   kafka_data:
+  elasticsearch_data:
 
 
 
