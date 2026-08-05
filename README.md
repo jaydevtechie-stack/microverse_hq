@@ -45,6 +45,8 @@ Specialized applications built with different technologies.
 | PyReel      | Python        | Video processing                    |
 | SpringPix   | Java/Spring   | Image and GIS processing            |
 | RubyKudos   | Ruby          | Recognition system                  |
+| ElixTempo   | Elixir        | Concurrent work-session time tracking |
+| RustLedger  | Rust          | Billing — turns tracked time into invoices |
 
 ### Intelligence
 
@@ -64,6 +66,7 @@ The foundations that allow Microverse to run.
 * MongoDB
 * Redis
 * RabbitMQ
+* Kafka
 * Docker
 * Kubernetes
 
