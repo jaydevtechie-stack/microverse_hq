@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { getKeycloak } from '../services/keycloak';
 import TaskStatusBadge from './TaskStatusBadge';
 import PmAssignPanel from './PmAssignPanel';
+import PmBillPanel from './PmBillPanel';
 import AnalystPanel from './AnalystPanel';
 import ReviewerPanel from './ReviewerPanel';
 import CustomerProgressPanel from './CustomerProgressPanel';
@@ -15,13 +16,18 @@ const detailRowStyle = {
 };
 
 // Which action panel (if any) to show is (viewer's platform role, task's
-// current state) — see ARCHITECTURE.md's "UI pattern" note. A PM only
-// gets the assign picker while unassigned; an analyst/reviewer only get
-// their action while the task is actively assigned to them; a customer
-// only gets the progress/invoice view once there's something to show.
+// current state) — see ARCHITECTURE.md's "UI pattern" note. A PM gets
+// the assign picker while unassigned, and the bill button once done
+// (both only for the PM who's the task's current owner); an
+// analyst/reviewer only get their action while the task is actively
+// assigned to them; a customer only gets the progress/invoice view
+// once there's something to show.
 function actionPanelFor({ task, isPM, isAnalyst, isReviewer, isCustomer, username }) {
   if (isPM && task.status === 'unassigned') {
     return <PmAssignPanel />;
+  }
+  if (isPM && task.status === 'done' && task.owner === username) {
+    return <PmBillPanel />;
   }
   if (isAnalyst && task.status === 'analyst' && task.assignee === username) {
     return <AnalystPanel />;
