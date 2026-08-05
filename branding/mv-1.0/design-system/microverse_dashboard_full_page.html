@@ -1,0 +1,123 @@
+<h2 class="sr-only">Full Microverse admin dashboard mockup with navigation, status filter, service grid, and a build progress tracker in the footer</h2>
+<div style="background:#05061A;border-radius:16px;padding:0;overflow:hidden">
+
+<div style="padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:0.5px solid #1E2A6B">
+  <div style="display:flex;align-items:center;gap:20px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div style="width:8px;height:8px;border-radius:50%;background:#4DD8FF"></div>
+      <span style="color:#E8F4FF;font-weight:500;font-size:14px">Microverse</span>
+    </div>
+    <span style="color:#4DD8FF;font-size:13px;border-bottom:2px solid #4DD8FF;padding-bottom:2px">Dashboard</span>
+    <span style="color:#9BB8E0;font-size:13px">Orders</span>
+    <span style="color:#9BB8E0;font-size:13px">Djaboard</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:14px">
+    <i class="ti ti-bell" style="color:#9BB8E0;font-size:16px" aria-hidden="true"></i>
+    <div style="width:26px;height:26px;border-radius:50%;background:#2D5FDB;display:flex;align-items:center;justify-content:center;color:#E8F4FF;font-size:11px;font-weight:500">A</div>
+  </div>
+</div>
+
+<div style="padding:16px 18px 0">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <span style="color:#E8F4FF;font-size:13px;font-weight:500">All services</span>
+    <div id="filters" style="display:flex;gap:6px">
+      <button data-f="all" style="padding:5px 12px;font-size:12px;background:#0B0F2E;color:#E8F4FF;border-color:#1E2A6B">All</button>
+      <button data-f="online" style="padding:5px 12px;font-size:12px;background:transparent;color:#9BB8E0;border-color:#1E2A6B">Online</button>
+      <button data-f="progress" style="padding:5px 12px;font-size:12px;background:transparent;color:#9BB8E0;border-color:#1E2A6B">In progress</button>
+    </div>
+  </div>
+
+  <div id="grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;padding-bottom:18px">
+
+    <div class="card" data-status="online" style="background:#0B0F2E;border:0.5px solid #1E2A6B;border-radius:12px;overflow:hidden">
+      <div style="height:76px;background:#4DD8FF22;display:flex;align-items:center;justify-content:center;position:relative">
+        <i class="ti ti-message-2" style="color:#4DD8FF;font-size:26px" aria-hidden="true"></i>
+        <span style="position:absolute;top:8px;right:8px;background:#4DD8FF;color:#04203B;font-size:10px;padding:2px 8px;border-radius:10px">online</span>
+      </div>
+      <div style="padding:10px 12px"><p style="color:#E8F4FF;font-size:13px;font-weight:500;margin:0 0 3px">Gofeeler</p><span style="color:#4DD8FF;font-size:11px">Go</span></div>
+    </div>
+
+    <div class="card" data-status="progress" style="background:#0B0F2E;border:0.5px solid #1E2A6B;border-radius:12px;overflow:hidden">
+      <div style="height:76px;background:#FF9F4322;display:flex;align-items:center;justify-content:center;position:relative">
+        <i class="ti ti-map-2" style="color:#FF9F43;font-size:26px" aria-hidden="true"></i>
+        <span style="position:absolute;top:8px;right:8px;background:#5F5E5A;color:#F1EFE8;font-size:10px;padding:2px 8px;border-radius:10px">basic</span>
+      </div>
+      <div style="padding:10px 12px"><p style="color:#E8F4FF;font-size:13px;font-weight:500;margin:0 0 3px">SpringPix</p><span style="color:#FF9F43;font-size:11px">Java</span></div>
+    </div>
+
+    <div class="card" data-status="progress" style="background:#0B0F2E;border:0.5px solid #1E2A6B;border-radius:12px;overflow:hidden">
+      <div style="height:76px;background:#FFD86622;display:flex;align-items:center;justify-content:center;position:relative">
+        <i class="ti ti-movie" style="color:#FFD866;font-size:26px" aria-hidden="true"></i>
+        <span style="position:absolute;top:8px;right:8px;background:#5F5E5A;color:#F1EFE8;font-size:10px;padding:2px 8px;border-radius:10px">basic</span>
+      </div>
+      <div style="padding:10px 12px"><p style="color:#E8F4FF;font-size:13px;font-weight:500;margin:0 0 3px">PyReel</p><span style="color:#FFD866;font-size:11px">Python</span></div>
+    </div>
+
+    <div class="card" data-status="progress" style="background:#0B0F2E;border:0.5px solid #1E2A6B;border-radius:12px;overflow:hidden">
+      <div style="height:76px;background:#FFD86622;display:flex;align-items:center;justify-content:center;position:relative">
+        <i class="ti ti-trophy" style="color:#FFD866;font-size:26px" aria-hidden="true"></i>
+        <span style="position:absolute;top:8px;right:8px;background:#5F5E5A;color:#F1EFE8;font-size:10px;padding:2px 8px;border-radius:10px">building</span>
+      </div>
+      <div style="padding:10px 12px"><p style="color:#E8F4FF;font-size:13px;font-weight:500;margin:0 0 3px">Djaboard</p><span style="color:#FFD866;font-size:11px">Python</span></div>
+    </div>
+
+    <div class="card" data-status="progress" style="background:#0B0F2E;border:0.5px solid #1E2A6B;border-radius:12px;overflow:hidden">
+      <div style="height:76px;background:#A66DE022;display:flex;align-items:center;justify-content:center;position:relative">
+        <i class="ti ti-clock" style="color:#A66DE0;font-size:26px" aria-hidden="true"></i>
+        <span style="position:absolute;top:8px;right:8px;background:#5F5E5A;color:#F1EFE8;font-size:10px;padding:2px 8px;border-radius:10px">designing</span>
+      </div>
+      <div style="padding:10px 12px"><p style="color:#E8F4FF;font-size:13px;font-weight:500;margin:0 0 3px">elixtempo</p><span style="color:#A66DE0;font-size:11px">Elixir</span></div>
+    </div>
+
+    <div class="card" data-status="progress" style="background:#0B0F2E;border:0.5px solid #1E2A6B;border-radius:12px;overflow:hidden">
+      <div style="height:76px;background:#E8734A22;display:flex;align-items:center;justify-content:center;position:relative">
+        <i class="ti ti-receipt-2" style="color:#E8734A;font-size:26px" aria-hidden="true"></i>
+        <span style="position:absolute;top:8px;right:8px;background:#5F5E5A;color:#F1EFE8;font-size:10px;padding:2px 8px;border-radius:10px">designing</span>
+      </div>
+      <div style="padding:10px 12px"><p style="color:#E8F4FF;font-size:13px;font-weight:500;margin:0 0 3px">rustledger</p><span style="color:#E8734A;font-size:11px">Rust</span></div>
+    </div>
+
+    <div class="card" data-status="progress" style="background:#0B0F2E;border:0.5px solid #1E2A6B;border-radius:12px;overflow:hidden">
+      <div style="height:76px;background:#FF6B6B22;display:flex;align-items:center;justify-content:center;position:relative">
+        <i class="ti ti-award" style="color:#FF6B6B;font-size:26px" aria-hidden="true"></i>
+        <span style="position:absolute;top:8px;right:8px;background:#5F5E5A;color:#F1EFE8;font-size:10px;padding:2px 8px;border-radius:10px">planned</span>
+      </div>
+      <div style="padding:10px 12px"><p style="color:#E8F4FF;font-size:13px;font-weight:500;margin:0 0 3px">RubyKudos</p><span style="color:#FF6B6B;font-size:11px">Ruby</span></div>
+    </div>
+
+  </div>
+</div>
+
+<div style="padding:14px 18px;border-top:0.5px solid #1E2A6B">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+    <span id="tracker-label" style="color:#9BB8E0;font-size:12px">1 of 7 services online</span>
+    <span style="color:#5F5E5A;font-size:11px">Build tracker</span>
+  </div>
+  <div style="display:flex;gap:2px;height:5px;border-radius:3px;overflow:hidden">
+    <div style="flex:1;background:#4DD8FF"></div>
+    <div style="flex:6;background:#1E2A6B"></div>
+  </div>
+</div>
+
+</div>
+<script>
+document.querySelectorAll('#filters button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#filters button').forEach(b => { b.style.background='transparent'; b.style.color='#9BB8E0'; });
+    btn.style.background = '#0B0F2E';
+    btn.style.color = '#E8F4FF';
+    const f = btn.dataset.f;
+    let visible = 0;
+    document.querySelectorAll('.card').forEach(card => {
+      const show = f === 'all' || card.dataset.status === f;
+      card.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+    const total = document.querySelectorAll('.card').length;
+    const label = document.getElementById('tracker-label');
+    if (f === 'all') label.textContent = '1 of 7 services online';
+    else if (f === 'online') label.textContent = visible + ' service' + (visible===1?'':'s') + ' online';
+    else label.textContent = visible + ' service' + (visible===1?'':'s') + ' in progress';
+  });
+});
+</script>
