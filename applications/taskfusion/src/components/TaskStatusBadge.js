@@ -2,7 +2,7 @@ import React from 'react';
 
 // Mirrors ARCHITECTURE.md's task workflow:
 // unassigned -> analyst -> reviewer -> done -> paid -> closed
-const STATUS_STYLE = {
+export const STATUS_STYLE = {
   unassigned: { bg: 'var(--mv-badge-bg)', fg: 'var(--mv-badge-text)' },
   analyst: { bg: 'var(--mv-color-info)', fg: '#ffffff' },
   reviewer: { bg: 'var(--mv-color-warning)', fg: '#ffffff' },

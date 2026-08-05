@@ -8,7 +8,7 @@ import Navbar from './components/Navbar';
 import Dashboard from './pages/Dashboard';  // Example protected page
 import CustomerPage from './pages/CustomerPage';
 import AnalystPage from './pages/AnalystPage';
-import GofeelerPage from './pages/GofeelerPage';
+import GofeelerSplitView from './pages/GofeelerSplitView';
 import CreateOrderPage from './pages/CreateOrderPage';
 import TaskDetailPage from './pages/TaskDetailPage';
 
@@ -90,9 +90,9 @@ const App = () => {
                 isGofeelerHost ? (
                   // Any staff-side platform role + service:gofeeler can view
                   // this page — PM sees every task, analyst/reviewer see only
-                  // their own (GofeelerPage does that filtering internally)
+                  // their own (GofeelerListPanel does that filtering internally)
                   <PrivateRoute
-                    element={<GofeelerPage />}
+                    element={<GofeelerSplitView />}
                     keycloak={keycloak}
                     roles={['service:gofeeler']}
                   />
@@ -129,11 +129,16 @@ const App = () => {
               }
             />
 
+            {/* On the gofeeler microsite, /create and /task/:id render
+                inside the same split-view shell as "/" (a panel next to
+                the list, not a whole new page) — elsewhere they're
+                standalone full pages, e.g. CustomerPage's "+ New order"
+                link on the platform host */}
             <Route
               path="/create"
               element={
                 <PrivateRoute
-                  element={<CreateOrderPage />}
+                  element={isGofeelerHost ? <GofeelerSplitView /> : <CreateOrderPage />}
                   keycloak={keycloak}
                   requireAllRoles={['platform:customer', 'service:gofeeler']}
                 />
@@ -148,7 +153,7 @@ const App = () => {
               path="/task/:id"
               element={
                 <PrivateRoute
-                  element={<TaskDetailPage />}
+                  element={isGofeelerHost ? <GofeelerSplitView /> : <TaskDetailPage />}
                   keycloak={keycloak}
                   roles={['service:gofeeler']}
                 />
