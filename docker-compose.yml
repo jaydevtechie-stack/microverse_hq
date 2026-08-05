@@ -37,6 +37,7 @@ services:
     volumes:
       - keycloak_data:/opt/keycloak/data
       - ./infrastructure/keycloak/realm-export:/opt/keycloak/data/import
+      - ./infrastructure/keycloak/themes/microverse:/opt/keycloak/themes/microverse:ro
 
     healthcheck:
       # the keycloak image has no curl/wget; use bash's /dev/tcp instead

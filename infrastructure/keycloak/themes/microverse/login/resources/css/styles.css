@@ -1,0 +1,23 @@
+/*
+ * Microverse brand overrides for the keycloak.v2 login theme.
+ *
+ * keycloak.v2 already exposes CSS custom properties for exactly this
+ * (--keycloak-logo-url, --keycloak-bg-logo-url, --keycloak-card-top-color)
+ * and PatternFly 5 exposes --pf-v5-global--primary-color--* for brand
+ * color — see the built-in theme's own resources/css/styles.css for the
+ * pattern this follows. We only redefine those custom properties; the
+ * markup, dark-mode handling, and all functional login flows (errors,
+ * OTP, WebAuthn, social providers, "forgot password", etc.) stay exactly
+ * as keycloak.v2 implements them.
+ */
+
+:root {
+  --keycloak-logo-url: var(--mv-logo-url);
+  --keycloak-bg-logo-url: var(--mv-bg-image-url);
+  --keycloak-logo-height: 96px;
+  --keycloak-logo-width: 144px;
+  --keycloak-card-top-color: var(--mv-color-primary);
+
+  --pf-v5-global--primary-color--100: var(--mv-color-primary);
+  --pf-v5-global--primary-color--200: var(--mv-color-primary);
+}
