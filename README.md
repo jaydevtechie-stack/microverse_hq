@@ -43,9 +43,8 @@ Specialized applications built with different technologies.
 | GoFeeler    | Go            | Sentiment analysis                  |
 | NetCruncher | .NET          | Calculation engine                  |
 | PyReel      | Python        | Video processing                    |
-| SprinPix    | Java/Spring   | Image and GIS processing            |
+| SpringPix   | Java/Spring   | Image and GIS processing            |
 | RubyKudos   | Ruby          | Recognition system                  |
-| TimeTruxir  | Rust + Elixir | Time intelligence and collaboration |
 
 ### Intelligence
 
