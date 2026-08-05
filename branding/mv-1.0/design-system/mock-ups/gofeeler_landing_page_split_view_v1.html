@@ -5,7 +5,7 @@
   <button id="mode-mobile" onclick="setMode('mobile')" style="padding:5px 12px;font-size:12px">Mobile</button>
 </div>
 
-<div id="demo-shell" style="background:#05061A;border-radius:16px;padding:0;overflow:hidden;display:flex;height:340px;max-width:640px;margin:0 auto;transition:max-width 0.3s ease">
+<div id="demo-shell" style="background:#05061A;border-radius:16px;padding:0;overflow:hidden;display:flex;height:calc(100vh - 100px);max-width:100%;margin:0 auto;transition:max-width 0.3s ease">
 
   <div id="list-panel" style="width:100%;flex:none;transition:width 0.3s ease;overflow:hidden;border-right:0.5px solid #1E2A6B">
     <div style="padding:14px 16px;border-bottom:0.5px solid #1E2A6B;display:flex;align-items:center;justify-content:space-between">
@@ -68,7 +68,10 @@ function render() {
   const list = document.getElementById('list-panel');
   const detail = document.getElementById('detail-panel');
   const create = document.getElementById('create-panel');
-  shell.style.maxWidth = mode === 'mobile' ? '300px' : '640px';
+  // Real page is always 100% width — this no longer shrinks the shell
+  // itself in "mobile" mode, only the list-panel collapse below still
+  // demonstrates the actual responsive behavior.
+  shell.style.maxWidth = '100%';
 
   if (mode === 'desktop') {
     list.style.width = panel === 'list' ? '100%' : '260px';

@@ -42,9 +42,9 @@ const GofeelerSplitView = () => {
         border: '0.5px solid var(--mv-border)',
         borderRadius: 'var(--mv-radius-lg)',
         margin: 'var(--mv-space-3)',
-        maxWidth: isMobile ? '100%' : 720,
-        height: '70vh',
-        minHeight: 420,
+        maxWidth: '100%',
+        height: 'calc(100vh - 100px)',
+        minHeight: 300,
         overflow: 'hidden',
       }}
     >

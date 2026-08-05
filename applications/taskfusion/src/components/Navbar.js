@@ -51,6 +51,11 @@ const Navbar = ({ keycloak }) => {
   return (
     <nav
       style={{
+        // Explicit stacking context so this renders above LandingPage's
+        // position:fixed background image rather than behind it — plain
+        // static-position siblings otherwise lose to a fixed element.
+        position: 'relative',
+        zIndex: 1,
         background: 'var(--mv-bg-elevated)',
         border: '0.5px solid var(--mv-border)',
         borderRadius: 'var(--mv-radius-lg)',
