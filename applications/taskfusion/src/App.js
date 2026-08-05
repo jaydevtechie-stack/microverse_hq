@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard';  // Example protected page
 import CustomerPage from './pages/CustomerPage';
 import AnalystPage from './pages/AnalystPage';
 import GofeelerPage from './pages/GofeelerPage';
+import CreateOrderPage from './pages/CreateOrderPage';
 
 // microverse.local carries everything platform-side (landing page,
 // /dashboard, /customer, /analyst — path-based). Domain services get
@@ -40,10 +41,17 @@ const App = () => {
       });
   }, []);
 
-  // PrivateRoute component to protect routes. `roles`, when given, is a
-  // list of realm roles (see ARCHITECTURE.md's `{service}:{function}`
-  // convention) — the route renders if the user holds at least one.
-  const PrivateRoute = ({ element, keycloak, roles }) => {
+  // PrivateRoute component to protect routes.
+  // `roles` — the route renders if the user holds at least one (OR).
+  //   Used for platform-function-only checks, e.g. /customer just needs
+  //   platform:customer OR platform:project-manager.
+  // `requireAllRoles` — the route renders only if the user holds every
+  //   one (AND). Used for the two-dimensional model (see
+  //   ARCHITECTURE.md's Roles and permissions) where a service-scoped
+  //   action needs both a platform function AND a service scope, e.g.
+  //   GoFeeler's Create Order page needs platform:customer AND
+  //   service:gofeeler — either alone isn't enough.
+  const PrivateRoute = ({ element, keycloak, roles, requireAllRoles }) => {
     if (!keycloak) {
       // Optionally, you can show a loader or a spinner while keycloak is loading
       return <div>Loading...</div>;
@@ -54,6 +62,10 @@ const App = () => {
     }
 
     if (roles && !roles.some((role) => keycloak.hasRealmRole(role))) {
+      return <RedirectToLanding />;
+    }
+
+    if (requireAllRoles && !requireAllRoles.every((role) => keycloak.hasRealmRole(role))) {
       return <RedirectToLanding />;
     }
 
@@ -78,7 +90,7 @@ const App = () => {
                   <PrivateRoute
                     element={<GofeelerPage />}
                     keycloak={keycloak}
-                    roles={['service:gofeeler']}
+                    requireAllRoles={['platform:project-manager', 'service:gofeeler']}
                   />
                 ) : (
                   <LandingPage />
@@ -109,6 +121,17 @@ const App = () => {
                   element={<AnalystPage />}
                   keycloak={keycloak}
                   roles={['platform:analyst', 'platform:project-manager']}
+                />
+              }
+            />
+
+            <Route
+              path="/create"
+              element={
+                <PrivateRoute
+                  element={<CreateOrderPage />}
+                  keycloak={keycloak}
+                  requireAllRoles={['platform:customer', 'service:gofeeler']}
                 />
               }
             />
