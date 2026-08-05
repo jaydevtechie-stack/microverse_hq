@@ -6,6 +6,9 @@ services:
     container_name: microverse-nginx
     ports:
       - "80:80"
+      - "443:443"
+    volumes:
+      - ./infrastructure/secrets:/etc/nginx/certs:ro
     depends_on:
       microverse-keycloak:
         condition: service_healthy
