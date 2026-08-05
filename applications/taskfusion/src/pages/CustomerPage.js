@@ -18,6 +18,7 @@ const CustomerPage = () => (
   >
     <ProfileHeader
       avatarShape="square"
+      roleType="customer"
       initials={CUSTOMER.initials}
       name={CUSTOMER.name}
       subtitle={CUSTOMER.sub}

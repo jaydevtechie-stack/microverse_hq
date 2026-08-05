@@ -4,6 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { IconBell, IconSun, IconMoon } from '@tabler/icons-react';
 import { logout, landingUrl, hostUrlForSubdomain, isOnMicrosite } from '../services/keycloak';
 import { useTheme } from '../context/ThemeContext';
+import { avatarColorsForKeycloak } from '../utils/avatarColors';
 
 function initialsFor(keycloak) {
   const claims = keycloak.tokenParsed || {};
@@ -45,6 +46,7 @@ const Navbar = ({ keycloak }) => {
   const { theme, toggleTheme } = useTheme();
   const { pathname } = useLocation();
   const isDashboard = pathname === '/dashboard';
+  const avatarColors = avatarColorsForKeycloak(keycloak);
 
   return (
     <nav
@@ -141,11 +143,11 @@ const Navbar = ({ keycloak }) => {
             width: 26,
             height: 26,
             borderRadius: '50%',
-            background: 'var(--mv-avatar-bg)',
+            background: avatarColors.bg,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: 'var(--mv-avatar-text)',
+            color: avatarColors.fg,
             fontSize: 11,
             fontWeight: 500,
           }}
