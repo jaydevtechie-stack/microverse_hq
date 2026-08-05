@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';  // Ensure this is from 'react-dom/client' for React 18
-import './styles/tokens.css'; // Microverse design tokens, must load before Bootstrap
+import './assets/brand/design-system/tokens.css'; // Microverse design tokens, must load before Bootstrap
 import './assets/scss/main.scss'; // Bootstrap themed with the design tokens' palette
 import './index.css';
 import App from './App';

@@ -1,16 +1,29 @@
+# Build context is the repo root (see docker-compose.yml) so this stage
+# can reach branding/mv-1.0 directly — CRA compiles to a static bundle,
+# so there's no runtime mount option here like Keycloak has; the build
+# copies the canonical brand files in instead of relying on a
+# hand-maintained vendored copy.
+
 # Stage 1: Build the React app
 FROM node:22-alpine AS build
 
 WORKDIR /app
 
 # Copy package.json and package-lock.json for dependencies installation
-COPY package.json package-lock.json ./
+COPY applications/taskfusion/package.json applications/taskfusion/package-lock.json ./
 
 # Reproducible install — fails if lockfile is out of sync, faster than npm install
 RUN npm ci
 
 # Copy the rest of the source code to the container
-COPY . .
+COPY applications/taskfusion/ .
+
+# Overwrite whatever's in src/assets/brand/ (gitignored, may be stale or
+# absent) with the real canonical files, mirroring mv-1.0's own layout
+# so tokens.css's relative ../logos, ../images references still resolve
+COPY branding/mv-1.0/design-system/tokens.css src/assets/brand/design-system/tokens.css
+COPY branding/mv-1.0/logos/microverse-logo.png src/assets/brand/logos/microverse-logo.png
+COPY branding/mv-1.0/images/microverse-bg.jpg src/assets/brand/images/microverse-bg.jpg
 
 # Build-time args — must be declared here to be available during `npm run build`,
 # since CRA bakes REACT_APP_* vars into the bundle at build time, not runtime
@@ -21,14 +34,17 @@ ENV REACT_APP_KEYCLOAK_URL=$REACT_APP_KEYCLOAK_URL \
     REACT_APP_KEYCLOAK_REALM=$REACT_APP_KEYCLOAK_REALM \
     REACT_APP_KEYCLOAK_CLIENT_ID=$REACT_APP_KEYCLOAK_CLIENT_ID
 
-# Build the React app for production
-RUN npm run build
+# react-scripts directly, not `npm run build` — the "build" script's
+# "prebuild" hook (sync-brand-assets.js) assumes the local repo layout
+# (branding/ as a sibling three levels up), which doesn't exist in this
+# container; the COPY steps above already placed the real files
+RUN npx react-scripts build
 
 # Stage 2: Serve the app using Nginx
 FROM nginx:alpine
 
 # SPA fallback so client-side routes (e.g. /dashboard) survive a direct load/refresh
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY applications/taskfusion/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copy the built React app from the first stage to Nginx's HTML directory
 COPY --from=build /app/build /usr/share/nginx/html
