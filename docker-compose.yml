@@ -88,6 +88,9 @@ services:
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      # only runs on a brand-new (empty) postgres_data volume — see
+      # infrastructure/postgis/init/ for what's in here and why
+      - ./infrastructure/postgis/init:/docker-entrypoint-initdb.d:ro
 
     networks:
       - microverse-network
