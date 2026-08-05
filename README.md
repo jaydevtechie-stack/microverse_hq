@@ -24,18 +24,28 @@ User-facing applications and shared interface components.
 
 ### Platform Services
 
-Shared capabilities used across the Microverse ecosystem.
+Shared, generic infrastructure — swappable plumbing, not business logic.
 
 | Service                                                              | Status    | Purpose                                              |
 | ---------------------------------------------------------------------- | --------- | ----------------------------------------------------- |
-| [order-service](platform-services/order-service/README.md)             | scaffold  | Customer creates an order, uploads media             |
 | [asset-service](platform-services/asset-service/README.md)             | scaffold  | Owns uploaded media — storage, versions, permissions |
-| [task-service](platform-services/task-service/README.md)               | partial   | PM assigns quests/tasks to analysts                  |
 | [notification-service](platform-services/notification-service/README.md) | partial | Decides who needs to know what                       |
 | [email-service](platform-services/email-service/README.md)             | working   | Sends email via MailHog                              |
 | [search-service](platform-services/search-service/README.md)           | scaffold  | Search for human users (Elasticsearch)               |
 | [tracking-service](platform-services/tracking-service/README.md)       | scaffold  | Middleware in front of ElixTempo                     |
 | [billing-service](platform-services/billing-service/README.md)         | scaffold  | Middleware in front of RustLedger                    |
+
+### Business Services
+
+The narrator — services that model the business process itself (an
+order's lifecycle, who's doing what) rather than generic infrastructure
+or a single specialist capability.
+
+| Service                                                    | Status   | Purpose                                             |
+| ------------------------------------------------------------- | -------- | ------------------------------------------------------ |
+| [order-service](business-services/order-service/README.md)   | scaffold | Customer creates an order, uploads media             |
+| [task-service](business-services/task-service/README.md)     | partial  | PM assigns quests/tasks to analysts                  |
+| [workflow](business-services/workflow/README.md)             | scaffold | Orchestrates the order → task → tracking → billing lifecycle |
 
 ### Domain Services
 
@@ -44,7 +54,7 @@ Specialized applications built with different technologies.
 | Service     | Technology    | Purpose                             |
 | ----------- | ------------- | ----------------------------------- |
 | Laralytics  | Laravel       | Analytics platform                  |
-| DjaPorts    | Django        | Reporting engine                    |
+| DjaBoard    | Django        | Reporting engine (API consumed by a React frontend) |
 | GoFeeler    | Go            | Sentiment analysis                  |
 | NetCruncher | .NET          | Calculation engine                  |
 | PyReel      | Python        | Video processing                    |
