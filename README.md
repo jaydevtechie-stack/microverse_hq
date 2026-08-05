@@ -43,9 +43,10 @@ Specialized applications built with different technologies.
 | GoFeeler    | Go            | Sentiment analysis                  |
 | NetCruncher | .NET          | Calculation engine                  |
 | PyReel      | Python        | Video processing                    |
-| SprinPix    | Java/Spring   | Image and GIS processing            |
+| SpringPix   | Java/Spring   | Image and GIS processing            |
 | RubyKudos   | Ruby          | Recognition system                  |
-| TimeTruxir  | Rust + Elixir | Time intelligence and collaboration |
+| ElixTempo   | Elixir        | Concurrent work-session time tracking |
+| RustLedger  | Rust          | Billing — turns tracked time into invoices |
 
 ### Intelligence
 
@@ -65,6 +66,7 @@ The foundations that allow Microverse to run.
 * MongoDB
 * Redis
 * RabbitMQ
+* Kafka
 * Docker
 * Kubernetes
 
