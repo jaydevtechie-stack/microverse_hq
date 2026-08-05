@@ -1,19 +1,31 @@
 import React from 'react';
 import { useTheme } from '../context/ThemeContext';
+import { hostUrlForSubdomain } from '../services/keycloak';
 
-const ServiceCard = ({ service }) => {
+const ServiceCard = ({ service, keycloak }) => {
   const { theme } = useTheme();
-  const { name, tech, status, icon: Icon } = service;
+  const { name, tech, status, icon: Icon, subdomain, requiredRole } = service;
   const { fg, bg } = service[theme];
   const isOnline = status === 'online';
 
+  // The card always shows — description/status stays visible even
+  // without the role. Only the link itself is gated: no subdomain, no
+  // role check needed, no role, no link, no click.
+  const hasAccess = !requiredRole || keycloak?.hasRealmRole(requiredRole);
+  const href = subdomain && hasAccess ? hostUrlForSubdomain(subdomain) : undefined;
+
   return (
-    <div
+    <a
+      href={href}
       style={{
         background: 'var(--mv-bg-elevated)',
         border: '0.5px solid var(--mv-border)',
         borderRadius: 'var(--mv-radius-lg)',
         overflow: 'hidden',
+        display: 'block',
+        textDecoration: 'none',
+        cursor: href ? 'pointer' : 'default',
+        pointerEvents: href ? 'auto' : 'none',
       }}
     >
       <div
@@ -48,7 +60,7 @@ const ServiceCard = ({ service }) => {
         </p>
         <span style={{ color: fg, fontSize: 11 }}>{tech}</span>
       </div>
-    </div>
+    </a>
   );
 };
 

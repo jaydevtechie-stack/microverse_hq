@@ -2,19 +2,36 @@ import Keycloak from 'keycloak-js';
 
 let keycloak;
 
-// microverse.local (anonymous) and dashboard.microverse.local
-// (authenticated) are the same app/build — these just swap the leading
-// "dashboard." label so login always lands on the dashboard host and
-// logout always lands back on the public one, regardless of which
-// hostname the user started from.
-function withHostnamePrefix(wantsDashboard) {
-  const { protocol, hostname, port } = window.location;
-  const isDashboard = hostname.startsWith('dashboard.');
-  let targetHost = hostname;
-  if (wantsDashboard && !isDashboard) targetHost = `dashboard.${hostname}`;
-  if (!wantsDashboard && isDashboard) targetHost = hostname.replace(/^dashboard\./, '');
-  return `${protocol}//${targetHost}${port ? `:${port}` : ''}`;
+// microverse.local carries everything platform-side (landing page,
+// /dashboard, /customer, /analyst — path-based, not subdomain-based).
+// Domain services get their own "microsite" subdomain instead (e.g.
+// gofeeler.microverse.local). This list is just the microsites, so
+// cross-service links can strip whichever one is currently active to
+// get back to the bare host, or jump to another microsite.
+const KNOWN_MICROSITES = ['gofeeler'];
+
+function baseHostname() {
+  const { hostname } = window.location;
+  const prefix = KNOWN_MICROSITES.find((sub) => hostname.startsWith(`${sub}.`));
+  return prefix ? hostname.slice(prefix.length + 1) : hostname;
 }
+
+function hostUrl(subdomain) {
+  const { protocol, port } = window.location;
+  const host = subdomain ? `${subdomain}.${baseHostname()}` : baseHostname();
+  return `${protocol}//${host}${port ? `:${port}` : ''}`;
+}
+
+// Exposed generically so components (e.g. the dashboard's ServiceCard,
+// or Navbar's cross-microsite nav links) can link to whichever host
+// without keycloak.js needing a named export per service.
+export const hostUrlForSubdomain = hostUrl;
+
+// True when the current page is a domain-service microsite rather than
+// the platform host — Navbar uses this to decide whether its
+// Dashboard/Customer/Analyst links need to be cross-origin.
+export const isOnMicrosite = () =>
+  KNOWN_MICROSITES.some((sub) => window.location.hostname.startsWith(`${sub}.`));
 
 export const initKeycloak = () => {
   return new Promise((resolve, reject) => {
@@ -37,13 +54,13 @@ export const initKeycloak = () => {
 // code_challenge, state, nonce) instead of a hand-built query string.
 export const login = (redirectUri) => {
   if (!keycloak) return;
-  keycloak.login({ redirectUri: redirectUri || `${withHostnamePrefix(true)}/dashboard` });
+  keycloak.login({ redirectUri: redirectUri || `${hostUrl(null)}/dashboard` });
 };
 
-// The public landing page only exists on the non-"dashboard." host, so
-// linking to it from the dashboard host needs a real cross-origin URL,
-// not a client-side route.
-export const landingUrl = () => `${withHostnamePrefix(false)}/`;
+// The landing page only exists on the bare (non-microsite) host, so
+// linking to it from a microsite needs a real cross-origin URL, not a
+// client-side route.
+export const landingUrl = () => `${hostUrl(null)}/`;
 
 export const getKeycloak = () => keycloak;
 export const getToken = () => keycloak.token;
@@ -52,7 +69,7 @@ export const getToken = () => keycloak.token;
 export const logout = () => {
   if (keycloak) {
     keycloak.logout({
-      redirectUri: withHostnamePrefix(false), // back to the public landing page, not the dashboard host
+      redirectUri: hostUrl(null), // back to the public landing page, not a microsite
     }).then(() => {
       // Optionally, clear local storage, session storage, or any other state you want to reset
       console.log('Logged out successfully');

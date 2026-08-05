@@ -60,7 +60,7 @@ const Dashboard = () => {
           }}
         >
           {visibleServices.map((service) => (
-            <ServiceCard key={service.key} service={service} />
+            <ServiceCard key={service.key} service={service} keycloak={keycloak} />
           ))}
         </div>
       </div>
