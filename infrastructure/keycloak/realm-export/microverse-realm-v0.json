@@ -1,6 +1,7 @@
 {
   "id": "9e9ca4e3-1cbb-4381-8356-c255387cc21c",
   "realm": "microverse",
+  "loginTheme": "microverse",
   "notBefore": 0,
   "defaultSignatureAlgorithm": "RS256",
   "revokeRefreshToken": false,
