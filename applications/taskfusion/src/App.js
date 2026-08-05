@@ -87,10 +87,13 @@ const App = () => {
               path="/"
               element={
                 isGofeelerHost ? (
+                  // Any staff-side platform role + service:gofeeler can view
+                  // this page — PM sees every task, analyst/reviewer see only
+                  // their own (GofeelerPage does that filtering internally)
                   <PrivateRoute
                     element={<GofeelerPage />}
                     keycloak={keycloak}
-                    requireAllRoles={['platform:project-manager', 'service:gofeeler']}
+                    roles={['service:gofeeler']}
                   />
                 ) : (
                   <LandingPage />
