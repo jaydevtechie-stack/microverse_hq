@@ -2,11 +2,17 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { logout } from '../services/keycloak';
+import logo from '../assets/brand/microverse-logo.png';
 
 const Navbar = ({ keycloak }) => {
   return (
     <nav>
       <ul>
+        <li>
+          <Link to="/">
+            <img src={logo} alt="Microverse" height="32" />
+          </Link>
+        </li>
         <li>
           <Link to="/">Home</Link>
         </li>
