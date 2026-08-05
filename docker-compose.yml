@@ -134,6 +134,53 @@ services:
 
 
 
+  microverse-gofeeler:
+    build:
+      context: ./domain-services/gofeeler
+    container_name: microverse-gofeeler
+    networks:
+      - microverse-network
+
+
+  microverse-netcruncher:
+    build:
+      context: ./domain-services/netcruncher
+    container_name: microverse-netcruncher
+    networks:
+      - microverse-network
+
+
+  microverse-pyreel:
+    build:
+      context: ./domain-services/pyreel
+    container_name: microverse-pyreel
+    environment:
+      RABBITMQ_HOST: microverse-rabbitmq
+    depends_on:
+      - microverse-rabbitmq
+    networks:
+      - microverse-network
+
+
+  microverse-springpix:
+    build:
+      context: ./domain-services/springpix
+    container_name: microverse-springpix
+    environment:
+      # points the AWS S3 SDK at MinIO instead of real AWS — no AWS account
+      # needed. Swap these for real AWS creds and drop S3_ENDPOINT to go live.
+      AWS_ACCESS_KEY_ID: ${MINIO_USER}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_PASSWORD}
+      AWS_REGION: ${AWS_REGION}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME}
+      S3_ENDPOINT: http://microverse-minio:9000
+    depends_on:
+      - microverse-minio
+    networks:
+      - microverse-network
+
+
+
 volumes:
 
   keycloak_data:
