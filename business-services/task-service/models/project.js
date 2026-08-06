@@ -5,7 +5,8 @@ const { pool } = require('../db');
 // owns (via pm_accounts). Same reasoning as account.js's listForPm.
 async function listForPm(pmId) {
   const { rows } = await pool.query(
-    `SELECT p.* FROM projects p
+    `SELECT p.*, a.name AS account_name FROM projects p
+     JOIN accounts a ON a.id = p.account_id
      JOIN pm_accounts pa ON pa.account_id = p.account_id
      WHERE pa.pm_id = $1
      ORDER BY p.name`,

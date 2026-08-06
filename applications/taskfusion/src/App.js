@@ -11,7 +11,8 @@ import AnalystPage from './pages/AnalystPage';
 import GofeelerSplitView from './pages/GofeelerSplitView';
 import CreateOrderPage from './pages/CreateOrderPage';
 import TaskDetailPage from './pages/TaskDetailPage';
-import AdminUsersPage from './pages/AdminUsersPage';
+import AdminPage from './pages/AdminPage';
+import ProjectHubPage from './pages/ProjectHubPage';
 
 // microverse.local carries everything platform-side (landing page,
 // /dashboard, /customer, /analyst — path-based). Domain services get
@@ -53,7 +54,11 @@ const App = () => {
   //   action needs both a platform function AND a service scope, e.g.
   //   GoFeeler's Create Order page needs platform:customer AND
   //   service:gofeeler — either alone isn't enough.
-  const PrivateRoute = ({ element, keycloak, roles, requireAllRoles }) => {
+  // `customCheck` — an escape hatch for gates `roles`/`requireAllRoles`
+  //   can't express, e.g. the Project Hub's "platform:project-manager
+  //   + *any* service:* claim" (not a specific one — see
+  //   ARCHITECTURE.md's Roles and permissions).
+  const PrivateRoute = ({ element, keycloak, roles, requireAllRoles, customCheck }) => {
     if (!keycloak) {
       // Optionally, you can show a loader or a spinner while keycloak is loading
       return <div>Loading...</div>;
@@ -71,8 +76,14 @@ const App = () => {
       return <RedirectToLanding />;
     }
 
+    if (customCheck && !customCheck(keycloak)) {
+      return <RedirectToLanding />;
+    }
+
     return element;
   };
+
+  const hasAnyServiceScope = (kc) => (kc.tokenParsed?.realm_access?.roles || []).some((r) => r.startsWith('service:'));
 
   return (
     <ThemeProvider>
@@ -119,13 +130,25 @@ const App = () => {
               }
             />
 
-            {/* Provisional route for 4.0.1 — folds into a unified /admin
-                shell with a Services tab alongside this once 4.0.3
-                builds the real nav (see ROADMAP.md Branch 4). */}
             <Route
-              path="/admin/users"
+              path="/admin"
+              element={<PrivateRoute element={<AdminPage />} keycloak={keycloak} roles={['platform:admin']} />}
+            />
+
+            {/* Page-level gate is broad on purpose — platform:project-manager
+                plus ANY service scope, not a specific one, since the page
+                itself spans whatever services this PM manages. What's
+                actually visible inside is filtered server-side (pm_accounts
+                ownership + per-task service scope) — see ARCHITECTURE.md. */}
+            <Route
+              path="/hub"
               element={
-                <PrivateRoute element={<AdminUsersPage />} keycloak={keycloak} roles={['platform:admin']} />
+                <PrivateRoute
+                  element={<ProjectHubPage />}
+                  keycloak={keycloak}
+                  roles={['platform:project-manager']}
+                  customCheck={hasAnyServiceScope}
+                />
               }
             />
 
