@@ -68,7 +68,7 @@ Infrastructure        — the ground everything stands on
 ## Entity model
 
 - **Customer** — a company or an individual human. 1:n — a company can have multiple customer users under it. Creates Orders, has Invoices.
-- **Order** — what a customer submits (media + service type). Carries a `service` tag (e.g. `gofeeler`) tying it to the domain service it came through. Extra detail (comments, etc.) lives as attributes on the Order/Task rather than spawning separate records.
+- **Order** — what a customer submits (media + service type). Carries a `service` tag (e.g. `gofeeler`) tying it to the domain service it came through. Comments are the one exception to "extra detail lives as attributes, not separate records" — they're versioned (every edit is a new row) and threaded (one level of replies, internal-vs-customer-facing via a `visibility` column), which doesn't fit a JSON attribute; see SCHEMA.md's `task_comments`.
 - **Task** — an Order once a PM assigns it to an Analyst. Stays 1:1 with its Order.
 - **Analyst** — human or agentic. Has a rating, performance history, message history to their PM.
 - **Project Manager** — human or agentic. Assigned to a specific company, handles that company's Orders. Claims Tasks from the pool, assigns to Analysts, gives kudos.

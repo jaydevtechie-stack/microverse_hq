@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import SentimentBar from './SentimentBar';
+import TaskComments from './TaskComments';
 
 // Approve/Reject and reassign are stubs — no PATCH /api/tasks/:id yet
-// (ROADMAP.md Branch 4). Note attribution is a placeholder too, since
-// versioned notes need their own table (Branch 3.3).
+// (ROADMAP.md Branch 4).
 const ReviewerPanel = ({ task }) => {
   const [decision, setDecision] = useState(null);
 
@@ -15,19 +15,18 @@ const ReviewerPanel = ({ task }) => {
       <div style={{ marginBottom: 6 }}>
         <SentimentBar label="Negative" percent={71} />
       </div>
+
+      <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>Comments</p>
       <div
         style={{
           background: 'var(--mv-bg)',
           border: '0.5px solid var(--mv-border)',
           borderRadius: 8,
           padding: 10,
-          color: 'var(--mv-text-muted)',
-          fontSize: 12,
           marginBottom: 18,
         }}
       >
-        "Customer seems to be a repeat contact — worth flagging to support lead."{' '}
-        <span style={{ color: 'var(--mv-badge-bg)' }}>— {task.assignee}, v1</span>
+        <TaskComments taskId={task.id} visibility="internal" />
       </div>
 
       <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 6px' }}>
