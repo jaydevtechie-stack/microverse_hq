@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { IconLink, IconMail, IconShare2 } from '@tabler/icons-react';
-import { getKeycloak } from '../services/keycloak';
+import { getKeycloak, authHeaders } from '../services/keycloak';
 import TaskStatusBadge from './TaskStatusBadge';
 import PmAssignPanel from './PmAssignPanel';
 import PmBillPanel from './PmBillPanel';
@@ -100,7 +100,7 @@ const TaskDetailContent = ({ id }) => {
   useEffect(() => {
     setTask(null);
     setError(null);
-    fetch(`/api/tasks/${id}`)
+    fetch(`/api/tasks/${id}`, { headers: authHeaders() })
       .then((res) => {
         if (!res.ok) throw new Error(`task-service returned ${res.status}`);
         return res.json();
