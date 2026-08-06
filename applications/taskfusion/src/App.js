@@ -13,6 +13,8 @@ import CreateOrderPage from './pages/CreateOrderPage';
 import TaskDetailPage from './pages/TaskDetailPage';
 import AdminPage from './pages/AdminPage';
 import ProjectHubPage from './pages/ProjectHubPage';
+import MyProfilePage from './pages/MyProfilePage';
+import InactiveUserScrim from './components/InactiveUserScrim';
 
 // microverse.local carries everything platform-side (landing page,
 // /dashboard, /customer, /analyst — path-based). Domain services get
@@ -93,6 +95,7 @@ const App = () => {
               user always gets the navbar; the public landing page only
               stays full-bleed for anonymous visitors */}
           {keycloak && keycloak.authenticated && <Navbar keycloak={keycloak} />}
+          {keycloak && keycloak.authenticated && <InactiveUserScrim keycloak={keycloak} />}
 
           {/* Define Routes */}
           <Routes>
@@ -117,6 +120,15 @@ const App = () => {
             <Route
               path="/dashboard"
               element={<PrivateRoute element={<Dashboard />} keycloak={keycloak} />}
+            />
+
+            {/* Accessible to any logged-in user regardless of role or
+                `active` status — the one page an inactive user's scrim
+                still lets through (see ARCHITECTURE.md's Roles and
+                permissions). No roles/customCheck, same as Dashboard. */}
+            <Route
+              path="/profile"
+              element={<PrivateRoute element={<MyProfilePage />} keycloak={keycloak} />}
             />
 
             <Route
