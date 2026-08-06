@@ -11,6 +11,7 @@ import AnalystPage from './pages/AnalystPage';
 import GofeelerSplitView from './pages/GofeelerSplitView';
 import CreateOrderPage from './pages/CreateOrderPage';
 import TaskDetailPage from './pages/TaskDetailPage';
+import AdminUsersPage from './pages/AdminUsersPage';
 
 // microverse.local carries everything platform-side (landing page,
 // /dashboard, /customer, /analyst — path-based). Domain services get
@@ -115,6 +116,16 @@ const App = () => {
                   keycloak={keycloak}
                   roles={['platform:customer', 'platform:project-manager']}
                 />
+              }
+            />
+
+            {/* Provisional route for 4.0.1 — folds into a unified /admin
+                shell with a Services tab alongside this once 4.0.3
+                builds the real nav (see ROADMAP.md Branch 4). */}
+            <Route
+              path="/admin/users"
+              element={
+                <PrivateRoute element={<AdminUsersPage />} keycloak={keycloak} roles={['platform:admin']} />
               }
             />
 
