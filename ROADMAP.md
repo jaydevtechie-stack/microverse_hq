@@ -72,7 +72,7 @@ GET /assets/{order_id}
 - nginx also got `client_max_body_size 50m` (default is 1m, far too small) and a content-type allowlist on `storage.microverse.local` (text/image/json/pdf for now — GoFeeler-shaped, broaden as other services start uploading).
 
 ### Landing page layout — master-detail split view
-**Approach:** the Orders/Tasks list, Create Order form, and Order/Task detail view are one screen, not three separate page navigations. Clicking a list row or "+ New" shrinks the list to a fixed-width column (~260px) and slides in the relevant panel (detail or create) to fill the reclaimed width — content actually grows to use the space rather than staying at a fixed narrow width inside a wider viewport. Mockup saved as `gofeeler_landing_page` in the design system.
+**Approach:** the Orders/Tasks list, Create Order form, and Order/Task detail view are one screen, not three separate page navigations. Clicking a list row or "+ New" shrinks the list to a 50% column and slides in the relevant panel (detail or create) to fill the other half — content actually grows to use the space rather than staying at a fixed narrow width inside a wider viewport. (First pass used a fixed ~260px sidebar; too cramped once real detail content — the role-specific action panels — had to fit in it.) Mockup saved as `gofeeler_landing_page` in the design system.
 
 **Mobile fallback:** below a breakpoint, this pattern doesn't fit — the list disappears entirely instead of shrinking to a sliver, and whichever panel is active takes the full width. Stacked single-panel navigation, not a cramped split.
 
