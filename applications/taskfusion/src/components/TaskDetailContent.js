@@ -7,6 +7,7 @@ import PmBillPanel from './PmBillPanel';
 import AnalystPanel from './AnalystPanel';
 import ReviewerPanel from './ReviewerPanel';
 import CustomerProgressPanel from './CustomerProgressPanel';
+import TaskComments from './TaskComments';
 
 const detailRowStyle = {
   display: 'flex',
@@ -31,10 +32,10 @@ function actionPanelFor({ task, isPM, isAnalyst, isReviewer, isCustomer, usernam
     return <PmBillPanel />;
   }
   if (isAnalyst && task.status === 'analyst' && task.assignee === username) {
-    return <AnalystPanel task={task} />;
+    return <AnalystPanel />;
   }
   if (isReviewer && task.status === 'reviewer' && task.assignee === username) {
-    return <ReviewerPanel task={task} />;
+    return <ReviewerPanel />;
   }
   if (isCustomer && task.owner === username && ['done', 'paid', 'closed'].includes(task.status)) {
     return <CustomerProgressPanel task={task} />;
@@ -172,6 +173,53 @@ const TaskDetailContent = ({ id }) => {
           {new Date(task.created_at).toLocaleDateString()}
         </span>
       </div>
+
+      {(isPM || isAnalyst || isReviewer) && (
+        <div style={{ marginTop: 18 }}>
+          <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>Comments</p>
+          <div
+            style={{
+              background: 'var(--mv-bg)',
+              border: '0.5px solid var(--mv-border)',
+              borderRadius: 8,
+              padding: 10,
+              marginBottom: 18,
+            }}
+          >
+            <TaskComments taskId={task.id} visibility="internal" />
+          </div>
+
+          <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>
+            Notes (visible to customer)
+          </p>
+          <div
+            style={{
+              background: 'var(--mv-bg)',
+              border: '0.5px solid var(--mv-border)',
+              borderRadius: 8,
+              padding: 10,
+            }}
+          >
+            <TaskComments taskId={task.id} visibility="customer" />
+          </div>
+        </div>
+      )}
+
+      {isCustomer && task.owner === username && (
+        <div style={{ marginTop: 18 }}>
+          <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>Notes</p>
+          <div
+            style={{
+              background: 'var(--mv-bg)',
+              border: '0.5px solid var(--mv-border)',
+              borderRadius: 8,
+              padding: 10,
+            }}
+          >
+            <TaskComments taskId={task.id} visibility="customer" />
+          </div>
+        </div>
+      )}
 
       {actionPanel && <div style={{ marginTop: 18 }}>{actionPanel}</div>}
     </>

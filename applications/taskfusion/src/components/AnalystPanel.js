@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import SentimentBar from './SentimentBar';
-import TaskComments from './TaskComments';
 
 // Dummy result — GoFeeler's real /analyze endpoint exists but isn't
 // wired to tasks yet (no stored content to feed it; that's Branch 3.1
 // MinIO + Branch 5 LLM integration). "Analyse" and "Move to review"
-// are stubs — no PATCH /api/tasks/:id yet either (Branch 4).
-const AnalystPanel = ({ task }) => {
+// are stubs — no PATCH /api/tasks/:id yet either (Branch 4). Comments
+// and customer-facing notes live in TaskDetailContent now, not here —
+// visible to any staff role regardless of the active action panel.
+const AnalystPanel = () => {
   const [note, setNote] = useState('');
   const [movedToReview, setMovedToReview] = useState(false);
 
@@ -34,33 +35,7 @@ const AnalystPanel = ({ task }) => {
         <SentimentBar label="Negative" percent={71} />
       </div>
 
-      <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>Comments</p>
-      <div
-        style={{
-          background: 'var(--mv-bg)',
-          border: '0.5px solid var(--mv-border)',
-          borderRadius: 8,
-          padding: 10,
-          marginBottom: 18,
-        }}
-      >
-        <TaskComments taskId={task?.id} visibility="internal" />
-      </div>
-
-      <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>
-        Notes (visible to customer)
-      </p>
-      <div
-        style={{
-          background: 'var(--mv-bg)',
-          border: '0.5px solid var(--mv-border)',
-          borderRadius: 8,
-          padding: 10,
-          marginBottom: 12,
-        }}
-      >
-        <TaskComments taskId={task?.id} visibility="customer" />
-      </div>
+      <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>Add a note</p>
       <input
         type="text"
         value={note}
