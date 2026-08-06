@@ -30,7 +30,7 @@ Approach + technology notes for roadmap items that need more than a one-line bul
 **Implemented as:** `GET /tags/suggest?q=` on search-service, proxied through nginx at `/api/tags`. Fuzziness alone turned out not to be enough — edit distance between a short in-progress prefix ("urg") and the full word ("urgency") is way past what `fuzziness: AUTO` allows, so early keystrokes returned nothing. Fixed with a `bool`/`should` combining `match_bool_prefix` (catches mid-typing) and the fuzzy `match` (catches typos on an otherwise-complete word, e.g. "urgncy"). `POST /tags` does the upsert-or-bump-usage_count on pick/create, matched case-insensitively via a `name.keyword` field with a lowercase normalizer. `name.keyword` (not analyzed `name`) is deliberate for that lookup — fuzzy/prefix matching is for suggestions, not for deciding whether a submitted tag is "the same" as an existing one. Index gets seeded with the starter sentiment vocabulary (Positive/Negative/.../Escalation) on first creation only.
 
 ### MinIO architecture and permissions
-**Approach:** One shared bucket across all services (not bucket-per-service — avoids re-provisioning MinIO for every new domain service). Isolation happens in the object key structure instead: `{service}/{company_id}/{order_id}/{version}/{filename}` — e.g. `gofeeler/acme-forestry/1f0a3c9e-.../v1/support-chat-export.txt`. `order_id` is a UUID (see the ID convention below), not a sequential number — the key alone encodes enough for an access check without a DB lookup, and doesn't leak enumerable order volume.
+**Approach:** One shared bucket across all services (not bucket-per-service — avoids re-provisioning MinIO for every new domain service). Isolation happens in the object key structure instead: `{service}/{account_id}/{order_id}/{version}/{filename}` — e.g. `gofeeler/acme-forestry/1f0a3c9e-.../v1/support-chat-export.txt`. `order_id` is a UUID (see the ID convention below), not a sequential number — the key alone encodes enough for an access check without a DB lookup, and doesn't leak enumerable order volume. `account_id` is always populated (see ARCHITECTURE.md's Account entity) — no fallback logic needed for individual customers without a company.
 
 **Who talks to MinIO:** Only `asset-service` — the frontend never gets direct MinIO credentials.
 - Upload: frontend requests a presigned PUT URL from asset-service, which checks `platform:customer` + `service:{x}` + order ownership before minting a short-lived URL. Frontend uploads directly to MinIO from there.
@@ -91,9 +91,11 @@ Development is branched — each branch below is a discrete unit of work, roughl
 **Branch 3 — Create Order form functionality**
 - ✅ 3.1 Expand `asset-service` with MinIO (see Proposals — shared bucket, presigned URLs)
 - ✅ 3.2 Tags/sentiments component — Elasticsearch server-side fuzzy matching via `search-service` (see Proposals; not a client-side fuzzy library)
-- 🟢 3.3 Comments table for Task comments (separate table, not JSON — see Proposals in a future update for schema)
+- 🟢 3.3 Comments table for Task comments (separate table, not JSON — see SCHEMA.md's `task_comments`, versioned via new rows sharing a stable `comment_id`). One level of replies only — a reply can't itself be replied to, no arbitrary threading.
+- 🟢 3.3.1 Internal comments vs. customer-facing notes — visibility column, one-level reply threading via `parent_comment_id`, customers can reply to a note (see SCHEMA.md for the full design, including the visibility-inheritance and ownership-check rules)
 
 **Branch 4 — Task detail functionality**
+- 🟡 4.0 `users` table + Keycloak sync (JIT upsert on first authenticated request, `users.id` = Keycloak `sub`, no separate local ID/mapping table) — prerequisite for 4.1, not needed before it; see SCHEMA.md
 - 🟡 4.1 Assign-to-user component — word cloud + plain dropdown, kept in sync
 - 🟡 4.1.1 Simple recommendation agent for assignee/reviewer suggestions — starting signal: who responds fastest to tasks (ties into the task-recommendation agent todo)
 
