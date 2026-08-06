@@ -11,9 +11,16 @@ const pool = new Pool({
 // domain service (and matching Keycloak role) it belongs to, e.g.
 // 'gofeeler' — that's the filter a PM's role list gets checked against.
 async function ensureSchema() {
+  // gen_random_uuid() needs pgcrypto — not built into core until PG13,
+  // and even then this stays explicit rather than assuming the image
+  // has it. Random (v4), not time-ordered (v7): ARCHITECTURE.md's ID
+  // convention prefers v7 to avoid B-tree fragmentation on inserts,
+  // but there's no built-in v7 generator in plain Postgres yet, and
+  // pgcrypto's gen_random_uuid() is the documented fallback.
+  await pool.query('CREATE EXTENSION IF NOT EXISTS pgcrypto;');
   await pool.query(`
     CREATE TABLE IF NOT EXISTS tasks (
-      id SERIAL PRIMARY KEY,
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       service TEXT NOT NULL,
       title TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'unassigned',

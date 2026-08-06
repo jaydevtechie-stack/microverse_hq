@@ -113,7 +113,7 @@ const GofeelerListPanel = ({ selectedId }) => {
                   textOverflow: 'ellipsis',
                 }}
               >
-                #{task.id} · {task.title}
+                #{task.id.slice(0, 8)} · {task.title}
               </span>
             </Link>
           );
