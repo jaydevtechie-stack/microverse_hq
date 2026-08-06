@@ -73,15 +73,31 @@ async function ensureSchema() {
   // mapping table between the two (see SCHEMA.md's users). Populated
   // via JIT upsert (models/user.js's upsertFromClaims) the first time
   // task-service sees a given user's JWT, not a login webhook.
+  //
+  // active is task-service's own bookkeeping (task-assignment
+  // eligibility) — deactivating here never touches Keycloak login, see
+  // SCHEMA.md. roles is synced from the JWT's realm_access.roles on
+  // every JIT upsert, purely for display (Admin Users page's role
+  // chips) — it is never consulted for an actual access-control
+  // decision, which always reads the live JWT instead.
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
       id UUID PRIMARY KEY,
       email TEXT NOT NULL UNIQUE,
       name TEXT NOT NULL,
       avatar_url TEXT,
+      active BOOLEAN NOT NULL DEFAULT true,
+      roles TEXT[] NOT NULL DEFAULT '{}',
       created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
       last_synced_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
+  `);
+  // Idempotent fallback for a users table that already existed without
+  // these columns (mid-session dev environments).
+  await pool.query(`
+    ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT true,
+      ADD COLUMN IF NOT EXISTS roles TEXT[] NOT NULL DEFAULT '{}';
   `);
 }
 
