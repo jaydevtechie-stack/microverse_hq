@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import SentimentBar from './SentimentBar';
-import TaskComments from './TaskComments';
 
 // Approve/Reject and reassign are stubs — no PATCH /api/tasks/:id yet
-// (ROADMAP.md Branch 4).
-const ReviewerPanel = ({ task }) => {
+// (ROADMAP.md Branch 4). Comments and customer-facing notes live in
+// TaskDetailContent now, not here.
+const ReviewerPanel = () => {
   const [decision, setDecision] = useState(null);
 
   return (
@@ -12,21 +12,8 @@ const ReviewerPanel = ({ task }) => {
       <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 6px' }}>
         Analyst's results
       </p>
-      <div style={{ marginBottom: 6 }}>
+      <div style={{ marginBottom: 18 }}>
         <SentimentBar label="Negative" percent={71} />
-      </div>
-
-      <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>Comments</p>
-      <div
-        style={{
-          background: 'var(--mv-bg)',
-          border: '0.5px solid var(--mv-border)',
-          borderRadius: 8,
-          padding: 10,
-          marginBottom: 18,
-        }}
-      >
-        <TaskComments taskId={task.id} visibility="internal" />
       </div>
 
       <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 6px' }}>
