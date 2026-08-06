@@ -95,3 +95,38 @@ SELECT reply_id, reply_id, top_id, task_ref.id, 'luke@microverse.local', 'custom
        'Thanks, this looks great — no walkthrough needed.',
        now() - interval '3 hours'
 FROM top, reply, task_ref;
+
+-- Second customer-facing thread on the same task — an open ask, no
+-- reply yet (demonstrates the "staff asks the customer for more info"
+-- case, distinct from the answered thread above).
+WITH task_ref AS (
+  SELECT id FROM tasks WHERE title = 'Email sentiment sweep for onboarding cohort'
+),
+top AS (
+  SELECT gen_random_uuid() AS top_id
+)
+INSERT INTO task_comments (id, comment_id, parent_comment_id, task_id, author, visibility, version, content, created_at)
+SELECT top_id, top_id, NULL, task_ref.id, 'mark@microverse.local', 'customer', 1,
+       'Quick follow-up for our records — should these be filed under the Q3 or Q4 onboarding cohort?',
+       now() - interval '1 hour'
+FROM top, task_ref;
+
+-- Second reply on 'Re-check flagged negative comments from social
+-- import' — matthew (PM) joins mark (analyst) and john (reviewer) on
+-- the same thread, demonstrating multiple replies at one level (the
+-- one-level rule caps depth, not the number of replies per thread).
+WITH task_ref AS (
+  SELECT id FROM tasks WHERE title = 'Re-check flagged negative comments from social import'
+),
+top AS (
+  SELECT comment_id AS top_id FROM task_comments
+  WHERE task_id = (SELECT id FROM task_ref) AND parent_comment_id IS NULL
+),
+reply AS (
+  SELECT gen_random_uuid() AS reply_id
+)
+INSERT INTO task_comments (id, comment_id, parent_comment_id, task_id, author, version, content, created_at)
+SELECT reply_id, reply_id, top_id, task_ref.id, 'matthew@microverse.local', 1,
+       'Agreed — loop in support before we close this one out.',
+       now() - interval '16 hours'
+FROM top, reply, task_ref;
