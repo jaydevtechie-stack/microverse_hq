@@ -96,6 +96,10 @@ Development is branched — each branch below is a discrete unit of work, roughl
 
 **Branch 4 — Task detail functionality**
 - ✅ 4.0 `users` table + Keycloak sync (JIT upsert on first authenticated request, `users.id` = Keycloak `sub`, no separate local ID/mapping table) — see SCHEMA.md
+- ✅ 4.0.1 Admin Users page — `platform:admin` only, no service scope needed (see ARCHITECTURE.md's role exception). List + detail via the same master-detail split view pattern (mockup: `admin_users_page_split_view`). Deactivate/reactivate (local `active` flag on `users`, does not touch Keycloak login — see SCHEMA.md). Permissions display resolved by storing `users.roles` as a synced array (see SCHEMA.md) rather than live-fetching from Keycloak.
+- ✅ 4.0.2 `accounts`/`pm_accounts`/`projects` tables + expanded nav — Account → many Projects → many Orders/Tasks (additive `tasks.project_id`), each Project with one responsible user (any role). Nav finalized as: Dashboard / Reports (placeholder) / **Projects** (PM-facing, subnav: Projects, Accounts) / **Admin** (platform:admin, subnav: Users, Services), avatar dropdown for My Profile/Log out — see ARCHITECTURE.md's Dashboard/UI notes.
+- ✅ 4.0.3 Real Project Hub and Admin pages, roles actually applied — not just mocked up. Project Hub access (see ARCHITECTURE.md's Roles and permissions): page-level gate is `platform:project-manager` + *any* `service:*` claim; what's actually visible is filtered by two independent checks — `pm_accounts` ownership (which Accounts this PM can see) AND service scope (which task types within an owned Account they can act on), both enforced server-side. Admin requires `platform:admin` alone. Services tab is a read-only stub — no services table exists yet.
+- ✅ 4.0.4 My Profile page — accessible to *any* logged-in user regardless of role or `active` status, the one universally accessible page in the app. Paired with a "scrim" (translucent, non-interactive overlay — mockup: `services_landing_with_scrim`) shown to deactivated users over everything else; the only things that stay clickable through it are My Profile and Keycloak's own account-management links. Scrim is UI only — real enforcement is `task-service`'s `syncUser` middleware 403ing anything off a small allowlist when `users.active = false`, see SECURITY.md/ARCHITECTURE.md.
 - 🟡 4.1 Assign-to-user component — word cloud + plain dropdown, kept in sync
 - 🟡 4.1.1 Simple recommendation agent for assignee/reviewer suggestions — starting signal: who responds fastest to tasks (ties into the task-recommendation agent todo)
 
@@ -123,6 +127,17 @@ Development is branched — each branch below is a discrete unit of work, roughl
 
 **Still not branched yet**
 - ⚪ Connect to `task-service`'s shared pool properly (currently more direct)
+
+## Security hardening (deferred, tracked)
+
+Not blocking current feature work — see `SECURITY.md` for the full honest rundown of current posture. Listed here so these don't get forgotten once real deployment becomes a real question:
+
+- ⚪ Real JWT signature verification against Keycloak's JWKS, replacing unverified claim decoding in `task-service` and `asset-service`
+- ⚪ Secrets management — move off plaintext `.env` values before anything is shared/deployed
+- ⚪ `api-gateway` as an actual dedicated piece (Kong/Traefik) rather than `nginx` doing that job informally
+- ⚪ mTLS or equivalent for internal service-to-service traffic
+- ⚪ Rate limiting
+- ⚪ Dependency/vulnerability scanning
 
 ## Up next (not yet planned in detail)
 

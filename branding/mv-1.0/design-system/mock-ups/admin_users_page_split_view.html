@@ -1,0 +1,142 @@
+<h2 class="sr-only">Admin users page using the master-detail split view — list of users on the left, detail panel on the right with roles, a permissions placeholder, and a deactivate action</h2>
+
+<div style="display:flex;justify-content:flex-end;gap:6px;margin-bottom:10px">
+  <button id="mode-desktop" onclick="setMode('desktop')" style="padding:5px 12px;font-size:12px">Desktop</button>
+  <button id="mode-mobile" onclick="setMode('mobile')" style="padding:5px 12px;font-size:12px">Mobile</button>
+</div>
+
+<div id="demo-shell" style="background:#05061A;border-radius:16px;padding:0;overflow:hidden;display:flex;height:420px;max-width:640px;margin:0 auto;transition:max-width 0.3s ease">
+
+  <div id="list-panel" style="width:100%;flex:none;transition:width 0.15s ease;overflow:hidden;border-right:0.5px solid #1E2A6B">
+    <div style="padding:14px 16px;border-bottom:0.5px solid #1E2A6B">
+      <span style="color:#E8F4FF;font-size:13px;font-weight:500;white-space:nowrap">Users · admin</span>
+    </div>
+    <div onclick="openDetail('jane')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:0.5px solid #1E2A6B;cursor:pointer">
+      <div style="width:7px;height:7px;border-radius:50%;background:#639922;flex-shrink:0"></div>
+      <div style="min-width:0">
+        <div style="color:#E8F4FF;font-size:13px;white-space:nowrap">Jane Doe</div>
+        <div style="color:#5F5E5A;font-size:11px;white-space:nowrap">jane@acme.dev</div>
+      </div>
+    </div>
+    <div onclick="openDetail('mark')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:0.5px solid #1E2A6B;cursor:pointer">
+      <div style="width:7px;height:7px;border-radius:50%;background:#5F5E5A;flex-shrink:0"></div>
+      <div style="min-width:0">
+        <div style="color:#9BB8E0;font-size:13px;white-space:nowrap">Mark Rees</div>
+        <div style="color:#5F5E5A;font-size:11px;white-space:nowrap">mark@acme.dev</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="resizer" style="width:0;flex-shrink:0;cursor:col-resize;position:relative;transition:width 0.15s ease">
+    <div style="position:absolute;left:-3px;top:0;bottom:0;width:7px"></div>
+  </div>
+
+  <div id="detail-panel" style="flex:0 0 0px;overflow:hidden;transition:flex-basis 0.15s ease">
+    <div style="padding:20px;width:100%;box-sizing:border-box">
+      <span onclick="closePanel()" style="color:#4DD8FF;font-size:12px;cursor:pointer">← Back</span>
+
+      <div style="display:flex;align-items:center;gap:12px;margin:14px 0 16px">
+        <div id="d-avatar" style="width:40px;height:40px;border-radius:50%;background:#2D5FDB;display:flex;align-items:center;justify-content:center;color:#E8F4FF;font-size:14px;font-weight:500;flex-shrink:0"></div>
+        <div>
+          <p id="d-name" style="color:#E8F4FF;font-size:15px;font-weight:500;margin:0"></p>
+          <p id="d-email" style="color:#9BB8E0;font-size:12px;margin:2px 0 0"></p>
+        </div>
+        <span id="d-status" style="margin-left:auto;font-size:11px;padding:2px 10px;border-radius:10px;white-space:nowrap"></span>
+      </div>
+
+      <p style="color:#9BB8E0;font-size:12px;margin:0 0 8px">Roles</p>
+      <div id="d-roles" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px"></div>
+
+      <div style="background:#0B0F2E;border:0.5px solid #1E2A6B;border-radius:8px;padding:12px;margin-bottom:20px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span style="color:#9BB8E0;font-size:12px">Permissions (Keycloak)</span>
+          <span style="color:#5F5E5A;font-size:10px;background:#5F5E5A22;padding:2px 8px;border-radius:8px">coming soon</span>
+        </div>
+        <p style="color:#5F5E5A;font-size:11px;margin:6px 0 0;line-height:1.4">Fetch live role/permission detail from Keycloak on demand — nice-to-have, not required for 4.0.1.</p>
+      </div>
+
+      <button id="d-deactivate" style="width:100%;padding:10px 0;background:transparent;border:0.5px solid #E24B4A;color:#E24B4A;font-weight:500;font-size:13px;border-radius:8px"></button>
+    </div>
+  </div>
+
+</div>
+<script>
+let mode = 'desktop';
+let panel = 'list';
+let splitRatio = 41.6667;
+
+const users = {
+  jane: { name: 'Jane Doe', email: 'jane@acme.dev', active: true, initials: 'JD',
+    roles: [{ label: 'platform:analyst', color: '#4DD8FF' }, { label: 'platform:reviewer', color: '#7F77DD' }, { label: 'service:gofeeler', color: '#9BB8E0' }] },
+  mark: { name: 'Mark Rees', email: 'mark@acme.dev', active: false, initials: 'MR',
+    roles: [{ label: 'platform:analyst', color: '#4DD8FF' }, { label: 'service:pyreel', color: '#9BB8E0' }] }
+};
+
+function openDetail(id) {
+  const u = users[id];
+  document.getElementById('d-avatar').textContent = u.initials;
+  document.getElementById('d-avatar').style.background = u.active ? '#2D5FDB' : '#3A3A3A';
+  document.getElementById('d-name').textContent = u.name;
+  document.getElementById('d-email').textContent = u.email;
+  const statusEl = document.getElementById('d-status');
+  statusEl.textContent = u.active ? 'active' : 'deactivated';
+  statusEl.style.background = u.active ? '#63992222' : '#5F5E5A22';
+  statusEl.style.color = u.active ? '#639922' : '#9BB8E0';
+  document.getElementById('d-roles').innerHTML = u.roles.map(r =>
+    `<span style="padding:4px 10px;font-size:11px;border-radius:12px;background:${r.color}22;color:${r.color}">${r.label}</span>`).join('');
+  const deactivateBtn = document.getElementById('d-deactivate');
+  deactivateBtn.textContent = u.active ? 'Deactivate user' : 'Reactivate user';
+  deactivateBtn.style.borderColor = u.active ? '#E24B4A' : '#639922';
+  deactivateBtn.style.color = u.active ? '#E24B4A' : '#639922';
+  panel = 'detail';
+  render();
+}
+
+function updateModeButtons() {
+  document.getElementById('mode-desktop').style.background = mode==='desktop' ? '#0B0F2E' : 'transparent';
+  document.getElementById('mode-desktop').style.color = mode==='desktop' ? '#E8F4FF' : '#9BB8E0';
+  document.getElementById('mode-mobile').style.background = mode==='mobile' ? '#0B0F2E' : 'transparent';
+  document.getElementById('mode-mobile').style.color = mode==='mobile' ? '#E8F4FF' : '#9BB8E0';
+}
+function render() {
+  const shell = document.getElementById('demo-shell');
+  const list = document.getElementById('list-panel');
+  const resizer = document.getElementById('resizer');
+  const detail = document.getElementById('detail-panel');
+  shell.style.maxWidth = mode === 'mobile' ? '300px' : '640px';
+  const splitOpen = panel !== 'list' && mode === 'desktop';
+  resizer.style.width = splitOpen ? '6px' : '0';
+  resizer.style.background = splitOpen ? '#1E2A6B' : 'transparent';
+  if (mode === 'desktop') {
+    list.style.width = panel === 'list' ? '100%' : splitRatio + '%';
+    detail.style.flex = panel === 'detail' ? `0 0 ${100 - splitRatio}%` : '0 0 0px';
+  } else {
+    list.style.width = panel === 'list' ? '100%' : '0';
+    detail.style.flex = panel === 'detail' ? '0 0 100%' : '0 0 0px';
+  }
+  updateModeButtons();
+}
+function setMode(m) { mode = m; render(); }
+function closePanel() { panel = 'list'; render(); }
+
+const resizerEl = document.getElementById('resizer');
+resizerEl.addEventListener('mousedown', (e) => {
+  if (panel === 'list' || mode === 'mobile') return;
+  e.preventDefault();
+  const shellRect = document.getElementById('demo-shell').getBoundingClientRect();
+  const startX = e.clientX;
+  const startRatio = splitRatio;
+  function onMove(ev) {
+    const deltaPct = ((ev.clientX - startX) / shellRect.width) * 100;
+    splitRatio = Math.max(20, Math.min(60, startRatio + deltaPct));
+    render();
+  }
+  function onUp() {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+  }
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+});
+render();
+</script>

@@ -11,6 +11,10 @@ import AnalystPage from './pages/AnalystPage';
 import GofeelerSplitView from './pages/GofeelerSplitView';
 import CreateOrderPage from './pages/CreateOrderPage';
 import TaskDetailPage from './pages/TaskDetailPage';
+import AdminPage from './pages/AdminPage';
+import ProjectHubPage from './pages/ProjectHubPage';
+import MyProfilePage from './pages/MyProfilePage';
+import InactiveUserScrim from './components/InactiveUserScrim';
 
 // microverse.local carries everything platform-side (landing page,
 // /dashboard, /customer, /analyst — path-based). Domain services get
@@ -52,7 +56,11 @@ const App = () => {
   //   action needs both a platform function AND a service scope, e.g.
   //   GoFeeler's Create Order page needs platform:customer AND
   //   service:gofeeler — either alone isn't enough.
-  const PrivateRoute = ({ element, keycloak, roles, requireAllRoles }) => {
+  // `customCheck` — an escape hatch for gates `roles`/`requireAllRoles`
+  //   can't express, e.g. the Project Hub's "platform:project-manager
+  //   + *any* service:* claim" (not a specific one — see
+  //   ARCHITECTURE.md's Roles and permissions).
+  const PrivateRoute = ({ element, keycloak, roles, requireAllRoles, customCheck }) => {
     if (!keycloak) {
       // Optionally, you can show a loader or a spinner while keycloak is loading
       return <div>Loading...</div>;
@@ -70,8 +78,14 @@ const App = () => {
       return <RedirectToLanding />;
     }
 
+    if (customCheck && !customCheck(keycloak)) {
+      return <RedirectToLanding />;
+    }
+
     return element;
   };
+
+  const hasAnyServiceScope = (kc) => (kc.tokenParsed?.realm_access?.roles || []).some((r) => r.startsWith('service:'));
 
   return (
     <ThemeProvider>
@@ -81,6 +95,7 @@ const App = () => {
               user always gets the navbar; the public landing page only
               stays full-bleed for anonymous visitors */}
           {keycloak && keycloak.authenticated && <Navbar keycloak={keycloak} />}
+          {keycloak && keycloak.authenticated && <InactiveUserScrim keycloak={keycloak} />}
 
           {/* Define Routes */}
           <Routes>
@@ -107,6 +122,15 @@ const App = () => {
               element={<PrivateRoute element={<Dashboard />} keycloak={keycloak} />}
             />
 
+            {/* Accessible to any logged-in user regardless of role or
+                `active` status — the one page an inactive user's scrim
+                still lets through (see ARCHITECTURE.md's Roles and
+                permissions). No roles/customCheck, same as Dashboard. */}
+            <Route
+              path="/profile"
+              element={<PrivateRoute element={<MyProfilePage />} keycloak={keycloak} />}
+            />
+
             <Route
               path="/customer"
               element={
@@ -114,6 +138,28 @@ const App = () => {
                   element={<CustomerPage />}
                   keycloak={keycloak}
                   roles={['platform:customer', 'platform:project-manager']}
+                />
+              }
+            />
+
+            <Route
+              path="/admin"
+              element={<PrivateRoute element={<AdminPage />} keycloak={keycloak} roles={['platform:admin']} />}
+            />
+
+            {/* Page-level gate is broad on purpose — platform:project-manager
+                plus ANY service scope, not a specific one, since the page
+                itself spans whatever services this PM manages. What's
+                actually visible inside is filtered server-side (pm_accounts
+                ownership + per-task service scope) — see ARCHITECTURE.md. */}
+            <Route
+              path="/hub"
+              element={
+                <PrivateRoute
+                  element={<ProjectHubPage />}
+                  keycloak={keycloak}
+                  roles={['platform:project-manager']}
+                  customCheck={hasAnyServiceScope}
                 />
               }
             />
