@@ -211,6 +211,38 @@ services:
       - microverse-network
 
 
+  microverse-asset-service:
+    profiles: ["gofeeler", "asset-service"]
+    build:
+      context: ./platform-services/asset-service
+    container_name: microverse-asset-service
+    environment:
+      PORT: 8080
+      # Public-facing, not the internal container hostname — presigned
+      # URLs are handed to the browser, which can't resolve
+      # microverse-minio. Its own dedicated subdomain (nginx proxies
+      # storage.microverse.local straight to MinIO), not a path prefix
+      # on microverse.local — SigV4 presigned URLs don't survive a
+      # stripped path prefix, the AWS SDK's canonical-request signing
+      # doesn't account for it.
+      S3_ENDPOINT: https://storage.microverse.local
+      # Real connectivity for list/head/create-bucket calls — the
+      # public hostname above only resolves on the host machine, not
+      # inside this container. Presigning doesn't need this (it's a
+      # local signature computation, no actual request sent).
+      S3_INTERNAL_ENDPOINT: http://microverse-minio:9000
+      AWS_ACCESS_KEY_ID: ${MINIO_USER}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_PASSWORD}
+      AWS_REGION: ${AWS_REGION}
+      ASSETS_BUCKET_NAME: ${ASSETS_BUCKET_NAME}
+      TASK_SERVICE_URL: http://microverse-task-service:3000
+    depends_on:
+      - microverse-minio
+      - microverse-task-service
+    networks:
+      - microverse-network
+
+
 
   microverse-gofeeler:
     profiles: ["gofeeler"]
