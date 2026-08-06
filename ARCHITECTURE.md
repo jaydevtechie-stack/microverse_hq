@@ -152,7 +152,7 @@ unassigned → analyst → reviewer → done → paid → closed
 
 **UI pattern:** steps 2–7 all happen on one unified Order/Task detail page, not separate forms per step — the available actions render based on `(viewer's platform role, task's current state)`. A PM sees the analyst picker only when status is unassigned; an analyst sees "Analyse" and notes only while assigned to them; a reviewer sees approve/reject only in the reviewer state; a customer gets a read-only view with download unlocked once paid. The list, this detail view, and the Create Order form live on one screen as a master-detail split view — clicking a row shrinks the list and slides in the relevant panel, filling the reclaimed width rather than staying narrow. Below a mobile breakpoint this falls back to stacked single-panel navigation instead of a cramped split (see ROADMAP.md Proposals for the layout details and a CSS gotcha worth knowing before implementing it).
 
-**Build sequence:** see `ROADMAP.md`'s GoFeeler section for the five-branch dev plan (form scaffold → dynamic detail view with dummy data → real form functionality → task detail functionality → LLM integration).
+**Build sequence:** see `ROADMAP.md`'s GoFeeler section for the branch plan (form scaffold → dynamic detail view with dummy data → real form functionality → task detail functionality → LLM integration → search-service → notifications & messaging → auditing & efficiency → billing & payouts).
 
 ## Open questions
 

@@ -14,6 +14,7 @@ What's getting built, roughly in order. See `ARCHITECTURE.md` for the decisions 
 - ✅ List mockup pages for tasks and customers implemented
 - ✅ Branch 1 — Create Order form page/components built from mockup; master-detail split view layout with mobile fallback
 - ✅ Branch 2 — dummy Order/Task data seeded; unified Order/Task detail page with role/status-based actions; share icon group on the detail panel
+- ✅ Migrated `task-service`'s `tasks.id` from `SERIAL` to `UUID` (`gen_random_uuid()` via pgcrypto), matching ARCHITECTURE.md's ID convention
 
 
 ## Proposals
@@ -102,14 +103,23 @@ Development is branched — each branch below is a discrete unit of work, roughl
 - ✅ search-service + Elasticsearch added to the `gofeeler` docker profile — genuinely queried now via the tag-suggest endpoint (Branch 3.2), not just scaffolded
 - 🟡 Real term search — search-service exposes a permission-scoped search endpoint (owner/assignee/company filter baked into the query, per the role model), React calls it rather than touching Elasticsearch directly
 
-**Still not branched yet**
-- 🟢 Migrate `task-service`'s `tasks.id` from `SERIAL` to `UUID` (`gen_random_uuid()` via pgcrypto) to match ARCHITECTURE.md's ID convention — noted while working on Branch 3.2, not done yet
+**Branch 7 — Notifications & messaging**
 - 🟡 PM notification bell (unread count + popup) → clicking loads the Order/Task detail page
-- 🟡 PM approval → bill creation handoff to rustledger
-- 🟡 Hook into `event-bus` — emit a `sentiment.analyzed` event to the Kafka scroll per analysis
 - 🟡 Hook into `messaging` — notify the assigned analyst when new content lands in their queue
+
+**Branch 8 — Auditing & efficiency**
+- 🟡 Hook into `event-bus` — emit status-change/owner-change events (including `sentiment.analyzed`) to the Kafka scroll; audit trail is built from this stream, not a separate write path
+- 🟡 Basic audit log: status transitions, owner changes, and time-in-status per Task — scoped to GoFeeler only for now (a proof of concept ahead of generalizing into the `audit` platform service)
+- 🟡 Efficiency metrics from the above: GoFeeler's own processing time, and how fast analysts react to a new assignment
+- ⚪ *Open question:* does GoFeeler's analysis step need its own `processing` status in the task workflow (the moment between "Analyse" clicked and results returned), or is that transient enough to just be a UI loading state with no persisted status of its own? Worth deciding before the audit log schema locks in — a real status gets logged as a state transition, a UI-only loading state doesn't.
+
+**Branch 9 — Billing & payouts**
+- 🟡 PM approval → bill creation handoff to rustledger
+- 🟡 Billing button + customer payment workflow (billing-service/Stripe collection)
+- ⚪ *Open question, bigger scope than originally captured:* PMs and analysts also need to get paid, not just customers billed. This is a new direction for rustledger/billing-service — collecting money (customer → Microverse) and paying it out (Microverse → analyst/PM) are different flows with different tooling (Stripe Connect for payouts is the obvious candidate, but nothing here is designed yet). Needs its own design pass before Branch 9 work starts, not just an extra bullet.
+
+**Still not branched yet**
 - ⚪ Connect to `task-service`'s shared pool properly (currently more direct)
-- ⚪ Customer payment flow (deferred — depends on billing-service + rustledger)
 
 ## Up next (not yet planned in detail)
 
