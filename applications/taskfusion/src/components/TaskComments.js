@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { authHeaders } from '../services/keycloak';
 
 // Read-only for now — seeded data only (Branch 3.3), no POST/submission
 // UI yet (Branch 4). Renders each top-level comment with its one
@@ -17,7 +18,7 @@ const TaskComments = ({ taskId, visibility }) => {
     if (!taskId) return;
     setComments(null);
     setError(null);
-    fetch(`/api/tasks/${taskId}/comments?visibility=${visibility}`)
+    fetch(`/api/tasks/${taskId}/comments?visibility=${visibility}`, { headers: authHeaders() })
       .then((res) => {
         if (!res.ok) throw new Error(`task-service returned ${res.status}`);
         return res.json();

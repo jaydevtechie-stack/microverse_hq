@@ -68,6 +68,21 @@ async function ensureSchema() {
   await pool.query('CREATE INDEX IF NOT EXISTS idx_task_comments_task ON task_comments (task_id, created_at);');
   await pool.query('CREATE INDEX IF NOT EXISTS idx_task_comments_thread ON task_comments (comment_id, version);');
   await pool.query('CREATE INDEX IF NOT EXISTS idx_task_comments_parent ON task_comments (parent_comment_id);');
+
+  // id is the Keycloak `sub` claim directly — no separate local ID, no
+  // mapping table between the two (see SCHEMA.md's users). Populated
+  // via JIT upsert (models/user.js's upsertFromClaims) the first time
+  // task-service sees a given user's JWT, not a login webhook.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id UUID PRIMARY KEY,
+      email TEXT NOT NULL UNIQUE,
+      name TEXT NOT NULL,
+      avatar_url TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      last_synced_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
 }
 
 module.exports = { pool, ensureSchema };

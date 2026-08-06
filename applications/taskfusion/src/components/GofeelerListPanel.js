@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getKeycloak } from '../services/keycloak';
+import { getKeycloak, authHeaders } from '../services/keycloak';
 import { STATUS_STYLE } from './TaskStatusBadge';
 
 // The master list — shared by the old full-page Gofeeler landing (now
@@ -18,7 +18,7 @@ const GofeelerListPanel = ({ selectedId }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch('/api/tasks?service=gofeeler')
+    fetch('/api/tasks?service=gofeeler', { headers: authHeaders() })
       .then((res) => {
         if (!res.ok) throw new Error(`task-service returned ${res.status}`);
         return res.json();
