@@ -1,11 +1,12 @@
 // src/components/Navbar.js
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { IconBell, IconSun, IconMoon, IconMenu2, IconX } from '@tabler/icons-react';
+import { IconBell, IconSun, IconMoon, IconMenu2, IconX, IconUser, IconLogout } from '@tabler/icons-react';
 import { logout, landingUrl, hostUrlForSubdomain, isOnMicrosite } from '../services/keycloak';
 import { useTheme } from '../context/ThemeContext';
 import { avatarColorsForKeycloak } from '../utils/avatarColors';
 import useIsMobile from '../hooks/useIsMobile';
+import useClickOutside from '../hooks/useClickOutside';
 
 function initialsFor(keycloak) {
   const claims = keycloak.tokenParsed || {};
@@ -50,11 +51,23 @@ const Navbar = ({ keycloak }) => {
   const avatarColors = avatarColorsForKeycloak(keycloak);
   const isMobile = useIsMobile();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
+  const avatarMenuRef = useRef(null);
+  useClickOutside(avatarMenuRef, () => setAvatarMenuOpen(false));
 
   const isCustomerOrPM =
     keycloak.hasRealmRole('platform:customer') || keycloak.hasRealmRole('platform:project-manager');
   const isAnalystOrPM =
     keycloak.hasRealmRole('platform:analyst') || keycloak.hasRealmRole('platform:project-manager');
+  // Project Hub's page-level gate (see ARCHITECTURE.md's Roles and
+  // permissions) — platform:project-manager plus *any* service scope,
+  // not a specific one, since the page itself spans whatever services
+  // this PM manages.
+  const hasAnyServiceScope = (keycloak.tokenParsed?.realm_access?.roles || []).some((role) =>
+    role.startsWith('service:')
+  );
+  const isPMWithServiceScope = keycloak.hasRealmRole('platform:project-manager') && hasAnyServiceScope;
+  const isAdmin = keycloak.hasRealmRole('platform:admin');
 
   const navLinks = (
     <>
@@ -73,6 +86,18 @@ const Navbar = ({ keycloak }) => {
       {isAnalystOrPM && (
         <PlatformNavLink to="/analyst" active={pathname === '/analyst'}>
           Analysts
+        </PlatformNavLink>
+      )}
+
+      {isPMWithServiceScope && (
+        <PlatformNavLink to="/hub" active={pathname.startsWith('/hub')}>
+          Projects
+        </PlatformNavLink>
+      )}
+
+      {isAdmin && (
+        <PlatformNavLink to="/admin" active={pathname.startsWith('/admin')}>
+          Admin
         </PlatformNavLink>
       )}
 
@@ -140,6 +165,102 @@ const Navbar = ({ keycloak }) => {
     </button>
   );
 
+  const profileHref = isOnMicrosite() ? `${hostUrlForSubdomain(null)}/profile` : '/profile';
+  const displayName = keycloak.tokenParsed?.name || keycloak.tokenParsed?.preferred_username;
+
+  // The standard, expected spot for both My Profile and Log out — see
+  // ARCHITECTURE.md's Dashboard/UI notes. Not a separate nav item.
+  const avatarMenu = (
+    <div ref={avatarMenuRef} style={{ position: 'relative' }}>
+      <div
+        onClick={() => setAvatarMenuOpen((open) => !open)}
+        style={{ cursor: 'pointer' }}
+        role="button"
+        tabIndex={0}
+        aria-label="Account menu"
+      >
+        {avatarChip}
+      </div>
+
+      {avatarMenuOpen && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 36,
+            right: 0,
+            background: 'var(--mv-bg)',
+            border: '0.5px solid var(--mv-border)',
+            borderRadius: 10,
+            padding: 6,
+            minWidth: 170,
+            zIndex: 10,
+          }}
+        >
+          <div
+            style={{
+              padding: '10px 12px',
+              borderBottom: '0.5px solid var(--mv-border)',
+              marginBottom: 4,
+            }}
+          >
+            <p style={{ color: 'var(--mv-text)', fontSize: 12, margin: 0 }}>{displayName}</p>
+            <p style={{ color: 'var(--mv-badge-bg)', fontSize: 11, margin: '1px 0 0' }}>
+              {keycloak.tokenParsed?.email}
+            </p>
+          </div>
+
+          {isOnMicrosite() ? (
+            <a
+              href={profileHref}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '8px 10px',
+                borderRadius: 6,
+                textDecoration: 'none',
+              }}
+            >
+              <IconUser size={14} color="var(--mv-color-primary)" />
+              <span style={{ color: 'var(--mv-color-primary)', fontSize: 13 }}>My Profile</span>
+            </a>
+          ) : (
+            <Link
+              to="/profile"
+              onClick={() => setAvatarMenuOpen(false)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '8px 10px',
+                borderRadius: 6,
+                textDecoration: 'none',
+              }}
+            >
+              <IconUser size={14} color="var(--mv-color-primary)" />
+              <span style={{ color: 'var(--mv-color-primary)', fontSize: 13 }}>My Profile</span>
+            </Link>
+          )}
+
+          <div
+            onClick={logout}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '8px 10px',
+              borderRadius: 6,
+              cursor: 'pointer',
+            }}
+          >
+            <IconLogout size={14} color="var(--mv-color-danger)" />
+            <span style={{ color: 'var(--mv-color-danger)', fontSize: 13 }}>Log out</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <nav
       style={{
@@ -205,8 +326,7 @@ const Navbar = ({ keycloak }) => {
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginLeft: 'auto' }}>
               {themeToggleButton}
               <IconBell size={16} color="var(--mv-text-muted)" aria-hidden="true" />
-              {avatarChip}
-              {logoutButton}
+              {avatarMenu}
             </div>
           </div>
         )}
@@ -224,6 +344,15 @@ const Navbar = ({ keycloak }) => {
           }}
         >
           {navLinks}
+          {isOnMicrosite() ? (
+            <a href={profileHref} style={navLinkStyle(false)}>
+              My Profile
+            </a>
+          ) : (
+            <Link to="/profile" style={navLinkStyle(pathname === '/profile')}>
+              My Profile
+            </Link>
+          )}
           <div
             style={{
               display: 'flex',
