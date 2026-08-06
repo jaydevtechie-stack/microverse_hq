@@ -95,7 +95,7 @@ Development is branched — each branch below is a discrete unit of work, roughl
 - 🟢 3.3.1 Internal comments vs. customer-facing notes — visibility column, one-level reply threading via `parent_comment_id`, customers can reply to a note (see SCHEMA.md for the full design, including the visibility-inheritance and ownership-check rules)
 
 **Branch 4 — Task detail functionality**
-- 🟡 4.0 `users` table + Keycloak sync (JIT upsert on first authenticated request, `users.id` = Keycloak `sub`, no separate local ID/mapping table) — prerequisite for 4.1, not needed before it; see SCHEMA.md
+- ✅ 4.0 `users` table + Keycloak sync (JIT upsert on first authenticated request, `users.id` = Keycloak `sub`, no separate local ID/mapping table) — see SCHEMA.md
 - 🟡 4.1 Assign-to-user component — word cloud + plain dropdown, kept in sync
 - 🟡 4.1.1 Simple recommendation agent for assignee/reviewer suggestions — starting signal: who responds fastest to tasks (ties into the task-recommendation agent todo)
 
