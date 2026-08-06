@@ -102,6 +102,7 @@ Development is branched — each branch below is a discrete unit of work, roughl
 - ✅ 4.0.4 My Profile page — accessible to *any* logged-in user regardless of role or `active` status, the one universally accessible page in the app. Paired with a "scrim" (translucent, non-interactive overlay — mockup: `services_landing_with_scrim`) shown to deactivated users over everything else; the only things that stay clickable through it are My Profile and Keycloak's own account-management links. Scrim is UI only — real enforcement is `task-service`'s `syncUser` middleware 403ing anything off a small allowlist when `users.active = false`, see SECURITY.md/ARCHITECTURE.md.
 - 🟡 4.1 Assign-to-user component — word cloud + plain dropdown, kept in sync
 - 🟡 4.1.1 Simple recommendation agent for assignee/reviewer suggestions — starting signal: who responds fastest to tasks (ties into the task-recommendation agent todo)
+- 🟡 4.1.2 Connect to `task-service`'s shared pool properly (currently more direct) — swap in the real `FOR UPDATE SKIP LOCKED` pool-claim query from ARCHITECTURE.md's "The task pool," since this is exactly what 4.1's assign-to-user component needs to claim against correctly
 
 **Branch 5 — GoFeeler LLM integration**
 - 🟡 Real text sentiment analysis via LLM, replacing the naive keyword matcher
@@ -125,8 +126,16 @@ Development is branched — each branch below is a discrete unit of work, roughl
 - 🟡 Billing button + customer payment workflow (billing-service/Stripe collection)
 - ⚪ *Open question, bigger scope than originally captured:* PMs and analysts also need to get paid, not just customers billed. This is a new direction for rustledger/billing-service — collecting money (customer → Microverse) and paying it out (Microverse → analyst/PM) are different flows with different tooling (Stripe Connect for payouts is the obvious candidate, but nothing here is designed yet). Needs its own design pass before Branch 9 work starts, not just an extra bullet.
 
-**Still not branched yet**
-- ⚪ Connect to `task-service`'s shared pool properly (currently more direct)
+**Phase 10 — Tests & CI/CD pipeline (GitHub)**
+- 🟡 Test suites for the services that actually exist — each in its native tooling, not a bolted-on shared framework: Jest for task-service (Node.js/Express), `cargo test` for asset-service (Rust), `pytest` for search-service (Python). Adding more as other services (SpringPix, rustledger, etc.) come online.
+- 🟡 GitHub Actions workflow: run tests + lint on every PR and push — per-service jobs given the polyglot stack, not one monolithic pipeline pretending everything shares a toolchain.
+- 🟡 Build step: build each service's Docker image in CI, validating the Dockerfiles stay working — catches drift between "what's documented in docker-compose" and "what actually builds," not just source-level bugs.
+- ⚪ *Open question:* CD (actual deployment) isn't scoped yet — no deployment target decided. Pipeline stops at "build passes" for now; treat this as CI only until there's somewhere real to ship to.
+
+**Phase 11 — Keycloak account theme**
+- 🟡 New Keycloak theme (FreeMarker templates under `themes/microverse/account/`) matching Microverse's visual design — not a custom React page, not a rebuilt form.
+- 🟡 Keycloak's native account console functionality is reused entirely as-is (email/name editing, password change) — restyled via Keycloak's own theming system, no custom API calls needed.
+- 🟡 "Edit profile" and "Change password" from My Profile continue pointing at Keycloak's account console (unchanged destination) — now themed to match Microverse instead of Keycloak's default look.
 
 ## Security hardening (deferred, tracked)
 
