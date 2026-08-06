@@ -30,6 +30,44 @@ async function ensureSchema() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
   `);
+
+  // Separate table, not JSON on tasks — every edit is a new row sharing
+  // the same comment_id (never an UPDATE), which is what makes this an
+  // audit trail rather than just mutable text. parent_comment_id is
+  // NULL for a top-level comment; when set, it points at another row's
+  // comment_id (a thread, not a specific version) and marks this as a
+  // reply. One level only — see SCHEMA.md's task_comments for why that
+  // can't be a CHECK constraint and is enforced application-side.
+  //
+  // visibility splits internal staff discussion ('internal') from
+  // customer-facing notes the customer can see and reply to
+  // ('customer') — one table, not two, since the shape is identical
+  // and only who can see it differs. Visibility inheritance (a reply
+  // matches its parent's visibility) and the customer ownership check
+  // are both application-side too, same reasoning as one-level replies.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS task_comments (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      comment_id UUID NOT NULL,
+      parent_comment_id UUID,
+      task_id UUID NOT NULL REFERENCES tasks(id),
+      author TEXT NOT NULL,
+      visibility TEXT NOT NULL DEFAULT 'internal' CHECK (visibility IN ('internal', 'customer')),
+      version INT NOT NULL DEFAULT 1,
+      content TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+  // Idempotent fallback for a task_comments table that already existed
+  // without visibility (e.g. mid-session dev environments) — matches
+  // the ALTER TABLE ... ADD COLUMN IF NOT EXISTS pattern used elsewhere.
+  await pool.query(`
+    ALTER TABLE task_comments
+      ADD COLUMN IF NOT EXISTS visibility TEXT NOT NULL DEFAULT 'internal';
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_task_comments_task ON task_comments (task_id, created_at);');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_task_comments_thread ON task_comments (comment_id, version);');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_task_comments_parent ON task_comments (parent_comment_id);');
 }
 
 module.exports = { pool, ensureSchema };

@@ -91,6 +91,7 @@ Development is branched — each branch below is a discrete unit of work, roughl
 - ✅ 3.1 Expand `asset-service` with MinIO (see Proposals — shared bucket, presigned URLs)
 - ✅ 3.2 Tags/sentiments component — Elasticsearch server-side fuzzy matching via `search-service` (see Proposals; not a client-side fuzzy library)
 - 🟢 3.3 Comments table for Task comments (separate table, not JSON — see SCHEMA.md's `task_comments`, versioned via new rows sharing a stable `comment_id`). One level of replies only — a reply can't itself be replied to, no arbitrary threading.
+- 🟢 3.3.1 Internal comments vs. customer-facing notes — visibility column, one-level reply threading via `parent_comment_id`, customers can reply to a note (see SCHEMA.md for the full design, including the visibility-inheritance and ownership-check rules)
 
 **Branch 4 — Task detail functionality**
 - 🟡 4.0 `users` table + Keycloak sync (JIT upsert on first authenticated request, `users.id` = Keycloak `sub`, no separate local ID/mapping table) — prerequisite for 4.1, not needed before it; see SCHEMA.md
