@@ -65,6 +65,15 @@ export const landingUrl = () => `${hostUrl(null)}/`;
 export const getKeycloak = () => keycloak;
 export const getToken = () => keycloak.token;
 
+// keycloak-js builds the account-console URL itself (realm/client-
+// aware) rather than hand-constructing one — used by My Profile's
+// "Edit profile"/"Change password" buttons and the inactive-user
+// scrim's "Manage account" button. Both open the same console; Keycloak
+// doesn't expose a stable deep link to a specific tab (e.g. password)
+// across versions/themes, so this is one URL for both actions rather
+// than guessing at a fragment that might not resolve.
+export const keycloakAccountUrl = () => keycloak?.createAccountUrl();
+
 // For fetch() calls that need the caller's identity on the backend
 // (e.g. task-service's JIT user-sync middleware) — spread into a
 // fetch's headers object. Omits Authorization entirely when there's no
