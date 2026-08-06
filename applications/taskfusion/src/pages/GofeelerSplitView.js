@@ -20,7 +20,7 @@ const GofeelerSplitView = () => {
   const isMobile = useIsMobile();
 
   const panel = pathname === '/' ? 'list' : pathname.startsWith('/task/') ? 'detail' : 'create';
-  const listWidth = panel === 'list' ? '100%' : isMobile ? '0' : '280px';
+  const listWidth = panel === 'list' ? '100%' : isMobile ? '0' : '50%';
   const rightPanelFlex = panel === 'list' ? '0 0 0px' : '1 1 0%';
 
   return (
@@ -57,7 +57,7 @@ const GofeelerSplitView = () => {
         }}
       >
         {panel !== 'list' && (
-          <div style={{ padding: '16px 18px', minWidth: isMobile ? 'auto' : 400 }}>
+          <div style={{ padding: '16px 18px', minWidth: isMobile ? 'auto' : 280 }}>
             <Link
               to="/"
               style={{ color: 'var(--mv-color-primary)', fontSize: 12, textDecoration: 'none' }}
