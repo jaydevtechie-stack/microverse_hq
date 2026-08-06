@@ -19,10 +19,15 @@ function claimsFromHeader(authHeader) {
 // Fire-and-forget — never blocks or fails the request. A user with an
 // incomplete token (missing standard OIDC claims) just doesn't get
 // synced yet; that's fine, the next request with a full token will.
+// Also stashes the decoded claims on req.claims — routes that need to
+// know "who's asking" (e.g. the Project Hub's PM-scoped queries) read
+// that directly rather than re-decoding the header themselves. Still
+// unverified, same trust posture as everywhere else in task-service.
 function syncUser(req, res, next) {
   const claims = claimsFromHeader(req.headers.authorization);
+  req.claims = claims;
   if (claims?.sub && claims?.email && claims?.name) {
-    upsertFromClaims(claims).catch((err) => {
+    upsertFromClaims({ ...claims, roles: claims.realm_access?.roles }).catch((err) => {
       console.error('User sync failed:', err.message);
     });
   }
