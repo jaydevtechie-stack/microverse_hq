@@ -65,6 +65,12 @@ export const landingUrl = () => `${hostUrl(null)}/`;
 export const getKeycloak = () => keycloak;
 export const getToken = () => keycloak.token;
 
+// For fetch() calls that need the caller's identity on the backend
+// (e.g. task-service's JIT user-sync middleware) — spread into a
+// fetch's headers object. Omits Authorization entirely when there's no
+// token yet, rather than sending a literal "Bearer undefined".
+export const authHeaders = () => (keycloak?.token ? { Authorization: `Bearer ${keycloak.token}` } : {});
+
 // Logout function
 export const logout = () => {
   if (keycloak) {

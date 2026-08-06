@@ -101,7 +101,7 @@ INSERT INTO statuses (id, name, sort_order) VALUES
   (6, 'closed',     6);
 ```
 
-### users — 🟢 (needed ahead of Branch 4.1, not before Branch 3.3)
+### users — ✅ live
 
 `id` is the Keycloak `sub` claim directly — no separate local ID, no mapping table between the two.
 
@@ -127,6 +127,8 @@ ON CONFLICT (id) DO UPDATE
 ```
 
 Once this exists, `tasks.assignee`/`owner`/`customer` (currently plain `TEXT`) are the natural next fields to migrate to `UUID REFERENCES users(id)` — not required for Branch 4.1 itself, but the obvious next step once real user rows exist.
+
+**Implemented as:** `business-services/task-service/middleware/auth.js`'s `syncUser`, mounted ahead of every `/api` route in `server.js`. Unverified claim extraction (base64url-decode the JWT's payload segment, no JWKS signature check) — same trust posture as `asset-service`'s `auth.rs`, just in Node instead of Rust (`Buffer.from(payload, 'base64url')`, no external JWT library needed). Requires `sub`, `email`, and `name` all present on the token before syncing — if any are missing the request still proceeds normally, just unsynced, since asset-service's `Claims` struct never modeled those fields and there's no other precedent in this codebase for what's guaranteed to be present. The upsert itself is fire-and-forget (errors are logged, never surfaced to the caller) — task-service still enforces no real auth, this only keeps `users` warm for when Branch 4.1's assignee picker needs real rows to query. The frontend didn't send `Authorization` on any task-service fetch before this (`GofeelerListPanel`/`TaskDetailContent`/`TaskComments` were all headerless) — added via a new `authHeaders()` helper in `services/keycloak.js`, omitted entirely (not sent as `Bearer undefined`) when there's no token yet.
 
 ### tasks (target shape) — 🟢
 
