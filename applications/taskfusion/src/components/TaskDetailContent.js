@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { IconLink, IconMail, IconShare2 } from '@tabler/icons-react';
 import { getKeycloak } from '../services/keycloak';
 import TaskStatusBadge from './TaskStatusBadge';
 import PmAssignPanel from './PmAssignPanel';
@@ -40,6 +41,47 @@ function actionPanelFor({ task, isPM, isAnalyst, isReviewer, isCustomer, usernam
   }
   return null;
 }
+
+// Copy link / email / native share, next to the status badge — from
+// gofeeler_landing_page_split_view_resizable.html's mockup. Native
+// Web Share (mobile/some desktop browsers) falls back to copy-link
+// where it isn't available, rather than a dead button.
+const ShareIconGroup = ({ task }) => {
+  const [copied, setCopied] = useState(false);
+  const shareUrl = window.location.href;
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+
+  const shareViaEmail = () => {
+    const subject = encodeURIComponent(`Gofeeler task — ${task.title}`);
+    const body = encodeURIComponent(shareUrl);
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  };
+
+  const share = () => {
+    if (navigator.share) {
+      navigator.share({ title: task.title, url: shareUrl }).catch(() => {});
+    } else {
+      copyLink();
+    }
+  };
+
+  const iconStyle = { color: 'var(--mv-text-muted)', cursor: 'pointer' };
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      {copied && <span style={{ color: 'var(--mv-color-primary)', fontSize: 11 }}>Copied!</span>}
+      <IconLink size={15} style={iconStyle} onClick={copyLink} title="Copy link" />
+      <IconMail size={15} style={iconStyle} onClick={shareViaEmail} title="Share via email" />
+      <IconShare2 size={15} style={iconStyle} onClick={share} title="Share" />
+    </div>
+  );
+};
 
 // The task info + role-specific action panel — shared by the standalone
 // TaskDetailPage and GofeelerSplitView's embedded detail panel.
@@ -87,13 +129,18 @@ const TaskDetailContent = ({ id }) => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 8,
           margin: '14px 0 18px',
         }}
       >
         <p style={{ color: 'var(--mv-text)', fontSize: 16, fontWeight: 500, margin: 0 }}>
           {task.title}
         </p>
-        <TaskStatusBadge status={task.status} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <TaskStatusBadge status={task.status} />
+          <ShareIconGroup task={task} />
+        </div>
       </div>
 
       <div style={detailRowStyle}>
