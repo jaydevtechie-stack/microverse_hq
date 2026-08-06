@@ -1,0 +1,165 @@
+<h2 class="sr-only">Master-detail split view with a draggable resize handle between the list and detail panels</h2>
+
+<div style="display:flex;justify-content:flex-end;gap:6px;margin-bottom:10px">
+  <button id="mode-desktop" onclick="setMode('desktop')" style="padding:5px 12px;font-size:12px">Desktop</button>
+  <button id="mode-mobile" onclick="setMode('mobile')" style="padding:5px 12px;font-size:12px">Mobile</button>
+</div>
+
+<div id="demo-shell" style="background:#05061A;border-radius:16px;padding:0;overflow:hidden;display:flex;height:460px;max-width:640px;margin:0 auto;transition:max-width 0.3s ease">
+
+  <div id="list-panel" style="width:100%;flex:none;transition:width 0.15s ease;overflow:hidden;border-right:0.5px solid #1E2A6B">
+    <div style="padding:14px 16px;border-bottom:0.5px solid #1E2A6B;display:flex;align-items:center;justify-content:space-between">
+      <span style="color:#E8F4FF;font-size:13px;font-weight:500;white-space:nowrap">Orders & tasks</span>
+      <button onclick="openPanel('create')" style="padding:4px 10px;font-size:11px;background:#4DD8FF;color:#04203B;border-radius:6px;white-space:nowrap">+ New</button>
+    </div>
+    <div onclick="openDetail('1024')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:0.5px solid #1E2A6B;cursor:pointer">
+      <div style="width:7px;height:7px;border-radius:50%;background:#639922;flex-shrink:0"></div>
+      <span style="color:#E8F4FF;font-size:13px;white-space:nowrap">#1024 · Acme Forestry</span>
+    </div>
+    <div onclick="openDetail('1025')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:0.5px solid #1E2A6B;cursor:pointer">
+      <div style="width:7px;height:7px;border-radius:50%;background:#EF9F27;flex-shrink:0"></div>
+      <span style="color:#9BB8E0;font-size:13px;white-space:nowrap">#1025 · Boreal Co</span>
+    </div>
+  </div>
+
+  <div id="resizer" style="width:0;flex-shrink:0;cursor:col-resize;position:relative;transition:width 0.15s ease">
+    <div style="position:absolute;left:-3px;top:0;bottom:0;width:7px"></div>
+  </div>
+
+  <div id="detail-panel" style="flex:0 0 0px;overflow:hidden;transition:flex-basis 0.15s ease">
+    <div style="padding:20px;width:100%;box-sizing:border-box">
+      <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px">
+        <span onclick="closePanel()" style="color:#4DD8FF;font-size:12px;cursor:pointer">← Back</span>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="background:#4DD8FF22;color:#4DD8FF;font-size:11px;padding:2px 10px;border-radius:10px">analyst</span>
+          <div style="display:flex;gap:8px">
+            <i class="ti ti-link" style="color:#9BB8E0;font-size:15px;cursor:pointer" title="Copy link" aria-hidden="true"></i>
+            <i class="ti ti-mail" style="color:#9BB8E0;font-size:15px;cursor:pointer" title="Share via email" aria-hidden="true"></i>
+            <i class="ti ti-share-2" style="color:#9BB8E0;font-size:15px;cursor:pointer" title="Share" aria-hidden="true"></i>
+          </div>
+        </div>
+      </div>
+      <p id="d-title" style="color:#E8F4FF;font-size:16px;font-weight:500;margin:14px 0 4px"></p>
+      <p id="d-meta" style="color:#9BB8E0;font-size:12px;margin:0 0 14px"></p>
+      <div style="background:#0B0F2E;border:0.5px solid #1E2A6B;border-radius:8px;padding:10px;color:#9BB8E0;font-size:12px;line-height:1.5;margin-bottom:16px">Uploaded content preview.</div>
+
+      <p style="color:#9BB8E0;font-size:12px;margin:0 0 8px">Comments</p>
+      <div id="d-comments" style="display:flex;flex-direction:column;gap:4px;margin-bottom:12px"></div>
+      <div style="display:flex;gap:6px">
+        <input placeholder="Add a comment..." style="flex:1;background:#0B0F2E;border:0.5px solid #1E2A6B;border-radius:8px;padding:7px 10px;color:#E8F4FF;font-size:12px;box-sizing:border-box">
+        <button style="padding:6px 12px;background:#4DD8FF;color:#04203B;font-size:12px;border-radius:8px;white-space:nowrap">Post</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="create-panel" style="flex:0 0 0px;overflow:hidden;transition:flex-basis 0.15s ease">
+    <div style="padding:20px;width:100%;box-sizing:border-box">
+      <span onclick="closePanel()" style="color:#4DD8FF;font-size:12px;cursor:pointer">← Back</span>
+      <p style="color:#E8F4FF;font-size:16px;font-weight:500;margin:14px 0 14px">Create sentiment analysis task</p>
+      <input placeholder="Title" style="width:100%;background:#0B0F2E;border:0.5px solid #1E2A6B;border-radius:8px;padding:9px 12px;color:#E8F4FF;font-size:13px;margin-bottom:10px;box-sizing:border-box">
+      <div style="border:1px dashed #1E2A6B;border-radius:10px;padding:16px;text-align:center">
+        <i class="ti ti-upload" style="color:#4DD8FF;font-size:18px" aria-hidden="true"></i>
+        <p style="color:#9BB8E0;font-size:11px;margin:6px 0 0">Drag a file, or click to browse</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+<p style="text-align:center;color:#5F5E5A;font-size:11px;margin-top:8px">Drag the divider between the panels to resize</p>
+<script>
+let mode = 'desktop';
+let panel = 'list';
+let splitRatio = 41.6667; // list panel's % width when a detail/create panel is open
+
+const tasks = {
+  '1024': {
+    title: 'Q3 customer support chat review', meta: 'Acme Forestry · due in 5 days',
+    comments: [
+      { author: 'Priya (PM)', time: '2h ago', text: "Can you double check the urgency tag on this one?",
+        reply: { author: 'Jane Doe', time: '1h ago', text: 'Yep, confirmed — customer mentioned three follow-ups.' } }
+    ]
+  },
+  '1025': {
+    title: 'Support ticket sentiment scan', meta: 'Boreal Co · due tomorrow',
+    comments: []
+  }
+};
+
+function renderComments(taskId) {
+  const wrap = document.getElementById('d-comments');
+  const list = tasks[taskId].comments;
+  if (!list.length) { wrap.innerHTML = ''; return; }
+  wrap.innerHTML = list.map(c => `
+    <div>
+      <div style="display:flex;justify-content:space-between"><span style="color:#E8F4FF;font-size:12px;font-weight:500">${c.author}</span><span style="color:#5F5E5A;font-size:10px">${c.time}</span></div>
+      <p style="color:#9BB8E0;font-size:12px;margin:2px 0 0">${c.text}</p>
+      ${c.reply ? `<div style="margin-left:16px;margin-top:8px;padding-left:10px;border-left:0.5px solid #1E2A6B">
+        <div style="display:flex;justify-content:space-between"><span style="color:#E8F4FF;font-size:12px;font-weight:500">${c.reply.author}</span><span style="color:#5F5E5A;font-size:10px">${c.reply.time}</span></div>
+        <p style="color:#9BB8E0;font-size:12px;margin:2px 0 0">${c.reply.text}</p>
+      </div>` : ''}
+    </div>`).join('');
+}
+
+function openDetail(taskId) {
+  document.getElementById('d-title').textContent = tasks[taskId].title;
+  document.getElementById('d-meta').textContent = tasks[taskId].meta;
+  renderComments(taskId);
+  panel = 'detail';
+  render();
+}
+
+function updateModeButtons() {
+  document.getElementById('mode-desktop').style.background = mode==='desktop' ? '#0B0F2E' : 'transparent';
+  document.getElementById('mode-desktop').style.color = mode==='desktop' ? '#E8F4FF' : '#9BB8E0';
+  document.getElementById('mode-mobile').style.background = mode==='mobile' ? '#0B0F2E' : 'transparent';
+  document.getElementById('mode-mobile').style.color = mode==='mobile' ? '#E8F4FF' : '#9BB8E0';
+}
+
+function render() {
+  const shell = document.getElementById('demo-shell');
+  const list = document.getElementById('list-panel');
+  const resizer = document.getElementById('resizer');
+  const detail = document.getElementById('detail-panel');
+  const create = document.getElementById('create-panel');
+  shell.style.maxWidth = mode === 'mobile' ? '300px' : '640px';
+
+  const splitOpen = panel !== 'list' && mode === 'desktop';
+  resizer.style.width = splitOpen ? '6px' : '0';
+  resizer.style.background = splitOpen ? '#1E2A6B' : 'transparent';
+
+  if (mode === 'desktop') {
+    list.style.width = panel === 'list' ? '100%' : splitRatio + '%';
+    detail.style.flex = panel === 'detail' ? `0 0 ${100 - splitRatio}%` : '0 0 0px';
+    create.style.flex = panel === 'create' ? `0 0 ${100 - splitRatio}%` : '0 0 0px';
+  } else {
+    list.style.width = panel === 'list' ? '100%' : '0';
+    detail.style.flex = panel === 'detail' ? '0 0 100%' : '0 0 0px';
+    create.style.flex = panel === 'create' ? '0 0 100%' : '0 0 0px';
+  }
+  updateModeButtons();
+}
+function setMode(m) { mode = m; render(); }
+function openPanel(p) { panel = p; render(); }
+function closePanel() { panel = 'list'; render(); }
+
+const resizerEl = document.getElementById('resizer');
+resizerEl.addEventListener('mousedown', (e) => {
+  if (panel === 'list' || mode === 'mobile') return;
+  e.preventDefault();
+  const shellRect = document.getElementById('demo-shell').getBoundingClientRect();
+  const startX = e.clientX;
+  const startRatio = splitRatio;
+  function onMove(ev) {
+    const deltaPct = ((ev.clientX - startX) / shellRect.width) * 100;
+    splitRatio = Math.max(20, Math.min(60, startRatio + deltaPct));
+    render();
+  }
+  function onUp() {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+  }
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+});
+render();
+</script>
