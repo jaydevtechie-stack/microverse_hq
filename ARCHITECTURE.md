@@ -39,7 +39,7 @@ Infrastructure        — the ground everything stands on
 | Service | Tech | Role |
 |---|---|---|
 | order-service | Go | Customer creates an Order, uploads media |
-| task-service | Go | Owns the shared task pool (see below); PM assigns Tasks to analysts |
+| task-service | Node.js/Express | Owns the shared task pool (see below); PM assigns Tasks to analysts |
 | workflow | Java (Camunda/Zeebe) | Orchestrates the full Order → Task → time → bill → kudos sequence as an explicit state machine |
 
 ## Platform services (plumbing)
@@ -100,7 +100,7 @@ A PM needs **both** for any given task: they must own the Account (via `pm_accou
 
 **An Account can span multiple services, intentionally.** `tasks.service` is per-task, not per-account — nothing forces one Account into one service, and it shouldn't: a client buying a second service (GoFeeler → GoFeeler + SpringPix) is literally the "Upsell" glossary term in action (see `BUSINESS.md`).
 
-**Deactivated users (`users.active = false`)** keep the ability to log in — Keycloak doesn't know or care about this flag, it's task-service's own bookkeeping (see SCHEMA.md). What they lose is everything except two things: the My Profile page (4.0.4, accessible to any logged-in user regardless of role or active status) and Keycloak's own account-management links (change password, edit profile). The frontend shows this as a scrim — a translucent overlay over visible-but-non-interactive app content — but **the scrim is a UI affordance only, not the security boundary**. Real enforcement is server-side, and cheap to add: task-service's existing `syncUser` middleware already runs on every request and has the user row in hand right after its upsert — the active check is just an additional branch there (reject with 403 for anything not on the My-Profile/health-check allowlist), not a new mechanism (see SCHEMA.md's `users` section for the implementation note).
+**Deactivated users (`users.active = false`)** keep the ability to log in — Keycloak doesn't know or care about this flag, it's task-service's own bookkeeping (see SCHEMA.md). What they lose is everything except two things: the My Profile page (4.0.4, accessible to any logged-in user regardless of role or active status) and Keycloak's own account console (email/name editing, password change) — themed to match Microverse via Phase 11's Keycloak theme rather than rebuilt as a separate in-app page, so this stays an external redirect, not a task-service-hosted route. The frontend shows this as a scrim — a translucent overlay over visible-but-non-interactive app content — but **the scrim is a UI affordance only, not the security boundary**. Real enforcement is server-side, and cheap to add: task-service's existing `syncUser` middleware already runs on every request and has the user row in hand right after its upsert — the active check is just an additional branch there (reject with 403 for anything not on the My-Profile/health-check allowlist), not a new mechanism (see SCHEMA.md's `users` section for the implementation note).
 
 - Humans can hold multiple service scopes at once.
 - Agents are simply assigned roles the same way — no separate agent-identity model needed.
