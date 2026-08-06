@@ -1,6 +1,5 @@
 import React from 'react';
 import { IconCheck, IconLock } from '@tabler/icons-react';
-import TaskComments from './TaskComments';
 
 const STEPS = ['Submitted', 'Analysed', 'Reviewed', 'Paid'];
 
@@ -88,18 +87,6 @@ const CustomerProgressPanel = ({ task }) => {
       >
         {unlocked ? 'Download results' : 'View invoice'}
       </button>
-
-      <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '18px 0 8px' }}>Notes</p>
-      <div
-        style={{
-          background: 'var(--mv-bg)',
-          border: '0.5px solid var(--mv-border)',
-          borderRadius: 8,
-          padding: 10,
-        }}
-      >
-        <TaskComments taskId={task.id} visibility="customer" />
-      </div>
     </div>
   );
 };
