@@ -53,12 +53,53 @@ CREATE INDEX IF NOT EXISTS idx_task_comments_parent ON task_comments (parent_com
 -- id is the Keycloak `sub` claim directly — no separate local ID, no
 -- mapping table between the two (see SCHEMA.md's users). Populated via
 -- JIT upsert the first time task-service sees a given user's JWT, not
--- a login webhook.
+-- a login webhook. active is task-service's own bookkeeping (never
+-- touches Keycloak login); roles is synced from the JWT for display
+-- only (Admin Users page), never consulted for access control.
 CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY,
   email TEXT NOT NULL UNIQUE,
   name TEXT NOT NULL,
   avatar_url TEXT,
+  active BOOLEAN NOT NULL DEFAULT true,
+  roles TEXT[] NOT NULL DEFAULT '{}',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   last_synced_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Company or individual — every Customer belongs to exactly one,
+-- always (see ARCHITECTURE.md's Entity model).
+CREATE TABLE IF NOT EXISTS accounts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  type TEXT NOT NULL CHECK (type IN ('company', 'individual')),
+  name TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Many-to-many on purpose — the ownership half of the Project Hub's
+-- two-independent-checks access rule (see ARCHITECTURE.md's Roles and
+-- permissions): which Accounts a PM can see at all, separate from
+-- which task types (service scope) they can act on once inside one.
+CREATE TABLE IF NOT EXISTS pm_accounts (
+  pm_id UUID NOT NULL REFERENCES users(id),
+  account_id UUID NOT NULL REFERENCES accounts(id),
+  PRIMARY KEY (pm_id, account_id)
+);
+
+-- Sits between Account and Order/Task — also the contract unit (see
+-- BUSINESS.md), so payment_terms lives here rather than a separate
+-- contracts table.
+CREATE TABLE IF NOT EXISTS projects (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID NOT NULL REFERENCES accounts(id),
+  name TEXT NOT NULL,
+  responsible_user_id UUID REFERENCES users(id),
+  payment_terms TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Additive, nullable — lets the Project Hub's detail view show real
+-- linked Tasks without pulling in the fuller target-shape migration
+-- (customer_id/account_id/assignee_id/owner_id/status_id) that
+-- SCHEMA.md documents as still future work.
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS project_id UUID REFERENCES projects(id);

@@ -111,31 +111,59 @@ CREATE TABLE users (
   email           TEXT NOT NULL UNIQUE,
   name            TEXT NOT NULL,
   avatar_url      TEXT,
+  active          BOOLEAN NOT NULL DEFAULT true,
+  roles           TEXT[],  -- flattened platform:*/service:* claims from the JWT, e.g. {platform:project-manager, service:gofeeler}
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   last_synced_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE INDEX idx_users_roles ON users USING GIN (roles);
 ```
+
+**`roles` — stored locally, not fetched from Keycloak on demand.** Same reasoning as `tasks.tags`: a flat array beats a normalized join table for a small set of simple string claims, and the GIN index makes `roles @> ARRAY['platform:admin']`-style permission checks cheap. Refreshed on every JIT sync (below) rather than requiring a live call to Keycloak's Admin API whenever role info is needed — this is also what resolves 4.0.1's "Permissions (Keycloak) — coming soon" placeholder: once `roles` lives here, that detail-view section just reads the column instead of fetching anything.
+
+**`active` — local flag only, per 4.0.1.** Deactivating a user here does *not* touch their Keycloak account (doesn't disable their login) — it's task-service's own bookkeeping, gating things like task-assignment eligibility. If "deactivate" should eventually also disable Keycloak login, that's a separate, deliberate integration to add later, not implied by this column.
 
 **Sync strategy:** just-in-time upsert, run from auth middleware the first time a service sees a given user's JWT in a request — not a dedicated login-webhook service (that's a cleaner long-term approach, but a new moving part not needed yet, same "practical for now" pattern as everything else in this schema).
 
 ```sql
-INSERT INTO users (id, email, name, avatar_url)
-VALUES (:sub, :email, :name, :avatar)
+INSERT INTO users (id, email, name, avatar_url, roles)
+VALUES (:sub, :email, :name, :avatar, :roles)
 ON CONFLICT (id) DO UPDATE
   SET email = EXCLUDED.email, name = EXCLUDED.name,
-      avatar_url = EXCLUDED.avatar_url, last_synced_at = now();
+      avatar_url = EXCLUDED.avatar_url, roles = EXCLUDED.roles, last_synced_at = now();
 ```
 
 Once this exists, `tasks.assignee`/`owner`/`customer` (currently plain `TEXT`) are the natural next fields to migrate to `UUID REFERENCES users(id)` — not required for Branch 4.1 itself, but the obvious next step once real user rows exist.
 
 **Implemented as:** `business-services/task-service/middleware/auth.js`'s `syncUser`, mounted ahead of every `/api` route in `server.js`. Unverified claim extraction (base64url-decode the JWT's payload segment, no JWKS signature check) — same trust posture as `asset-service`'s `auth.rs`, just in Node instead of Rust (`Buffer.from(payload, 'base64url')`, no external JWT library needed). Requires `sub`, `email`, and `name` all present on the token before syncing — if any are missing the request still proceeds normally, just unsynced, since asset-service's `Claims` struct never modeled those fields and there's no other precedent in this codebase for what's guaranteed to be present. The upsert itself is fire-and-forget (errors are logged, never surfaced to the caller) — task-service still enforces no real auth, this only keeps `users` warm for when Branch 4.1's assignee picker needs real rows to query. The frontend didn't send `Authorization` on any task-service fetch before this (`GofeelerListPanel`/`TaskDetailContent`/`TaskComments` were all headerless) — added via a new `authHeaders()` helper in `services/keycloak.js`, omitted entirely (not sent as `Bearer undefined`) when there's no token yet.
 
+**4.0.4's active-user enforcement slots in here.** Since `syncUser` already runs on every request and has the upserted row (including `active`) in hand right after the upsert, the real check is just: if `active = false` and the route isn't on an allowlist (My Profile's read endpoint, health checks), reject with 403 rather than letting the request continue unsynced-but-permitted like the missing-claims case above. This turns the scrim from a UI-only affordance into an actual boundary — no separate mechanism needed, just an additional branch in code that already runs first on every call.
+
+### projects — 🟢
+
+Sits between Account and Order/Task — an Account has many Projects (an ongoing engagement, e.g. "Acme's Q3 Sentiment Monitoring"), and a Project groups many Orders/Tasks under one responsible user. Can reference `users(id)` as a real FK from the start, since `users` is already live — unlike `tasks.customer`/`assignee`/`owner`, which are still `TEXT` placeholders.
+
+**A Project is also the contract unit** (see `BUSINESS.md`) — not a separate `contracts` table. `payment_terms` is the first concrete field this implies; more will follow once `BUSINESS.md`'s open questions (enforcement location, renegotiation/versioning) are settled.
+
+```sql
+CREATE TABLE projects (
+  id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id            UUID NOT NULL REFERENCES accounts(id),
+  name                  TEXT NOT NULL,
+  responsible_user_id   UUID REFERENCES users(id),  -- any role — PM, senior analyst, etc., not locked to PM
+  payment_terms         TEXT,  -- e.g. 'upfront', 'net_30' — nullable until BUSINESS.md's payment-timing question is settled
+  created_at            TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
 ### tasks (target shape) — 🟢
 
 ```sql
--- once accounts/customers/statuses exist, tasks migrates to:
+-- once accounts/customers/statuses/projects exist, tasks migrates to:
 --   customer  TEXT       → customer_id UUID REFERENCES customers(id)
 --   (new)                → account_id  UUID REFERENCES accounts(id)  -- denormalized, feeds the MinIO key
+--   (new)                → project_id  UUID REFERENCES projects(id)
 --   assignee  TEXT       → assignee_id UUID
 --   owner     TEXT       → owner_id    UUID
 --   status    TEXT       → status_id   SMALLINT REFERENCES statuses(id)

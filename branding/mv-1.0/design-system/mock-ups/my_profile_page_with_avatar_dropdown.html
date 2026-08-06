@@ -1,0 +1,66 @@
+<h2 class="sr-only">My Profile page with full navigation including a working avatar dropdown for My Profile and Log out, split into a left profile sidebar and an open right content area</h2>
+
+<div style="background:#05061A;border-radius:16px;overflow:hidden;max-width:640px;margin:0 auto">
+
+<div style="position:relative;padding:14px 16px;border-bottom:0.5px solid #1E2A6B;display:flex;align-items:center;justify-content:space-between">
+  <div style="display:flex;align-items:center;gap:18px">
+    <div style="display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;border-radius:50%;background:#4DD8FF"></div><span style="color:#E8F4FF;font-weight:500;font-size:14px">Microverse</span></div>
+    <span style="color:#9BB8E0;font-size:13px">Dashboard</span>
+    <span style="color:#9BB8E0;font-size:13px">Reports</span>
+    <span style="color:#9BB8E0;font-size:13px">Projects</span>
+    <span style="color:#9BB8E0;font-size:13px">Admin</span>
+  </div>
+  <div onclick="toggleAvatar()" style="width:26px;height:26px;border-radius:50%;background:#2D5FDB;display:flex;align-items:center;justify-content:center;color:#E8F4FF;font-size:11px;font-weight:500;cursor:pointer">M</div>
+
+  <div id="avatar-menu" style="display:none;position:absolute;top:44px;right:16px;background:#0B0F2E;border:0.5px solid #1E2A6B;border-radius:10px;padding:6px;min-width:170px;z-index:10">
+    <div style="padding:10px 12px;border-bottom:0.5px solid #1E2A6B;margin-bottom:4px">
+      <p style="color:#E8F4FF;font-size:12px;margin:0">Matthew</p>
+      <p style="color:#5F5E5A;font-size:11px;margin:1px 0 0">matthew@acme.dev</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px">
+      <i class="ti ti-user" style="color:#4DD8FF;font-size:14px" aria-hidden="true"></i>
+      <span style="color:#4DD8FF;font-size:13px">My Profile</span>
+    </div>
+    <div onclick="sendPrompt('Log out')" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;cursor:pointer" onmouseover="this.style.background='#1E2A6B'" onmouseout="this.style.background='transparent'">
+      <i class="ti ti-logout" style="color:#E24B4A;font-size:14px" aria-hidden="true"></i>
+      <span style="color:#E24B4A;font-size:13px">Log out</span>
+    </div>
+  </div>
+</div>
+
+<div style="display:flex;min-height:360px">
+
+  <div style="width:220px;flex-shrink:0;border-right:0.5px solid #1E2A6B;padding:24px 18px">
+    <div style="width:56px;height:56px;border-radius:50%;background:#2D5FDB;display:flex;align-items:center;justify-content:center;color:#E8F4FF;font-size:18px;font-weight:500;margin-bottom:12px">M</div>
+    <p style="color:#E8F4FF;font-size:15px;font-weight:500;margin:0 0 2px">Matthew</p>
+    <p style="color:#9BB8E0;font-size:12px;margin:0 0 16px">matthew@acme.dev</p>
+
+    <p style="color:#5F5E5A;font-size:11px;margin:0 0 6px">Roles</p>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:24px">
+      <span style="padding:3px 8px;font-size:10px;border-radius:10px;background:#4DD8FF22;color:#4DD8FF">platform:project-manager</span>
+      <span style="padding:3px 8px;font-size:10px;border-radius:10px;background:#9BB8E022;color:#9BB8E0">service:gofeeler</span>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button onclick="sendPrompt('Open Keycloak edit profile')" style="padding:9px 0;background:#0B0F2E;border:0.5px solid #1E2A6B;color:#E8F4FF;font-size:12px;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:6px">
+        <i class="ti ti-user-edit" style="font-size:14px" aria-hidden="true"></i> Edit profile
+      </button>
+      <button onclick="sendPrompt('Open Keycloak change password')" style="padding:9px 0;background:#0B0F2E;border:0.5px solid #1E2A6B;color:#E8F4FF;font-size:12px;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:6px">
+        <i class="ti ti-lock" style="font-size:14px" aria-hidden="true"></i> Change password
+      </button>
+    </div>
+    <p style="color:#5F5E5A;font-size:10px;margin:10px 0 0;line-height:1.4">Both open Keycloak's account console — not handled in-app.</p>
+  </div>
+
+  <div style="flex:1;display:flex;align-items:center;justify-content:center">
+    <p style="color:#5F5E5A;font-size:12px">Nothing else here yet</p>
+  </div>
+
+</div>
+</div>
+<script>
+function toggleAvatar() {
+  const menu = document.getElementById('avatar-menu');
+  menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+}
+</script>

@@ -73,15 +73,85 @@ async function ensureSchema() {
   // mapping table between the two (see SCHEMA.md's users). Populated
   // via JIT upsert (models/user.js's upsertFromClaims) the first time
   // task-service sees a given user's JWT, not a login webhook.
+  //
+  // active is task-service's own bookkeeping (task-assignment
+  // eligibility) — deactivating here never touches Keycloak login, see
+  // SCHEMA.md. roles is synced from the JWT's realm_access.roles on
+  // every JIT upsert, purely for display (Admin Users page's role
+  // chips) — it is never consulted for an actual access-control
+  // decision, which always reads the live JWT instead.
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
       id UUID PRIMARY KEY,
       email TEXT NOT NULL UNIQUE,
       name TEXT NOT NULL,
       avatar_url TEXT,
+      active BOOLEAN NOT NULL DEFAULT true,
+      roles TEXT[] NOT NULL DEFAULT '{}',
       created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
       last_synced_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
+  `);
+  // Idempotent fallback for a users table that already existed without
+  // these columns (mid-session dev environments).
+  await pool.query(`
+    ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT true,
+      ADD COLUMN IF NOT EXISTS roles TEXT[] NOT NULL DEFAULT '{}';
+  `);
+
+  // Company or individual — every Customer belongs to exactly one,
+  // always (see ARCHITECTURE.md's Entity model). No customers table
+  // yet (still 🟢 in SCHEMA.md) — accounts is the first piece of the
+  // normalized target schema to actually migrate.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS accounts (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      type TEXT NOT NULL CHECK (type IN ('company', 'individual')),
+      name TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+
+  // Many-to-many on purpose — doesn't force "one PM per account vs a
+  // pool" either way. This is the ownership half of the Project Hub's
+  // two-independent-checks access rule (see ARCHITECTURE.md's Roles
+  // and permissions): which Accounts a PM can see at all, separate
+  // from which task *types* (service scope) they can act on once
+  // inside one they own.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS pm_accounts (
+      pm_id UUID NOT NULL REFERENCES users(id),
+      account_id UUID NOT NULL REFERENCES accounts(id),
+      PRIMARY KEY (pm_id, account_id)
+    );
+  `);
+
+  // Sits between Account and Order/Task — an Account has many Projects,
+  // each with one responsible user (any role, not locked to PM) and
+  // grouping many Orders/Tasks. Also the contract unit (see
+  // BUSINESS.md) — payment_terms lives here rather than a separate
+  // contracts table.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS projects (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      account_id UUID NOT NULL REFERENCES accounts(id),
+      name TEXT NOT NULL,
+      responsible_user_id UUID REFERENCES users(id),
+      payment_terms TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+
+  // Additive, nullable — the Project Hub's Project detail view needs
+  // to show real linked Tasks (see the platform_projects_hub_and_admin
+  // mockup), but this is deliberately just this one column, not the
+  // fuller customer_id/account_id/assignee_id/owner_id/status_id
+  // migration SCHEMA.md's "tasks (target shape)" describes — that
+  // stays future work, same "current vs. target schema" gap already
+  // documented there for the rest of the table.
+  await pool.query(`
+    ALTER TABLE tasks ADD COLUMN IF NOT EXISTS project_id UUID REFERENCES projects(id);
   `);
 }
 
