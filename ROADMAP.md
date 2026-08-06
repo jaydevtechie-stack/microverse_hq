@@ -13,8 +13,9 @@ What's getting built, roughly in order. See `ARCHITECTURE.md` for the decisions 
 - ✅ Migrated roles to the two-dimensional model — granular `platform:*` and `service:*` roles created
 - ✅ List mockup pages for tasks and customers implemented
 - ✅ Branch 1 — Create Order form page/components built from mockup; master-detail split view layout with mobile fallback
-- ✅ Branch 2 — dummy Order/Task data seeded; unified Order/Task detail page with role/status-based actions; share icon group on the detail panel
+- ✅ Branch 2 — dummy Order/Task data seeded; unified Order/Task detail page with role/status-based actions
 - ✅ Migrated `task-service`'s `tasks.id` from `SERIAL` to `UUID` (`gen_random_uuid()` via pgcrypto), matching ARCHITECTURE.md's ID convention
+- ✅ Draggable resize handle between the split view's list/detail panels (20-60% bounds); share icon group (copy link/email/native share) on the detail panel — both from `gofeeler_landing_page_split_view_resizable.html`
 
 
 ## Proposals
