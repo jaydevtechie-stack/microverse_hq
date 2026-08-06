@@ -96,9 +96,10 @@ Development is branched — each branch below is a discrete unit of work, roughl
 
 **Branch 4 — Task detail functionality**
 - ✅ 4.0 `users` table + Keycloak sync (JIT upsert on first authenticated request, `users.id` = Keycloak `sub`, no separate local ID/mapping table) — see SCHEMA.md
-- 🟢 4.0.1 Admin Users page — `platform:admin` only, no service scope needed (see ARCHITECTURE.md's role exception). List + detail via the same master-detail split view pattern (mockup: `admin_users_page_split_view`). Detail view has a deactivate/reactivate action (local `active` flag on `users`, does not touch Keycloak login — see SCHEMA.md). Nice-to-have, not required now: live-fetch Keycloak role/permission detail on demand from the detail view.
+- 🟢 4.0.1 Admin Users page — `platform:admin` only, no service scope needed (see ARCHITECTURE.md's role exception). List + detail via the same master-detail split view pattern (mockup: `admin_users_page_split_view`). Detail view has a deactivate/reactivate action (local `active` flag on `users`, does not touch Keycloak login — see SCHEMA.md). Permissions display resolved by storing `users.roles` as a synced array (see SCHEMA.md) rather than live-fetching from Keycloak — the earlier "nice-to-have" fetch is no longer needed.
 - 🟢 4.0.2 `projects` table + expanded nav — new entity discovered while designing the Admin dropdown (see SCHEMA.md): Account → many Projects → many Orders/Tasks, each Project with one responsible user (any role). Nav finalized as: Dashboard / Reports (placeholder) / **Projects** (PM-facing, subnav: Projects, Accounts) / **Admin** (platform:admin, subnav: Users, Services) — see ARCHITECTURE.md's Dashboard/UI notes. Full page mockup with nav + subnav built (`admin_full_page_with_subnav`, since renamed conceptually — Projects/Accounts move to their own top-level "Projects" hub rather than living under Admin) — the `projects` table migration itself is still outstanding.
-- 🟢 4.0.3 Build the real Project Hub and Admin pages, with roles actually applied — not just mocked up. Access rule (see ARCHITECTURE.md's Roles and permissions): Project Hub requires `platform:project-manager` + *any* `service:*` claim (page-level gate is broad; the Projects/Accounts actually shown are filtered to the specific services that PM holds). Admin requires `platform:admin` alone, per the existing no-service-scope exception.
+- 🟢 4.0.3 Build the real Project Hub and Admin pages, with roles actually applied — not just mocked up. Project Hub access (see ARCHITECTURE.md's Roles and permissions): page-level gate is `platform:project-manager` + *any* `service:*` claim; what's actually visible is filtered by two independent checks — `pm_accounts` ownership (which Accounts this PM can see) AND service scope (which task types within an owned Account they can act on). Admin requires `platform:admin` alone, per the existing no-service-scope exception.
+- 🟢 4.0.4 My Profile page — accessible to *any* logged-in user regardless of role or `active` status, the one universally accessible page in the app. Paired with a "scrim" (translucent, non-interactive overlay — mockup: `inactive_user_scrim`) shown to deactivated users over everything else; the only things that stay clickable through it are My Profile and Keycloak's own account-management links (change password, edit profile). Scrim is UI only — server-side enforcement (reject non-profile API calls when `users.active = false`) is the real boundary, see ARCHITECTURE.md.
 - 🟡 4.1 Assign-to-user component — word cloud + plain dropdown, kept in sync
 - 🟡 4.1.1 Simple recommendation agent for assignee/reviewer suggestions — starting signal: who responds fastest to tasks (ties into the task-recommendation agent todo)
 
@@ -126,6 +127,17 @@ Development is branched — each branch below is a discrete unit of work, roughl
 
 **Still not branched yet**
 - ⚪ Connect to `task-service`'s shared pool properly (currently more direct)
+
+## Security hardening (deferred, tracked)
+
+Not blocking current feature work — see `SECURITY.md` for the full honest rundown of current posture. Listed here so these don't get forgotten once real deployment becomes a real question:
+
+- ⚪ Real JWT signature verification against Keycloak's JWKS, replacing unverified claim decoding in `task-service` and `asset-service`
+- ⚪ Secrets management — move off plaintext `.env` values before anything is shared/deployed
+- ⚪ `api-gateway` as an actual dedicated piece (Kong/Traefik) rather than `nginx` doing that job informally
+- ⚪ mTLS or equivalent for internal service-to-service traffic
+- ⚪ Rate limiting
+- ⚪ Dependency/vulnerability scanning
 
 ## Up next (not yet planned in detail)
 
