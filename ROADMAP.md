@@ -62,6 +62,15 @@ GET /assets/{order_id}
 
 **Transfer path:** asset-service only ever mints presigned URLs — actual file bytes flow directly between the frontend and MinIO, never proxied through asset-service. Upload and download requests hit asset-service; the transfer itself bypasses it entirely.
 
+**Implemented as:** Rust/axum, matching rustledger's shape (same Cargo.toml conventions, same Dockerfile). Real deviations from the sketch above, all forced by things that only showed up once it was actually built:
+- **MinIO needs its own subdomain, not a path prefix.** First attempt proxied `microverse.local/minio-storage/` to MinIO — every presigned request came back `SignatureDoesNotMatch`. The AWS SDK's SigV4 canonical-request signing doesn't account for a reverse-proxy prefix being stripped on the way through, no matter which side (signing vs. proxying) tries to compensate. Fix: `storage.microverse.local`, its own clean host with a plain root `/` proxy — same pattern as `sso.microverse.local`. Needs its own hosts-file entry and its own `DNS:` SAN on the dev cert.
+- **Presigning and real MinIO API calls need different endpoints.** `S3_ENDPOINT` (the public host) works for presigning because that's a local signature computation, no network call. But `list_objects_v2`/`head_bucket`/`create_bucket` are real requests — and `storage.microverse.local` only resolves on the host machine, not inside the container. Split into two clients: `presign_client()` (public endpoint) and `internal_client()` (`S3_INTERNAL_ENDPOINT`, the Docker-network address) for anything that actually talks to MinIO.
+- **`service` is an explicit field/query param everywhere**, not inferred — there's no cross-service order registry to resolve "which service does this order_id belong to," so the caller (which already knows it's dealing with, say, a gofeeler task) has to say so.
+- **No order-service yet** means no real ownership check on upload (the order doesn't exist as a record anywhere until Create Order actually submits, which it still doesn't) and no `company_id` (there's no company entity anywhere in the stack, just Keycloak users) — `username` stands in for it in the object key.
+- **List/download resolve the object by scanning**, not a direct key lookup — `username` sits before `order_id` in the key, and there's no way to know a customer's username from the order_id alone without order-service to ask. `ListObjectsV2` under the service prefix, filtered in memory for `/{order_id}/`. Fine at current scale; would need a real index or a reordered key to stay a cheap prefix lookup once object counts grow.
+- **Auth is unverified JWT claim decoding**, not real signature verification against Keycloak's JWKS — matches task-service's current (lack of) auth posture rather than being the one service that quietly does more than its neighbors.
+- nginx also got `client_max_body_size 50m` (default is 1m, far too small) and a content-type allowlist on `storage.microverse.local` (text/image/json/pdf for now — GoFeeler-shaped, broaden as other services start uploading).
+
 ### Landing page layout — master-detail split view
 **Approach:** the Orders/Tasks list, Create Order form, and Order/Task detail view are one screen, not three separate page navigations. Clicking a list row or "+ New" shrinks the list to a fixed-width column (~260px) and slides in the relevant panel (detail or create) to fill the reclaimed width — content actually grows to use the space rather than staying at a fixed narrow width inside a wider viewport. Mockup saved as `gofeeler_landing_page` in the design system.
 
@@ -78,7 +87,7 @@ Current state: service scaffolded, `service:gofeeler` roles in place, Orders/Tas
 Development is branched — each branch below is a discrete unit of work, roughly in order.
 
 **Branch 3 — Create Order form functionality**
-- 🟢 3.1 Expand `asset-service` with MinIO (see Proposals — shared bucket, presigned URLs)
+- ✅ 3.1 Expand `asset-service` with MinIO (see Proposals — shared bucket, presigned URLs)
 - ✅ 3.2 Tags/sentiments component — Elasticsearch server-side fuzzy matching via `search-service` (see Proposals; not a client-side fuzzy library)
 - 🟢 3.3 Comments table for Task comments (separate table, not JSON — see Proposals in a future update for schema)
 
