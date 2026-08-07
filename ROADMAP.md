@@ -16,6 +16,7 @@ What's getting built, roughly in order. See `ARCHITECTURE.md` for the decisions 
 - ✅ Branch 2 — dummy Order/Task data seeded; unified Order/Task detail page with role/status-based actions
 - ✅ Migrated `task-service`'s `tasks.id` from `SERIAL` to `UUID` (`gen_random_uuid()` via pgcrypto), matching ARCHITECTURE.md's ID convention
 - ✅ Draggable resize handle between the split view's list/detail panels (20-60% bounds); share icon group (copy link/email/native share) on the detail panel — both from `gofeeler_landing_page_split_view_resizable.html`
+- ✅ Keycloak now builds via its own Dockerfile (`infrastructure/keycloak/Dockerfile`), same pattern as `applications/taskfusion/Dockerfile` — bakes the login theme + `branding/mv-1.0` assets into the image at build time instead of bind-mounting them from the host. Portable (a pushed image is self-contained regardless of repo layout or hosting), and fixes the login background image not resolving — confirmed via the real login page's resource URLs (`/resources/{key}/login/microverse/branding/...`) all now returning 200, not just theorized from the file layout.
 
 
 ## Proposals
