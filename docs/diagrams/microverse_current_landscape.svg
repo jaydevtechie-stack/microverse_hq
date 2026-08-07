@@ -1,0 +1,45 @@
+<svg width="680" height="550" viewBox="0 0 680 550" xmlns="http://www.w3.org/2000/svg" role="img">
+<title>Microverse current architecture landscape</title>
+<desc>Five layered tiers from top to bottom: Applications, Domain services, the Order/Task narrator layer, Platform services, and Infrastructure, connected by downward arrows showing dependency flow.</desc>
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+</defs>
+<style>
+.box{fill:#0B0F2E;stroke:#1E2A6B;stroke-width:0.5}
+.th{fill:#E8F4FF;font-family:sans-serif;font-size:14px;font-weight:600}
+.ts{fill:#9BB8E0;font-family:sans-serif;font-size:12px}
+.arr{stroke:#5F5E5A;stroke-width:1}
+rect{fill:#0B0F2E;stroke:#1E2A6B;stroke-width:0.5;rx:12}
+</style>
+
+<rect x="40" y="40" width="600" height="80" rx="12"/>
+<text class="th" x="60" y="68">Applications — the front doors</text>
+<text class="ts" x="60" y="90">TaskFusion · Admin · LAReports (its own Blade kingdom)</text>
+
+<line x1="340" y1="120" x2="340" y2="138" class="arr" marker-end="url(#arrow)"/>
+
+<rect x="40" y="140" width="600" height="80" rx="12"/>
+<text class="th" x="60" y="168">Domain services — one trick each</text>
+<text class="ts" x="60" y="190">SpringPix · GoFeeler · Djaboard</text>
+<text class="ts" x="60" y="208">PyReel · NetCruncher · RubyKudos</text>
+
+<line x1="340" y1="220" x2="340" y2="238" class="arr" marker-end="url(#arrow)"/>
+
+<rect x="40" y="240" width="600" height="70" rx="12"/>
+<text class="th" x="60" y="266">Order-service &amp; task-service — the narrator</text>
+<text class="ts" x="60" y="290">Knows the plot: orders become quests, quests get assigned</text>
+
+<line x1="340" y1="310" x2="340" y2="328" class="arr" marker-end="url(#arrow)"/>
+
+<rect x="40" y="330" width="600" height="80" rx="12"/>
+<text class="th" x="60" y="358">Platform services — the plumbing</text>
+<text class="ts" x="60" y="380">Identity · Assets</text>
+<text class="ts" x="60" y="398">Notifications · Email (internal)</text>
+
+<line x1="340" y1="410" x2="340" y2="428" class="arr" marker-end="url(#arrow)"/>
+
+<rect x="40" y="430" width="600" height="80" rx="12"/>
+<text class="th" x="60" y="458">Infrastructure</text>
+<text class="ts" x="60" y="480">Nginx · Keycloak · Postgres · MongoDB · Redis</text>
+<text class="ts" x="60" y="498">Kafka (the scroll) · RabbitMQ (the pigeons)</text>
+</svg>
