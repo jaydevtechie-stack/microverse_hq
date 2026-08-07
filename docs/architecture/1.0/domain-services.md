@@ -1,0 +1,16 @@
+# Architecture — domain services
+
+Customer-facing, one specialist trick each, real brand names. See [core.md](core.md) for the tier test and the shared entity/roles/task-workflow model these all plug into.
+
+| Service | Tech | What it does | Status |
+|---|---|---|---|
+| GoFeeler | Go | Sentiment analysis on uploaded chats/emails/comments | Online, but naive keyword-matching — needs a real lexicon or LLM-based upgrade |
+| elixtempo | Elixir | The trust layer between "work happened" and "money/accountability follows" — tracked time feeds customer billing, analyst payouts, and business-efficiency reporting alike (see [docs/business/1.0/product-strategy.md](../../business/1.0/product-strategy.md)'s product definition). OTP concurrency handles many cheap live sessions. | Designing |
+| rustledger | Rust | Invoices/billing ledger, consumes elixtempo's time-entry events off Kafka | Designing |
+| SpringPix | Java/Spring | Image and GIS processing — does the raster hotspot analysis, backed by PostGIS | Basic app |
+| PyReel | Python | Video processing | Basic app |
+| NetCruncher | .NET | Calculation engine | Exists |
+| Djaboard | Django (renamed from DjaPorts) | Reporting + kudos leaderboard — computes tiers/badges as JSON, React just renders it | Building |
+| RubyKudos | Ruby | Raw kudos event capture | Not started |
+
+See [applications.md](applications.md) for GoFeeler's full end-to-end worked example, and [docs/roadmap/1.0/domain-services.md](../../roadmap/1.0/domain-services.md) for build status/branch plan per service.
