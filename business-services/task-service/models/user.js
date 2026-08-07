@@ -23,7 +23,22 @@ async function upsertFromClaims({ sub, email, name, picture, roles }) {
   return rows[0];
 }
 
-async function listUsers() {
+// platformRole/service filter to candidates for a given assignment,
+// e.g. { platformRole: 'platform:analyst', service: 'gofeeler' } for
+// PmAssignPanel's word cloud/dropdown — `roles @> ARRAY[...]` reads as
+// "holds both of these," using the GIN index from SCHEMA.md's users.
+// Excludes deactivated users — see SCHEMA.md's `active` note, a
+// deactivated user isn't eligible for new task assignments.
+async function listUsers({ platformRole, service } = {}) {
+  if (platformRole && service) {
+    const { rows } = await pool.query(
+      `SELECT * FROM users
+       WHERE active = true AND roles @> $1::text[]
+       ORDER BY name`,
+      [[platformRole, `service:${service}`]]
+    );
+    return rows;
+  }
   const { rows } = await pool.query('SELECT * FROM users ORDER BY name');
   return rows;
 }

@@ -6,11 +6,14 @@ const { listUsers, getUser, setActive } = require('../models/user');
 
 // Users are only ever populated via JIT sync (middleware/auth.js) — no
 // role/ownership check here yet, same "frontend is responsible" trust
-// posture as the rest of task-service. The Admin Users page is the
-// only caller today, gated client-side on platform:admin.
+// posture as the rest of task-service. The Admin Users page calls this
+// with no filter (platform:admin-gated client-side); PmAssignPanel
+// calls it with ?platformRole=platform:analyst&service=gofeeler for
+// its candidate list.
 router.get('/users', async (req, res) => {
+  const { platformRole, service } = req.query;
   try {
-    const users = await listUsers();
+    const users = await listUsers({ platformRole, service });
     res.status(200).json(users);
   } catch (err) {
     res.status(500).json({ message: 'Error fetching users', error: err.message });

@@ -24,9 +24,9 @@ const detailRowStyle = {
 // analyst/reviewer only get their action while the task is actively
 // assigned to them; a customer only gets the progress/invoice view
 // once there's something to show.
-function actionPanelFor({ task, isPM, isAnalyst, isReviewer, isCustomer, username }) {
+function actionPanelFor({ task, isPM, isAnalyst, isReviewer, isCustomer, username, onTaskUpdated }) {
   if (isPM && task.status === 'unassigned') {
-    return <PmAssignPanel />;
+    return <PmAssignPanel task={task} onAssigned={onTaskUpdated} />;
   }
   if (isPM && task.status === 'done' && task.owner === username) {
     return <PmBillPanel />;
@@ -110,7 +110,7 @@ const TaskDetailContent = ({ id }) => {
   }, [id]);
 
   const actionPanel = task
-    ? actionPanelFor({ task, isPM, isAnalyst, isReviewer, isCustomer, username })
+    ? actionPanelFor({ task, isPM, isAnalyst, isReviewer, isCustomer, username, onTaskUpdated: setTask })
     : null;
 
   if (error) {
