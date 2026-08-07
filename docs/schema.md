@@ -1,6 +1,6 @@
 # Microverse — database schema
 
-The actual table/collection/index definitions, consolidated in one place so any service (or agent) can refer to the current design without hunting through ARCHITECTURE.md/ROADMAP.md prose. See those docs for the *reasoning* behind each decision — this file is just the shape.
+The actual table/collection/index definitions, consolidated in one place so any service (or agent) can refer to the current design without hunting through [docs/architecture](architecture/1.0/core.md)/[docs/roadmap](roadmap/1.0/core.md) prose. See those docs for the *reasoning* behind each decision — this file is just the shape.
 
 **Source of truth once a table is actually built:** the real migration files in that service's repo. This doc is a cross-service reference, kept in sync by hand — if it ever disagrees with a service's actual migrations, the migrations win and this file needs updating, not the other way around.
 
@@ -44,7 +44,7 @@ CREATE INDEX IF NOT EXISTS idx_tasks_tags ON tasks USING GIN (tags);
 
 **Tags — reconciled with the Elasticsearch `tags` index (search-service):** the two stores do different jobs, on purpose. Elasticsearch's `tags` index is the shared *vocabulary* — what exists, fuzzy-matched for autocomplete while someone's typing. `tasks.tags` stores which tag *names* are actually applied to this specific task — plain strings in a Postgres array, not a join table. A handful of short tag names per task doesn't need its own relational identity the way `task_comments` does; storing the name directly (not a numeric tag ID) also matches how ES already treats tag identity via `name.keyword` — the tag *is* its name, there's no separate ID anywhere in the design that Postgres would need to reference. The GIN index makes `tags @> ARRAY['Negative']`-style lookups cheap once you want "show me every task tagged Urgency."
 
-**Current vs. target schema — a real, intentional gap:** this live table uses plain `TEXT` for `customer`, `assignee`, and `owner` (Keycloak usernames stand in, per the "no order-service yet" note in ROADMAP.md) and a free-text `status` column, rather than the normalized FKs below. That's the pragmatic MVP shape while account/customer data doesn't exist as real rows yet — not urgent tech debt, just documented as a conscious choice. The tables below are the target to migrate `tasks` toward once there's an actual reason to (real account-level billing, or wanting FK-enforced status transitions) — not before.
+**Current vs. target schema — a real, intentional gap:** this live table uses plain `TEXT` for `customer`, `assignee`, and `owner` (Keycloak usernames stand in, per the "no order-service yet" note in [docs/roadmap/1.0/platform-services.md](roadmap/1.0/platform-services.md)) and a free-text `status` column, rather than the normalized FKs below. That's the pragmatic MVP shape while account/customer data doesn't exist as real rows yet — not urgent tech debt, just documented as a conscious choice. The tables below are the target to migrate `tasks` toward once there's an actual reason to (real account-level billing, or wanting FK-enforced status transitions) — not before.
 
 ## Target normalized schema (designed, not yet migrated)
 
@@ -148,7 +148,7 @@ Once this exists, `tasks.assignee`/`owner`/`customer` (currently plain `TEXT`) a
 
 Sits between Account and Order/Task — an Account has many Projects (an ongoing engagement, e.g. "Acme's Q3 Sentiment Monitoring"), and a Project groups many Orders/Tasks under one responsible user. Can reference `users(id)` as a real FK from the start, since `users` is already live — unlike `tasks.customer`/`assignee`/`owner`, which are still `TEXT` placeholders.
 
-**A Project is also the contract unit** (see `BUSINESS.md`) — not a separate `contracts` table. `payment_terms` is the first concrete field this implies; more will follow once `BUSINESS.md`'s open questions (enforcement location, renegotiation/versioning) are settled.
+**A Project is also the contract unit** (see [docs/business/1.0/overview.md](business/1.0/overview.md)) — not a separate `contracts` table. `payment_terms` is the first concrete field this implies; more will follow once [docs/business/1.0/overview.md](business/1.0/overview.md)'s open questions (enforcement location, renegotiation/versioning) are settled.
 
 ```sql
 CREATE TABLE projects (
@@ -156,7 +156,7 @@ CREATE TABLE projects (
   account_id            UUID NOT NULL REFERENCES accounts(id),
   name                  TEXT NOT NULL,
   responsible_user_id   UUID REFERENCES users(id),  -- any role — PM, senior analyst, etc., not locked to PM
-  payment_terms         TEXT,  -- e.g. 'upfront', 'net_30' — nullable until BUSINESS.md's payment-timing question is settled
+  payment_terms         TEXT,  -- e.g. 'upfront', 'net_30' — nullable until docs/business/1.0/overview.md's payment-timing question is settled
   created_at            TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 ```
@@ -223,7 +223,7 @@ Older versions aren't deleted — they're just not what this query returns, whic
 
 **PostgreSQL** — `${POSTGRES_DB}` on `microverse-postgis` (shared instance with `task-service`/`springpix`, by decision)
 
-Not yet designed. Will need at minimum an `invoices` table and a way to consume elixtempo's `time_entry.completed` events off the Kafka scroll — see ARCHITECTURE.md's Kafka vs RabbitMQ section.
+Not yet designed. Will need at minimum an `invoices` table and a way to consume elixtempo's `time_entry.completed` events off the Kafka scroll — see [docs/architecture/1.0/core.md](architecture/1.0/core.md)'s Kafka vs RabbitMQ section.
 
 ---
 
@@ -251,7 +251,7 @@ Raw uploaded content (chat/email/comment exports) plus sentiment analysis result
 { name, created_at, usage_count }  -- one document per sentiment tag
 ```
 
-`name.keyword` (lowercase-normalized) is used for exact upsert/lookup; the analyzed `name` field is for fuzzy/prefix suggestion matching only — see ROADMAP.md's "Implemented as" note for the real `match_bool_prefix` + fuzzy `match` query shape (`fuzziness: AUTO` alone wasn't enough for early-keystroke matching). See `task-service`'s `tasks.tags` above for how this vocabulary relates to what actually gets stored on a task.
+`name.keyword` (lowercase-normalized) is used for exact upsert/lookup; the analyzed `name` field is for fuzzy/prefix suggestion matching only — see [docs/roadmap/1.0/domain-services.md](roadmap/1.0/domain-services.md)'s "Implemented as" note for the real `match_bool_prefix` + fuzzy `match` query shape (`fuzziness: AUTO` alone wasn't enough for early-keystroke matching). See `task-service`'s `tasks.tags` above for how this vocabulary relates to what actually gets stored on a task.
 
 ---
 
@@ -259,4 +259,4 @@ Raw uploaded content (chat/email/comment exports) plus sentiment analysis result
 
 **Object storage** — no schema, one shared bucket
 
-Object keys only: `{service}/{account_id}/{order_id}/{version}/{filename}`. No dedicated Postgres metadata table (stateless-first — see ROADMAP.md Proposals); relies on MinIO's native `ListObjects` prefix listing and custom object metadata headers instead.
+Object keys only: `{service}/{account_id}/{order_id}/{version}/{filename}`. No dedicated Postgres metadata table (stateless-first — see [docs/roadmap/1.0/platform-services.md](roadmap/1.0/platform-services.md) Proposals); relies on MinIO's native `ListObjects` prefix listing and custom object metadata headers instead.
