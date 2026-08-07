@@ -2,8 +2,9 @@
 
 const express = require('express');
 const router = express.Router();
-const { findByService, findById } = require('../models/task');
+const { findByService, findById, assignAnalyst } = require('../models/task');
 const { listForTask } = require('../models/comment');
+const { getUser } = require('../models/user');
 
 // Fetch tasks tagged with a given domain service, e.g. ?service=gofeeler.
 // The caller (taskfusion) is responsible for only requesting a service
@@ -32,6 +33,50 @@ router.get('/tasks/:id', async (req, res) => {
     res.status(200).json(task);
   } catch (err) {
     res.status(500).json({ message: 'Error fetching task', error: err.message });
+  }
+});
+
+// PM assigns a specific analyst to a specific unassigned task (4.1) —
+// the word-cloud/dropdown flow, not the shared-pool self-claim query
+// from ARCHITECTURE.md's "The task pool" (that's 4.1.2, a different
+// mechanism). Body: { assigneeId } — a users.id, not a raw email, so
+// the assignee is always a real synced user, not a client-supplied
+// string. Validates the assignee is active and actually holds
+// platform:analyst + service:{task.service} — real validation, unlike
+// most of task-service's still-unenforced routes, since a bad
+// assignment here corrupts task-service's own status/role invariants
+// (see ARCHITECTURE.md's Task workflow table), not just a display bug.
+router.patch('/tasks/:id', async (req, res) => {
+  const { assigneeId } = req.body;
+  if (!assigneeId) {
+    return res.status(400).json({ message: 'Missing required "assigneeId"' });
+  }
+
+  try {
+    const task = await findById(req.params.id);
+    if (!task) return res.status(404).json({ message: 'Task not found' });
+    if (task.status !== 'unassigned') {
+      return res.status(409).json({ message: `Task is already "${task.status}", not unassigned` });
+    }
+
+    const analyst = await getUser(assigneeId);
+    if (!analyst || !analyst.active) {
+      return res.status(400).json({ message: 'Assignee must be an active, synced user' });
+    }
+    const requiredRoles = ['platform:analyst', `service:${task.service}`];
+    if (!requiredRoles.every((role) => analyst.roles.includes(role))) {
+      return res
+        .status(400)
+        .json({ message: `Assignee must hold platform:analyst and service:${task.service}` });
+    }
+
+    const updated = await assignAnalyst(task.id, analyst.email);
+    if (!updated) {
+      return res.status(409).json({ message: 'Task was assigned by someone else just now' });
+    }
+    res.status(200).json(updated);
+  } catch (err) {
+    res.status(500).json({ message: 'Error assigning task', error: err.message });
   }
 });
 
