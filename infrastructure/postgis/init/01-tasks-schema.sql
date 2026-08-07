@@ -103,3 +103,9 @@ CREATE TABLE IF NOT EXISTS projects (
 -- (customer_id/account_id/assignee_id/owner_id/status_id) that
 -- SCHEMA.md documents as still future work.
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS project_id UUID REFERENCES projects(id);
+
+-- Set when 4.1's PATCH /tasks/:id assigns an analyst — the minimal
+-- timestamp Scout's v1 availability signal needs (4.1.1). Not a real
+-- response-time measurement (needs a first-action or completed-at
+-- timestamp, neither of which exist) — see models/scout.js.
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS assigned_at TIMESTAMPTZ;
