@@ -1,0 +1,103 @@
+<h2 class="sr-only">Assign task form with Scout's full identity prominently integrated, and a split view revealing an analyst's profile when their info icon is clicked</h2>
+
+<div id="demo-shell" style="background:#05061A;border-radius:16px;overflow:hidden;display:flex;max-width:680px;margin:0 auto">
+
+  <div id="form-panel" style="width:100%;flex:none;transition:width 0.15s ease;overflow:hidden">
+    <div style="padding:20px;min-width:340px;box-sizing:border-box">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <span style="color:#9BB8E0;font-size:12px">Gofeeler · Order #1024 · viewing as Matthew</span>
+        <span style="background:#5F5E5A22;color:#9BB8E0;font-size:11px;padding:2px 10px;border-radius:10px">unassigned</span>
+      </div>
+      <p style="color:#E8F4FF;font-size:16px;font-weight:500;margin:0 0 4px">Q3 customer support chat review</p>
+      <p style="color:#9BB8E0;font-size:12px;margin:0 0 20px"><span style="color:#4DD8FF;cursor:pointer">Acme Forestry</span> · due in 5 days</p>
+
+      <div style="background:#0B0F2E;border:0.5px solid #1E2A6B;border-radius:12px;padding:20px;text-align:center;margin-bottom:16px">
+        <div style="width:64px;height:64px;border-radius:50%;background:#FAC775;border:3px solid #EF9F27;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">
+          <i class="ti ti-binoculars" style="color:#412402;font-size:28px" aria-hidden="true"></i>
+        </div>
+        <p style="color:#E8F4FF;font-size:14px;font-weight:500;margin:0 0 2px">Scout</p>
+        <p style="color:#EF9F27;font-size:11px;margin:0 0 10px">Recommendation agent</p>
+        <p style="color:#9BB8E0;font-size:12px;margin:0;line-height:1.5">Scans the pool for the best-fit analyst or reviewer, weighing response time and past fit.</p>
+      </div>
+
+      <div id="picks" style="display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:16px;background:#0B0F2E;border:0.5px solid #1E2A6B;border-radius:10px;margin-bottom:18px"></div>
+
+      <p style="color:#9BB8E0;font-size:12px;margin:0 0 6px">Or assign directly</p>
+      <select id="assignee-select" onchange="pickAssignee(this.value)" style="width:100%;background:#0B0F2E;border:0.5px solid #1E2A6B;border-radius:8px;padding:9px 12px;color:#E8F4FF;font-size:13px;margin-bottom:14px;box-sizing:border-box">
+        <option value="">Choose an analyst...</option>
+        <option>Mark</option>
+        <option>Agent-03</option>
+      </select>
+
+      <div id="confirm" style="display:none;background:#4DD8FF22;border:0.5px solid #4DD8FF;border-radius:8px;padding:10px 12px;color:#4DD8FF;font-size:12px"></div>
+    </div>
+  </div>
+
+  <div id="resizer" style="width:0;flex-shrink:0;cursor:col-resize;transition:width 0.15s ease"></div>
+
+  <div id="detail-panel" style="flex:0 0 0px;overflow:hidden;transition:flex-basis 0.15s ease">
+    <div id="detail-body" style="padding:20px;width:100%;box-sizing:border-box;min-width:300px"></div>
+  </div>
+
+</div>
+<script>
+let splitOpen = false;
+
+const candidates = {
+  Mark: {
+    reason: 'fastest response time on similar tasks',
+    profile: { rating: '4.8', tasks: '42', turnaround: '1.8d', efficiency: '93%',
+      current: [{id:'#1024', due:'due in 5 days', color:'#639922'}, {id:'#1030', due:'due tomorrow', color:'#EF9F27'}] }
+  },
+  'Agent-03': {
+    reason: 'always available',
+    profile: { rating: '4.6', tasks: '210', turnaround: '0.2d', efficiency: '97%',
+      current: [{id:'#1017', due:'due today', color:'#EF9F27'}] }
+  }
+};
+
+function renderPicks() {
+  document.getElementById('picks').innerHTML = Object.entries(candidates).map(([name, c], i) => `
+    <span style="display:flex;align-items:center;gap:6px">
+      <span onclick="pickAssignee('${name}')" style="color:${i===0?'#4DD8FF':'#9BB8E0'};font-size:${i===0?'20px':'14px'};cursor:pointer;font-weight:${i===0?'500':'400'}">${name}${name==='Agent-03' ? ' <i class=\"ti ti-robot\" style=\"font-size:11px;vertical-align:-1px\" aria-hidden=\"true\"></i>' : ''}</span>
+      <i class="ti ti-info-circle" onclick="openDetail('${name}')" style="color:#5F5E5A;font-size:14px;cursor:pointer" title="View profile" aria-hidden="true"></i>
+    </span>`).join('');
+}
+
+function pickAssignee(name) {
+  document.getElementById('assignee-select').value = name;
+  const c = document.getElementById('confirm');
+  c.style.display = 'block';
+  c.textContent = 'Assigning to ' + name + ' — order will move to "analyst" status';
+}
+
+function openDetail(name) {
+  const c = candidates[name];
+  const p = c.profile;
+  document.getElementById('detail-body').innerHTML = `
+    <span onclick="closeDetail()" style="color:#4DD8FF;font-size:12px;cursor:pointer">← Back to assignment</span>
+    <div style="display:flex;align-items:center;gap:12px;margin:14px 0 16px">
+      <div style="width:40px;height:40px;border-radius:50%;background:#2D5FDB;display:flex;align-items:center;justify-content:center;color:#E8F4FF;font-size:14px;font-weight:500">${name[0]}</div>
+      <div><p style="color:#E8F4FF;font-size:15px;font-weight:500;margin:0">${name}</p><p style="color:#9BB8E0;font-size:12px;margin:2px 0 0"><i class="ti ti-star" style="font-size:11px;vertical-align:-1px" aria-hidden="true"></i> ${p.rating} rating</p></div>
+    </div>
+    <p style="color:#5F5E5A;font-size:11px;margin:0 0 14px">Scout's reason: ${c.reason}</p>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px">
+      <div style="background:#0B0F2E;border:0.5px solid #1E2A6B;border-radius:8px;padding:8px 10px"><p style="color:#5F5E5A;font-size:10px;margin:0 0 3px">Tasks done</p><p style="color:#E8F4FF;font-size:15px;font-weight:500;margin:0">${p.tasks}</p></div>
+      <div style="background:#0B0F2E;border:0.5px solid #1E2A6B;border-radius:8px;padding:8px 10px"><p style="color:#5F5E5A;font-size:10px;margin:0 0 3px">Turnaround</p><p style="color:#E8F4FF;font-size:15px;font-weight:500;margin:0">${p.turnaround}</p></div>
+      <div style="background:#0B0F2E;border:0.5px solid #1E2A6B;border-radius:8px;padding:8px 10px"><p style="color:#5F5E5A;font-size:10px;margin:0 0 3px">Efficiency</p><p style="color:#E8F4FF;font-size:15px;font-weight:500;margin:0">${p.efficiency}</p></div>
+    </div>
+    <p style="color:#9BB8E0;font-size:12px;margin:0 0 8px">Current tasks</p>
+    ${p.current.map(t=>`<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:0.5px solid #1E2A6B"><div style="width:7px;height:7px;border-radius:50%;background:${t.color};flex-shrink:0"></div><span style="color:#E8F4FF;font-size:12px;flex:1">${t.id}</span><span style="color:#9BB8E0;font-size:11px">${t.due}</span></div>`).join('')}
+    <button onclick="pickAssignee('${name}')" style="width:100%;margin-top:16px;padding:9px 0;background:#4DD8FF;color:#04203B;font-weight:500;font-size:12px;border-radius:8px">Assign ${name}</button>`;
+  splitOpen = true;
+  render();
+}
+function closeDetail() { splitOpen = false; render(); }
+function render() {
+  document.getElementById('form-panel').style.width = splitOpen ? '41.6667%' : '100%';
+  document.getElementById('resizer').style.width = splitOpen ? '6px' : '0';
+  document.getElementById('resizer').style.background = splitOpen ? '#1E2A6B' : 'transparent';
+  document.getElementById('detail-panel').style.flex = splitOpen ? '0 0 58.3333%' : '0 0 0px';
+}
+renderPicks();
+</script>

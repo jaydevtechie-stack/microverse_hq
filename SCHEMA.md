@@ -32,11 +32,15 @@ CREATE TABLE IF NOT EXISTS tasks (
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
   customer     TEXT,
   context      TEXT,
-  tags         TEXT[]
+  tags         TEXT[],
+  project_id   UUID REFERENCES projects(id),  -- additive, 4.0.2 — see projects below
+  assigned_at  TIMESTAMPTZ  -- set on unassigned -> analyst (4.1); Scout's (4.1.1) v1 availability signal
 );
 
 CREATE INDEX IF NOT EXISTS idx_tasks_tags ON tasks USING GIN (tags);
 ```
+
+**`assigned_at` — set once, on assignment, not a general status-transition log.** Scout's recommendation query (`models/scout.js`) uses it as a proxy for analyst availability: no active task → fully available; among analysts with one, the longer since `assigned_at`, the more available they're assumed to be. This is explicitly a starting signal, not real response-time measurement — there's no `completed_at` or first-action timestamp anywhere yet to compute that from. Real response-time tracking is Branch 8's job (event-bus-driven audit log).
 
 **Tags — reconciled with the Elasticsearch `tags` index (search-service):** the two stores do different jobs, on purpose. Elasticsearch's `tags` index is the shared *vocabulary* — what exists, fuzzy-matched for autocomplete while someone's typing. `tasks.tags` stores which tag *names* are actually applied to this specific task — plain strings in a Postgres array, not a join table. A handful of short tag names per task doesn't need its own relational identity the way `task_comments` does; storing the name directly (not a numeric tag ID) also matches how ES already treats tag identity via `name.keyword` — the tag *is* its name, there's no separate ID anywhere in the design that Postgres would need to reference. The GIN index makes `tags @> ARRAY['Negative']`-style lookups cheap once you want "show me every task tagged Urgency."
 
