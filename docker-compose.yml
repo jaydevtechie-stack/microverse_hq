@@ -21,7 +21,11 @@ services:
 
   microverse-keycloak:
     profiles: ["gofeeler"]
-    image: quay.io/keycloak/keycloak:latest
+    build:
+      # repo root, not ./infrastructure/keycloak — the build needs to
+      # reach branding/mv-1.0 (see Dockerfile)
+      context: .
+      dockerfile: infrastructure/keycloak/Dockerfile
     container_name: microverse-keycloak
 
     command:
@@ -39,8 +43,6 @@ services:
     volumes:
       - keycloak_data:/opt/keycloak/data
       - ./infrastructure/keycloak/realm-export:/opt/keycloak/data/import
-      - ./infrastructure/keycloak/themes/microverse:/opt/keycloak/themes/microverse:ro
-      - ./branding/mv-1.0:/opt/keycloak/themes/microverse/login/resources/branding:ro
 
     healthcheck:
       # the keycloak image has no curl/wget; use bash's /dev/tcp instead
@@ -172,6 +174,12 @@ services:
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
 
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+
     networks:
       - microverse-network
 
@@ -185,7 +193,8 @@ services:
       PORT: 8000
       ELASTICSEARCH_URL: http://microverse-elasticsearch:9200
     depends_on:
-      - microverse-elasticsearch
+      microverse-elasticsearch:
+        condition: service_healthy
     networks:
       - microverse-network
 

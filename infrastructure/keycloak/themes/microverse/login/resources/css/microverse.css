@@ -12,6 +12,17 @@
  */
 
 :root {
+  /* tokens.css's --mv-logo-url/--mv-bg-image-url are relative to
+   * tokens.css's own location (branding/design-system/), but CSS custom
+   * properties resolve url() relative to the stylesheet that consumes
+   * them, not the one that defines them — and --keycloak-logo-url /
+   * --keycloak-bg-logo-url are actually consumed from css/styles.css
+   * (this file's directory, per tokens.css's own "override per app"
+   * comment). Redeclare them here with paths relative to css/ instead.
+   */
+  --mv-logo-url: url("../branding/logos/microverse-logo.png");
+  --mv-bg-image-url: url("../branding/images/microverse-bg.jpg");
+
   --keycloak-logo-url: var(--mv-logo-url);
   --keycloak-bg-logo-url: var(--mv-bg-image-url);
   --keycloak-logo-height: 96px;
