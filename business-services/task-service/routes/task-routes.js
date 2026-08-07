@@ -5,6 +5,7 @@ const router = express.Router();
 const { findByService, findById, assignAnalyst } = require('../models/task');
 const { listForTask } = require('../models/comment');
 const { getUser } = require('../models/user');
+const { recommendAnalysts } = require('../models/scout');
 
 // Fetch tasks tagged with a given domain service, e.g. ?service=gofeeler.
 // The caller (taskfusion) is responsible for only requesting a service
@@ -77,6 +78,21 @@ router.patch('/tasks/:id', async (req, res) => {
     res.status(200).json(updated);
   } catch (err) {
     res.status(500).json({ message: 'Error assigning task', error: err.message });
+  }
+});
+
+// Scout's picks (4.1.1) for this task's service — ordered by the
+// availability signal in models/scout.js, enriched per candidate with
+// tasks_done/active_tasks/reason for 4.1.1.1's profile detail view.
+router.get('/tasks/:id/recommended-analysts', async (req, res) => {
+  try {
+    const task = await findById(req.params.id);
+    if (!task) return res.status(404).json({ message: 'Task not found' });
+
+    const candidates = await recommendAnalysts(task.service);
+    res.status(200).json(candidates);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching recommendations', error: err.message });
   }
 });
 
