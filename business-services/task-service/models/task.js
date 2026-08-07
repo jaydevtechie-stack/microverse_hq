@@ -23,7 +23,7 @@ async function findById(id) {
 // against a double-assign race without needing row locking here.
 async function assignAnalyst(id, email) {
   const { rows } = await pool.query(
-    `UPDATE tasks SET status = 'analyst', assignee = $2, owner = $2
+    `UPDATE tasks SET status = 'analyst', assignee = $2, owner = $2, assigned_at = now()
      WHERE id = $1 AND status = 'unassigned'
      RETURNING *`,
     [id, email]
