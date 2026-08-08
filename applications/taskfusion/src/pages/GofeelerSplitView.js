@@ -26,6 +26,10 @@ const GofeelerSplitView = () => {
 
   const [splitRatio, setSplitRatio] = useState(50);
   const containerRef = useRef(null);
+  // Bumped after a successful Create Order — GofeelerListPanel stays
+  // mounted across the /create panel switch (only its width changes),
+  // so it wouldn't otherwise refetch and show the new order.
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const panel = pathname === '/' ? 'list' : pathname.startsWith('/task/') ? 'detail' : 'create';
   const splitOpen = panel !== 'list' && !isMobile;
@@ -75,7 +79,7 @@ const GofeelerSplitView = () => {
           transition: 'width 0.2s ease',
         }}
       >
-        <GofeelerListPanel selectedId={panel === 'detail' ? id : undefined} />
+        <GofeelerListPanel selectedId={panel === 'detail' ? id : undefined} refreshKey={refreshKey} />
       </div>
 
       {splitOpen && (
@@ -130,7 +134,7 @@ const GofeelerSplitView = () => {
                 >
                   Create sentiment analysis order
                 </p>
-                <CreateOrderForm />
+                <CreateOrderForm onCreated={() => setRefreshKey((k) => k + 1)} />
               </>
             )}
           </div>
