@@ -15,9 +15,10 @@ async function findById(id) {
 }
 
 // unassigned -> analyst, real PM assignment (4.1) — not the pool-claim
-// query from ARCHITECTURE.md's "The task pool" (that's a different
-// mechanism, 4.1.2, for an analyst self-claiming from the shared
-// queue). The WHERE status = 'unassigned' guard makes this a no-op
+// query from ARCHITECTURE.md's "The task pool" (that's a separate,
+// not-yet-built mechanism tracked in ROADMAP's business-services.md,
+// for an analyst self-claiming from the shared queue). The WHERE
+// status = 'unassigned' guard makes this a no-op
 // (returns null, not an error) if the task was already claimed between
 // the caller reading it and this UPDATE running — cheap protection
 // against a double-assign race without needing row locking here.

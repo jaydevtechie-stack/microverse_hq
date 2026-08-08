@@ -74,8 +74,8 @@ router.post('/tasks', async (req, res) => {
 
 // PM assigns a specific analyst to a specific unassigned task (4.1) —
 // the word-cloud/dropdown flow, not the shared-pool self-claim query
-// from ARCHITECTURE.md's "The task pool" (that's 4.1.2, a different
-// mechanism). Body: { assigneeId } — a users.id, not a raw email, so
+// from ARCHITECTURE.md's "The task pool" (a separate, not-yet-built
+// mechanism, tracked in ROADMAP's business-services.md). Body: { assigneeId } — a users.id, not a raw email, so
 // the assignee is always a real synced user, not a client-supplied
 // string. Validates the assignee is active and actually holds
 // platform:analyst + service:{task.service} — real validation, unlike
