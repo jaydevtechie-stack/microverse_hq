@@ -1,5 +1,6 @@
 // business-services/task-service/models/user.js
 const { pool } = require('../db');
+const { createAccount } = require('./account');
 
 // JIT upsert — see SCHEMA.md's users. Runs from auth middleware the
 // first time task-service sees a given user's JWT in a request, not a
@@ -57,4 +58,41 @@ async function setActive(id, active) {
   return rows[0] || null;
 }
 
-module.exports = { upsertFromClaims, listUsers, getUser, setActive };
+// First-order account provisioning (ARCHITECTURE.md's Entity model:
+// "an individual gets an Account of their own rather than being
+// forced into a fake one-person company"). Transaction + row lock so
+// two concurrent first-orders from the same brand-new customer can't
+// both create an Account — the second call blocks on the lock, then
+// sees account_id already set once the first commits. This is the
+// first multi-statement transaction in task-service (everywhere else
+// is a single pool.query call) — warranted here because "create an
+// Account, then link it" has to be atomic or a half-failure leaves a
+// user with an orphaned Account, or a task pointing at a customer with
+// no Account at all.
+async function ensureAccountForCustomer(userId) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { rows } = await client.query(
+      'SELECT id, name, account_id FROM users WHERE id = $1 FOR UPDATE',
+      [userId]
+    );
+    const user = rows[0];
+    if (!user) throw new Error('User not synced yet');
+    if (user.account_id) {
+      await client.query('COMMIT');
+      return user.account_id;
+    }
+    const account = await createAccount({ type: 'individual', name: user.name }, client);
+    await client.query('UPDATE users SET account_id = $1 WHERE id = $2', [account.id, userId]);
+    await client.query('COMMIT');
+    return account.id;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+module.exports = { upsertFromClaims, listUsers, getUser, setActive, ensureAccountForCustomer };
