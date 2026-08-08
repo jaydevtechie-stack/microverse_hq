@@ -2,6 +2,14 @@
 const { pool } = require('../db');
 const { createAccount } = require('./account');
 
+// Keycloak assigns these to every user regardless of app-level
+// permissions (realm default roles, refresh-token scope, and
+// Authorization Services' UMA scope) — they carry no meaning for
+// task-service's own role checks (listUsers' `roles @>` queries,
+// PmAssignPanel, etc.) and just clutter admin views, so they're
+// stripped before anything reaches `users.roles`.
+const KEYCLOAK_NOISE_ROLES = new Set(['default-roles-microverse', 'offline_access', 'uma_authorization']);
+
 // JIT upsert — see SCHEMA.md's users. Runs from auth middleware the
 // first time task-service sees a given user's JWT in a request, not a
 // dedicated login-webhook service. `active` is deliberately excluded
@@ -11,6 +19,7 @@ const { createAccount } = require('./account');
 // middleware/auth.js's syncUser needs `active` right after the upsert
 // to enforce 4.0.4's deactivation check.
 async function upsertFromClaims({ sub, email, name, picture, roles }) {
+  const filteredRoles = (roles || []).filter((role) => !KEYCLOAK_NOISE_ROLES.has(role));
   const { rows } = await pool.query(
     `INSERT INTO users (id, email, name, avatar_url, roles)
      VALUES ($1, $2, $3, $4, $5)
@@ -19,7 +28,7 @@ async function upsertFromClaims({ sub, email, name, picture, roles }) {
            avatar_url = EXCLUDED.avatar_url, roles = EXCLUDED.roles,
            last_synced_at = now()
      RETURNING *`,
-    [sub, email, name, picture || null, roles || []]
+    [sub, email, name, picture || null, filteredRoles]
   );
   return rows[0];
 }
