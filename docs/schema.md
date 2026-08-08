@@ -30,11 +30,12 @@ CREATE TABLE IF NOT EXISTS tasks (
   owner        TEXT,
   due_date     TIMESTAMPTZ,
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
-  customer     TEXT,
   context      TEXT,
   tags         TEXT[],
   project_id   UUID REFERENCES projects(id),  -- additive, 4.0.2 — see projects below
-  assigned_at  TIMESTAMPTZ  -- set on unassigned -> analyst (4.1); Scout's (4.1.1) v1 availability signal
+  assigned_at  TIMESTAMPTZ,  -- set on unassigned -> analyst (4.1); Scout's (4.1.1) v1 availability signal
+  customer_id  UUID REFERENCES users(id),  -- who submitted the order (4.2) — see users below, not a separate customers table
+  account_id   UUID REFERENCES accounts(id)  -- denormalized copy of users.account_id at creation time, feeds the MinIO key (4.2)
 );
 
 CREATE INDEX IF NOT EXISTS idx_tasks_tags ON tasks USING GIN (tags);
@@ -44,13 +45,15 @@ CREATE INDEX IF NOT EXISTS idx_tasks_tags ON tasks USING GIN (tags);
 
 **Tags — reconciled with the Elasticsearch `tags` index (search-service):** the two stores do different jobs, on purpose. Elasticsearch's `tags` index is the shared *vocabulary* — what exists, fuzzy-matched for autocomplete while someone's typing. `tasks.tags` stores which tag *names* are actually applied to this specific task — plain strings in a Postgres array, not a join table. A handful of short tag names per task doesn't need its own relational identity the way `task_comments` does; storing the name directly (not a numeric tag ID) also matches how ES already treats tag identity via `name.keyword` — the tag *is* its name, there's no separate ID anywhere in the design that Postgres would need to reference. The GIN index makes `tags @> ARRAY['Negative']`-style lookups cheap once you want "show me every task tagged Urgency."
 
-**Current vs. target schema — a real, intentional gap:** this live table uses plain `TEXT` for `customer`, `assignee`, and `owner` (Keycloak usernames stand in, per the "no order-service yet" note in [docs/roadmap/1.0/platform-services.md](roadmap/1.0/platform-services.md)) and a free-text `status` column, rather than the normalized FKs below. That's the pragmatic MVP shape while account/customer data doesn't exist as real rows yet — not urgent tech debt, just documented as a conscious choice. The tables below are the target to migrate `tasks` toward once there's an actual reason to (real account-level billing, or wanting FK-enforced status transitions) — not before.
+**Current vs. target schema — a real, intentional gap, now partially closed.** `customer_id`/`account_id` (4.2) are live FKs — `assignee` and `owner` are still plain `TEXT` (Keycloak usernames stand in, per the "no order-service yet" note in [docs/roadmap/1.0/platform-services.md](roadmap/1.0/platform-services.md)), and `status` is still a free-text column, rather than the normalized `statuses` FK below. That's the pragmatic MVP shape for what's left — not urgent tech debt, just documented as a conscious choice. `statuses` below is the remaining target to migrate `status` toward once there's an actual reason to (wanting FK-enforced status transitions) — not before.
 
 ## Target normalized schema (designed, not yet migrated)
 
 The direction `tasks` migrates toward once `customer`/`assignee`/`owner`/`status` need to be more than free text.
 
-### accounts — 🟢
+### accounts — ✅ live
+
+A Customer is deliberately **not** a separate table — it's a `users` row with `account_id` set (see `users` below and `models/user.js`'s `ensureAccountForCustomer`), same identity path as every other role (PM/analyst/reviewer/admin). An earlier draft of this doc sketched a standalone `customers` table; that predated `users` existing and is superseded — `users` already covers "a login," so a second identity table for the same login would just create two rows per person.
 
 ```sql
 CREATE TABLE accounts (
@@ -61,19 +64,9 @@ CREATE TABLE accounts (
 );
 ```
 
-### customers — 🟢
+**Individual accounts are auto-created on a customer's first order (4.2)**, not at signup — `ensureAccountForCustomer` checks `users.account_id`; if `NULL`, it creates an `individual`-type Account named after the user and links it, inside a transaction with `SELECT ... FOR UPDATE` on the `users` row so two concurrent first-orders can't create two Accounts. Company-type Accounts have no self-serve creation path yet — those are provisioned some other way (not yet designed) since a company account needs multiple customer logins attached, which is a separate, undesigned flow.
 
-```sql
-CREATE TABLE customers (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  account_id  UUID NOT NULL REFERENCES accounts(id),
-  email       TEXT NOT NULL UNIQUE,
-  name        TEXT NOT NULL,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-```
-
-### pm_accounts — 🟢
+### pm_accounts — ✅ live
 
 Many-to-many on purpose — doesn't force the still-open "one dedicated PM per account, or a pool" question either way.
 
@@ -118,7 +111,8 @@ CREATE TABLE users (
   active          BOOLEAN NOT NULL DEFAULT true,
   roles           TEXT[],  -- flattened platform:*/service:* claims from the JWT, e.g. {platform:project-manager, service:gofeeler}
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-  last_synced_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+  last_synced_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  account_id      UUID REFERENCES accounts(id)  -- customers only; NULL until their first order (4.2) — see accounts above
 );
 
 CREATE INDEX idx_users_roles ON users USING GIN (roles);
@@ -138,15 +132,15 @@ ON CONFLICT (id) DO UPDATE
       avatar_url = EXCLUDED.avatar_url, roles = EXCLUDED.roles, last_synced_at = now();
 ```
 
-Once this exists, `tasks.assignee`/`owner`/`customer` (currently plain `TEXT`) are the natural next fields to migrate to `UUID REFERENCES users(id)` — not required for Branch 4.1 itself, but the obvious next step once real user rows exist.
+`tasks.customer_id UUID REFERENCES users(id)` (4.2) is that migration, realized — `assignee`/`owner` remain plain `TEXT` for now (they're workflow-state placeholders that change as a task moves, not a fixed identity like `customer_id`; see the `tasks` table's assignee/owner note above).
 
 **Implemented as:** `business-services/task-service/middleware/auth.js`'s `syncUser`, mounted ahead of every `/api` route in `server.js`. Unverified claim extraction (base64url-decode the JWT's payload segment, no JWKS signature check) — same trust posture as `asset-service`'s `auth.rs`, just in Node instead of Rust (`Buffer.from(payload, 'base64url')`, no external JWT library needed). Requires `sub`, `email`, and `name` all present on the token before syncing — if any are missing the request still proceeds normally, just unsynced, since asset-service's `Claims` struct never modeled those fields and there's no other precedent in this codebase for what's guaranteed to be present. The upsert itself is fire-and-forget (errors are logged, never surfaced to the caller) — task-service still enforces no real auth, this only keeps `users` warm for when Branch 4.1's assignee picker needs real rows to query. The frontend didn't send `Authorization` on any task-service fetch before this (`GofeelerListPanel`/`TaskDetailContent`/`TaskComments` were all headerless) — added via a new `authHeaders()` helper in `services/keycloak.js`, omitted entirely (not sent as `Bearer undefined`) when there's no token yet.
 
 **4.0.4's active-user enforcement slots in here.** Since `syncUser` already runs on every request and has the upserted row (including `active`) in hand right after the upsert, the real check is just: if `active = false` and the route isn't on an allowlist (My Profile's read endpoint, health checks), reject with 403 rather than letting the request continue unsynced-but-permitted like the missing-claims case above. This turns the scrim from a UI-only affordance into an actual boundary — no separate mechanism needed, just an additional branch in code that already runs first on every call.
 
-### projects — 🟢
+### projects — ✅ live
 
-Sits between Account and Order/Task — an Account has many Projects (an ongoing engagement, e.g. "Acme's Q3 Sentiment Monitoring"), and a Project groups many Orders/Tasks under one responsible user. Can reference `users(id)` as a real FK from the start, since `users` is already live — unlike `tasks.customer`/`assignee`/`owner`, which are still `TEXT` placeholders.
+Sits between Account and Order/Task — an Account has many Projects (an ongoing engagement, e.g. "Acme's Q3 Sentiment Monitoring"), and a Project groups many Orders/Tasks under one responsible user. Can reference `users(id)` as a real FK from the start, since `users` is already live — unlike `tasks.assignee`/`owner`, which are still `TEXT` placeholders.
 
 **A Project is also the contract unit** (see [docs/business/1.0/overview.md](business/1.0/overview.md)) — not a separate `contracts` table. `payment_terms` is the first concrete field this implies; more will follow once [docs/business/1.0/overview.md](business/1.0/overview.md)'s open questions (enforcement location, renegotiation/versioning) are settled.
 
@@ -161,15 +155,13 @@ CREATE TABLE projects (
 );
 ```
 
-### tasks (target shape) — 🟢
+### tasks (target shape) — remaining work 🟢
 
 ```sql
--- once accounts/customers/statuses/projects exist, tasks migrates to:
---   customer  TEXT       → customer_id UUID REFERENCES customers(id)
---   (new)                → account_id  UUID REFERENCES accounts(id)  -- denormalized, feeds the MinIO key
---   (new)                → project_id  UUID REFERENCES projects(id)
---   assignee  TEXT       → assignee_id UUID
---   owner     TEXT       → owner_id    UUID
+-- customer_id/account_id/project_id are done (4.0.2, 4.2) — see the
+-- live `tasks` schema above. What's left:
+--   assignee  TEXT       → assignee_id UUID REFERENCES users(id)
+--   owner     TEXT       → owner_id    UUID REFERENCES users(id)
 --   status    TEXT       → status_id   SMALLINT REFERENCES statuses(id)
 -- title, due_date, context, tags, created_at stay as-is
 ```
@@ -182,7 +174,7 @@ CREATE TABLE task_comments (
   comment_id         UUID NOT NULL,                                -- stable across edits of "the same" comment — equals the id of its v1 row
   parent_comment_id  UUID,                                         -- NULL = top-level thread; set = a reply, references the parent thread's comment_id
   task_id            UUID NOT NULL REFERENCES tasks(id),
-  author             TEXT NOT NULL,       -- matches tasks.assignee/owner/customer being plain TEXT for now, not a FK to a users table that doesn't exist yet
+  author             TEXT NOT NULL,       -- matches tasks.assignee/owner being plain TEXT for now — task_comments predates 4.2's customer_id migration and hasn't been revisited
   visibility         TEXT NOT NULL DEFAULT 'internal' CHECK (visibility IN ('internal', 'customer')),
   version            INT NOT NULL DEFAULT 1,
   content            TEXT NOT NULL,
@@ -202,7 +194,7 @@ CREATE INDEX idx_task_comments_parent ON task_comments (parent_comment_id);
 
 Two rules enforced application-side (not as table constraints, same reasoning as the one-level rule):
 - **Visibility inheritance:** a reply's `visibility` must equal its parent thread's `visibility` — no flipping a reply to `internal` underneath a `customer` note or vice versa.
-- **Ownership check:** a customer can only reply on a `customer`-visibility thread belonging to a task they actually own (`task.customer`/`task.owner` matches their identity) — never on `internal` threads, and never on another customer's task.
+- **Ownership check:** a customer can only reply on a `customer`-visibility thread belonging to a task they actually own (`task.customer_id`/`task.owner` matches their identity) — never on `internal` threads, and never on another customer's task.
 
 Staff (PM/analyst/reviewer) see both visibilities; a customer's view is filtered to `visibility = 'customer'` only.
 

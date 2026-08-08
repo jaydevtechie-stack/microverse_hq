@@ -2,9 +2,9 @@
 
 const express = require('express');
 const router = express.Router();
-const { findByService, findById, assignAnalyst } = require('../models/task');
+const { findByService, findById, create, assignAnalyst } = require('../models/task');
 const { listForTask } = require('../models/comment');
-const { getUser } = require('../models/user');
+const { getUser, ensureAccountForCustomer } = require('../models/user');
 const { recommendAnalysts } = require('../models/scout');
 
 // Fetch tasks tagged with a given domain service, e.g. ?service=gofeeler.
@@ -34,6 +34,41 @@ router.get('/tasks/:id', async (req, res) => {
     res.status(200).json(task);
   } catch (err) {
     res.status(500).json({ message: 'Error fetching task', error: err.message });
+  }
+});
+
+// Customer submits a new order (4.2). customer_id always comes from
+// req.claims.sub (set by middleware/auth.js's syncUser, ahead of every
+// /api route) — never from the request body. id is the one exception:
+// it's accepted from the client because CreateOrderForm.js mints it
+// before this call, to use as the MinIO upload key (the upload has to
+// happen first — see models/task.js's create for why). service/title
+// are required; context/tags are optional order details.
+router.post('/tasks', async (req, res) => {
+  const customerId = req.claims?.sub;
+  if (!customerId) {
+    return res.status(401).json({ message: 'Missing or unparseable Authorization token' });
+  }
+
+  const roles = req.claims?.realm_access?.roles || [];
+  const { id, service, title, context, tags } = req.body;
+  if (!service || !title?.trim()) {
+    return res.status(400).json({ message: '"service" and "title" are required' });
+  }
+  if (!roles.includes('platform:customer') || !roles.includes(`service:${service}`)) {
+    return res
+      .status(403)
+      .json({ message: `Requires platform:customer and service:${service}` });
+  }
+
+  try {
+    const accountId = await ensureAccountForCustomer(customerId);
+    const task = await create({
+      id, service, title: title.trim(), context, tags, customerId, accountId,
+    });
+    res.status(201).json(task);
+  } catch (err) {
+    res.status(500).json({ message: 'Error creating task', error: err.message });
   }
 });
 

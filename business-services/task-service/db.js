@@ -101,9 +101,11 @@ async function ensureSchema() {
   `);
 
   // Company or individual — every Customer belongs to exactly one,
-  // always (see ARCHITECTURE.md's Entity model). No customers table
-  // yet (still 🟢 in SCHEMA.md) — accounts is the first piece of the
-  // normalized target schema to actually migrate.
+  // always (see ARCHITECTURE.md's Entity model). There is deliberately
+  // no separate `customers` table — a Customer is just a `users` row
+  // with `account_id` set (see the `account_id` ALTER below and
+  // models/user.js's ensureAccountForCustomer), same identity path as
+  // every other role.
   await pool.query(`
     CREATE TABLE IF NOT EXISTS accounts (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -162,6 +164,29 @@ async function ensureSchema() {
   await pool.query(`
     ALTER TABLE tasks ADD COLUMN IF NOT EXISTS assigned_at TIMESTAMPTZ;
   `);
+
+  // A customer is a users row (see the accounts comment above) —
+  // account_id is set on their first order, not at sync time; NULL
+  // means "hasn't ordered yet, no Account exists for them." See
+  // models/user.js's ensureAccountForCustomer.
+  await pool.query(`
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS account_id UUID REFERENCES accounts(id);
+  `);
+
+  // customer_id: who originally submitted the order, fixed for its
+  // lifetime — distinct from assignee/owner, which are workflow-state
+  // TEXT that changes as the task moves (see ARCHITECTURE.md's
+  // assignee/owner table). account_id is a denormalized copy of the
+  // customer's users.account_id at creation time, feeding the MinIO
+  // key's account segment. context/tags are the order's free-text
+  // description and sentiment tags, entered on the Create Order form.
+  await pool.query(`
+    ALTER TABLE tasks ADD COLUMN IF NOT EXISTS customer_id UUID REFERENCES users(id);
+    ALTER TABLE tasks ADD COLUMN IF NOT EXISTS account_id UUID REFERENCES accounts(id);
+    ALTER TABLE tasks ADD COLUMN IF NOT EXISTS context TEXT;
+    ALTER TABLE tasks ADD COLUMN IF NOT EXISTS tags TEXT[];
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_tasks_tags ON tasks USING GIN (tags);');
 }
 
 module.exports = { pool, ensureSchema };

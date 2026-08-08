@@ -31,6 +31,21 @@ async function assignAnalyst(id, email) {
   return rows[0] || null;
 }
 
+// id is accepted from the caller (client-minted, matching the MinIO
+// upload key already built from it before this insert runs — see
+// CreateOrderForm.js) and falls back to the column default
+// (gen_random_uuid()) if omitted. customer_id/account_id are never
+// taken from a request body — see routes/task-routes.js's POST /tasks.
+async function create({ id, service, title, context, tags, customerId, accountId }) {
+  const { rows } = await pool.query(
+    `INSERT INTO tasks (id, service, title, context, tags, customer_id, account_id)
+     VALUES (COALESCE($1, gen_random_uuid()), $2, $3, $4, $5, $6, $7)
+     RETURNING *`,
+    [id || null, service, title, context || null, tags || [], customerId, accountId]
+  );
+  return rows[0];
+}
+
 async function pollingCounts() {
   const { rows } = await pool.query(`
     SELECT
@@ -45,4 +60,4 @@ async function pollingCounts() {
   return rows[0];
 }
 
-module.exports = { findByService, findById, assignAnalyst, pollingCounts };
+module.exports = { findByService, findById, create, assignAnalyst, pollingCounts };
