@@ -162,6 +162,33 @@ const TaskDetailContent = ({ id }) => {
           {task.due_date ? new Date(task.due_date).toLocaleDateString() : '—'}
         </span>
       </div>
+      {task.tags?.length > 0 && (
+        <div style={detailRowStyle}>
+          <span style={{ color: 'var(--mv-text-muted)' }}>Tags</span>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end' }}>
+            {task.tags.map((tag) => (
+              <span
+                key={tag}
+                style={{
+                  background: 'var(--mv-badge-bg)',
+                  color: 'var(--mv-text)',
+                  fontSize: 11,
+                  padding: '2px 8px',
+                  borderRadius: 999,
+                }}
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+      {task.context && (
+        <div style={{ ...detailRowStyle, flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
+          <span style={{ color: 'var(--mv-text-muted)' }}>Context</span>
+          <span style={{ color: 'var(--mv-text)' }}>{task.context}</span>
+        </div>
+      )}
       <div
         style={{
           ...detailRowStyle,

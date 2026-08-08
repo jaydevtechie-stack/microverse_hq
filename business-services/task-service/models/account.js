@@ -40,4 +40,15 @@ async function listProjectsForAccount(accountId) {
   return rows;
 }
 
-module.exports = { listForPm, getAccount, listPmsForAccount, listProjectsForAccount };
+// Accepts an optional client so callers needing atomicity (see
+// models/user.js's ensureAccountForCustomer) can run this inside their
+// own transaction instead of grabbing a fresh connection from the pool.
+async function createAccount({ type, name }, client = pool) {
+  const { rows } = await client.query(
+    'INSERT INTO accounts (type, name) VALUES ($1, $2) RETURNING *',
+    [type, name]
+  );
+  return rows[0];
+}
+
+module.exports = { listForPm, getAccount, listPmsForAccount, listProjectsForAccount, createAccount };

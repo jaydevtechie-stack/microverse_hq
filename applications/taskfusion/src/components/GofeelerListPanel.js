@@ -7,12 +7,17 @@ import { STATUS_STYLE } from './TaskStatusBadge';
 // retired in favor of GofeelerSplitView) and the split view's list
 // panel. A PM sees every task; an analyst/reviewer sees only the ones
 // assigned to them (assignee is only populated while a task is
-// actively theirs — see ARCHITECTURE.md's assignee/owner table).
-const GofeelerListPanel = ({ selectedId }) => {
+// actively theirs — see ARCHITECTURE.md's assignee/owner table); a
+// customer sees the orders they submitted. refreshKey is bumped by
+// GofeelerSplitView after a successful Create Order, since this panel
+// stays mounted across the /create panel switch and wouldn't otherwise
+// refetch.
+const GofeelerListPanel = ({ selectedId, refreshKey }) => {
   const keycloak = getKeycloak();
   const isPM = keycloak?.hasRealmRole('platform:project-manager');
   const isCustomer = keycloak?.hasRealmRole('platform:customer');
   const username = keycloak?.tokenParsed?.preferred_username;
+  const userId = keycloak?.tokenParsed?.sub;
 
   const [tasks, setTasks] = useState(null);
   const [error, setError] = useState(null);
@@ -25,9 +30,17 @@ const GofeelerListPanel = ({ selectedId }) => {
       })
       .then(setTasks)
       .catch((err) => setError(err.message));
-  }, []);
+  }, [refreshKey]);
 
-  const visibleTasks = isPM ? tasks : tasks?.filter((task) => task.assignee === username);
+  // PM sees everything; analyst/reviewer see only what's assigned to
+  // them (still plain-text usernames); a customer sees orders where
+  // they're customer_id — a real users.id UUID, not a username, unlike
+  // assignee/owner.
+  const visibleTasks = isPM
+    ? tasks
+    : tasks?.filter((task) =>
+        isCustomer ? task.customer_id === userId : task.assignee === username
+      );
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -76,7 +89,11 @@ const GofeelerListPanel = ({ selectedId }) => {
 
         {visibleTasks && visibleTasks.length === 0 && (
           <p style={{ color: 'var(--mv-text-muted)', fontSize: 13, padding: '12px 16px' }}>
-            {isPM ? 'No tasks yet.' : 'No tasks assigned to you right now.'}
+            {isPM
+              ? 'No tasks yet.'
+              : isCustomer
+                ? "You haven't submitted any orders yet."
+                : 'No tasks assigned to you right now.'}
           </p>
         )}
 
