@@ -131,20 +131,28 @@ const App = () => {
             <Route
               path="/"
               element={
-                // The service landing page is public and open to anyone —
-                // it's the info portal a customer without service:gofeeler
-                // (or not logged in at all) reads to find out what the
-                // service does. Only a visitor who already holds the
-                // service role gets sent straight to the real app instead;
-                // see ServiceLandingPage's own comment for why this can't
-                // be a PrivateRoute redirect-on-fail like the rest of the
-                // app's gates.
-                isGofeelerHost && keycloak?.authenticated && keycloak.hasRealmRole('service:gofeeler') ? (
+                // Wait for initKeycloak() to resolve before picking a view —
+                // otherwise this renders once with keycloak still null (so
+                // it guesses "anonymous"/"no access") and again once the
+                // real auth state lands, producing a visible flash: the
+                // Login button on the platform host, or the coming-soon
+                // portal briefly showing before a real GofeelerSplitView
+                // user's task list replaces it. Nothing beats guessing
+                // wrong first.
+                !keycloak ? null : isGofeelerHost && keycloak.authenticated && keycloak.hasRealmRole('service:gofeeler') ? (
                   // Any staff-side platform role + service:gofeeler can view
                   // this page — PM sees every task, analyst/reviewer see only
                   // their own (GofeelerListPanel does that filtering internally)
                   <GofeelerSplitView />
                 ) : currentService ? (
+                  // The service landing page is public and open to anyone —
+                  // it's the info portal a customer without service:gofeeler
+                  // (or not logged in at all) reads to find out what the
+                  // service does. Only a visitor who already holds the
+                  // service role gets sent straight to the real app instead;
+                  // see ServiceLandingPage's own comment for why this can't
+                  // be a PrivateRoute redirect-on-fail like the rest of the
+                  // app's gates.
                   <ServiceLandingPage serviceKey={currentService.key} />
                 ) : (
                   <LandingPage />
