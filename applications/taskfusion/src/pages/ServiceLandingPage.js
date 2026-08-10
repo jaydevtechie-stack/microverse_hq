@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
-import { getKeycloak, hostUrlForSubdomain } from '../services/keycloak';
+import { getKeycloak } from '../services/keycloak';
 import { STATUS_ORDER } from '../data/services';
 import useServices from '../hooks/useServices';
 import usePageMeta from '../hooks/usePageMeta';
@@ -18,14 +18,18 @@ import usePageMeta from '../hooks/usePageMeta';
 // for the exact audience it's for (people who don't have that role
 // yet). Reuses the dashboard card's own line-art illustration rather
 // than the mockup's separate blueprint/drone SVG, and drops the
-// mockup's "Preview as" chip switcher — a design-review convenience,
-// not something production needs (this page only ever renders the one
-// service matching the current subdomain). The phase bar is derived
-// from `status`'s position in STATUS_ORDER rather than a stored
-// `phase` column, and only shown pre-launch — a progress bar toward
-// launch doesn't mean anything once a service is already online.
+// mockup's "Preview as" chip switcher and its own "Back to dashboard"
+// button — App.js already renders the real Navbar above every route
+// once authenticated (it's a sibling of <Routes>, not route-specific),
+// so a second, page-local nav link back to the platform would just be
+// redundant chrome. An anonymous visitor gets no Navbar here either,
+// same as the platform host's own LandingPage. The phase bar is
+// derived from `status`'s position in STATUS_ORDER rather than a
+// stored `phase` column, and only shown pre-launch — a progress bar
+// toward launch doesn't mean anything once a service is already
+// online.
 const ServiceLandingPage = ({ serviceKey }) => {
-  const { t } = useTranslation(['dashboard', 'common']);
+  const { t } = useTranslation('dashboard');
   const { theme } = useTheme();
   const { services, loading } = useServices();
   const service = services.find((s) => s.key === serviceKey);
@@ -141,21 +145,6 @@ const ServiceLandingPage = ({ serviceKey }) => {
           {t('dashboard:serviceLanding.youHaveAccess')}
         </p>
       )}
-
-      <a
-        href={isAuthenticated ? `${hostUrlForSubdomain(null)}/dashboard` : hostUrlForSubdomain(null)}
-        style={{
-          background: 'var(--mv-color-primary)',
-          color: 'var(--mv-color-primary-contrast)',
-          fontSize: 13,
-          fontWeight: 500,
-          padding: '9px 18px',
-          borderRadius: 8,
-          textDecoration: 'none',
-        }}
-      >
-        {t(isAuthenticated ? 'dashboard:serviceLanding.backToDashboard' : 'dashboard:serviceLanding.backToLanding')}
-      </a>
     </div>
   );
 };

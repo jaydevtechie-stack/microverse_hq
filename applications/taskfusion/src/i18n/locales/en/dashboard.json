@@ -21,8 +21,6 @@
   "loadError": "Couldn't load services: {{error}}",
   "serviceLanding": {
     "phaseLabel": "Phase {{phase}} of {{total}}",
-    "backToDashboard": "Back to dashboard",
-    "backToLanding": "Back to Microverse",
     "contactAccountManager": "Contact your account manager for more info on getting access to this service.",
     "logInToCheckAccess": "Log in to see if you already have access to this service.",
     "youHaveAccess": "You already have access to this service."
