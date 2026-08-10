@@ -1,12 +1,15 @@
 // src/pages/AnalystPage.js
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { IconStar } from '@tabler/icons-react';
 import { ANALYST, METRICS, TASKS } from '../data/analysts';
 import ProfileHeader from '../components/ProfileHeader';
 import MetricCard from '../components/MetricCard';
 import TaskList from '../components/TaskList';
 
-const AnalystPage = () => (
+const AnalystPage = () => {
+  const { t } = useTranslation('analyst');
+  return (
   <div
     style={{
       background: 'var(--mv-bg-elevated)',
@@ -43,10 +46,11 @@ const AnalystPage = () => (
     </div>
 
     <p style={{ color: 'var(--mv-text)', fontSize: 13, fontWeight: 500, margin: '0 0 8px' }}>
-      Current tasks
+      {t('currentTasks')}
     </p>
     <TaskList tasks={TASKS} />
   </div>
-);
+  );
+};
 
 export default AnalystPage;
