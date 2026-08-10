@@ -1,0 +1,99 @@
+<h2 class="sr-only">Default landing page shown for Microverse services that are not yet online, with a blueprint illustration, status pill, phase progress, and a preview switcher across the pending services</h2>
+<style>
+.svc-chip { padding:5px 12px; font-size:12px; border:0.5px solid #1E2A6B; border-radius:6px; cursor:pointer; user-select:none; }
+.phase-seg { flex:1; background:#1E2A6B; }
+</style>
+<div id="heroWrap" style="--accent:#FF9F43;background:#05061A;border-radius:16px;padding:0;overflow:hidden">
+
+<div style="padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:0.5px solid #1E2A6B">
+  <div style="display:flex;align-items:center;gap:8px">
+    <div style="width:8px;height:8px;border-radius:50%;background:#4DD8FF"></div>
+    <span style="color:#E8F4FF;font-weight:500;font-size:14px">Microverse</span>
+  </div>
+  <span style="color:#9BB8E0;font-size:13px">Back to dashboard</span>
+</div>
+
+<div style="padding:48px 24px;display:flex;flex-direction:column;align-items:center;text-align:center">
+  <svg viewBox="0 0 240 180" width="220" height="165" aria-hidden="true">
+    <g fill="none" stroke-width="1.5" style="stroke:var(--accent)">
+      <rect x="50" y="30" width="140" height="100" rx="4"/>
+      <path d="M50 50 H190 M50 70 H190 M50 90 H190 M50 110 H190" stroke-dasharray="3 3" stroke-width="1"/>
+      <path d="M80 30 V130 M110 30 V130 M140 30 V130 M160 30 V130" stroke-dasharray="3 3" stroke-width="1"/>
+      <ellipse cx="50" cy="80" rx="8" ry="50"/>
+      <ellipse cx="190" cy="80" rx="8" ry="50"/>
+      <path d="M70 10 L55 45 M70 10 L85 45"/>
+      <circle cx="70" cy="10" r="3" style="fill:var(--accent)"/>
+      <circle cx="55" cy="45" r="2" style="fill:var(--accent)"/>
+      <circle cx="85" cy="45" r="2" style="fill:var(--accent)"/>
+      <path d="M35 155 L75 115" stroke-width="3" stroke-linecap="round"/>
+      <path d="M75 115 L82 108 L79 118 Z" style="fill:var(--accent)"/>
+      <circle cx="205" cy="150" r="13"/>
+      <circle cx="205" cy="150" r="4"/>
+      <path d="M205 133 V137 M205 163 V167 M188 150 H192 M218 150 H222 M193 138 L196 141 M214 141 L217 138 M193 162 L196 159 M214 159 L217 162"/>
+    </g>
+  </svg>
+
+  <span id="statusBadge" style="margin-top:8px;background:#5F5E5A;color:#F1EFE8;font-size:11px;padding:3px 10px;border-radius:10px">basic</span>
+  <p id="svcName" style="color:#E8F4FF;font-size:20px;font-weight:500;margin:14px 0 2px">SpringPix</p>
+  <p id="svcLang" style="color:#9BB8E0;font-size:12px;margin:0 0 12px">Java</p>
+  <p id="blurb" style="color:#9BB8E0;font-size:13px;max-width:340px;line-height:1.6;margin:0 0 24px">The basic engine is live. Advanced GIS analysis is still being built.</p>
+
+  <div style="width:220px;margin-bottom:6px">
+    <div style="display:flex;gap:2px;height:5px;border-radius:3px;overflow:hidden">
+      <div class="phase-seg"></div><div class="phase-seg"></div><div class="phase-seg"></div><div class="phase-seg"></div><div class="phase-seg"></div>
+    </div>
+  </div>
+  <span id="phaseLabel" style="color:#5F5E5A;font-size:11px;margin-bottom:24px">Phase 2 of 5</span>
+
+  <div style="display:flex;gap:10px;margin-top:24px">
+    <span style="background:var(--accent);color:#04203B;font-size:13px;font-weight:500;padding:9px 18px;border-radius:8px;cursor:pointer">Back to dashboard</span>
+    <span style="border:0.5px solid #1E2A6B;color:#9BB8E0;font-size:13px;padding:9px 18px;border-radius:8px;cursor:pointer">View roadmap</span>
+  </div>
+</div>
+
+<div style="padding:14px 18px;border-top:0.5px solid #1E2A6B">
+  <p style="color:#5F5E5A;font-size:11px;margin:0 0 8px">Preview as</p>
+  <div id="chips" style="display:flex;gap:6px;flex-wrap:wrap">
+    <div class="svc-chip" role="button" tabindex="0" data-key="springpix" aria-pressed="true" style="background:#0B0F2E;color:#E8F4FF">SpringPix</div>
+    <div class="svc-chip" role="button" tabindex="0" data-key="djaboard" aria-pressed="false" style="background:transparent;color:#9BB8E0">Djaboard</div>
+    <div class="svc-chip" role="button" tabindex="0" data-key="elixtempo" aria-pressed="false" style="background:transparent;color:#9BB8E0">elixtempo</div>
+    <div class="svc-chip" role="button" tabindex="0" data-key="rustledger" aria-pressed="false" style="background:transparent;color:#9BB8E0">rustledger</div>
+    <div class="svc-chip" role="button" tabindex="0" data-key="rubykudos" aria-pressed="false" style="background:transparent;color:#9BB8E0">RubyKudos</div>
+  </div>
+</div>
+
+</div>
+<script>
+var SERVICES = {
+  springpix: { name:"SpringPix", lang:"Java", accent:"#FF9F43", badge:"basic", phase:2, blurb:"The basic engine is live. Advanced GIS analysis is still being built." },
+  djaboard: { name:"Djaboard", lang:"Python", accent:"#FFD866", badge:"building", phase:3, blurb:"This service is actively under construction." },
+  elixtempo: { name:"elixtempo", lang:"Elixir", accent:"#A66DE0", badge:"designing", phase:1, blurb:"Architecture and data model are still being designed." },
+  rustledger: { name:"rustledger", lang:"Rust", accent:"#E8734A", badge:"designing", phase:1, blurb:"Architecture and data model are still being designed." },
+  rubykudos: { name:"RubyKudos", lang:"Ruby", accent:"#FF6B6B", badge:"planned", phase:0, blurb:"Planned for a future phase; work has not started yet." }
+};
+function selectService(key) {
+  var s = SERVICES[key];
+  document.getElementById("heroWrap").style.setProperty("--accent", s.accent);
+  document.getElementById("svcName").textContent = s.name;
+  document.getElementById("svcLang").textContent = s.lang;
+  document.getElementById("statusBadge").textContent = s.badge;
+  document.getElementById("blurb").textContent = s.blurb;
+  document.getElementById("phaseLabel").textContent = "Phase " + s.phase + " of 5";
+  document.querySelectorAll(".phase-seg").forEach(function(seg, i) {
+    seg.style.background = i < s.phase ? s.accent : "#1E2A6B";
+  });
+  document.querySelectorAll(".svc-chip").forEach(function(c) {
+    var active = c.dataset.key === key;
+    c.style.background = active ? "#0B0F2E" : "transparent";
+    c.style.color = active ? "#E8F4FF" : "#9BB8E0";
+    c.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+}
+document.querySelectorAll(".svc-chip").forEach(function(chip) {
+  chip.addEventListener("click", function() { selectService(chip.dataset.key); });
+  chip.addEventListener("keydown", function(e) {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectService(chip.dataset.key); }
+  });
+});
+selectService("springpix");
+</script>
