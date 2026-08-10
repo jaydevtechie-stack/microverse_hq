@@ -91,7 +91,7 @@ jobs:
         env:
           DATABASE_URL: postgres://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@localhost:5432/${{ env.POSTGRES_DB }}
         run: |
-          ./gofeeler &
+          ./gofeeler > gofeeler.log 2>&1 &
           echo $! > gofeeler.pid
 
       - name: Wait for service to be ready
@@ -101,9 +101,21 @@ jobs:
               echo "service is up"
               exit 0
             fi
+            # Bail out early if the process already died instead of
+            # waiting out the full timeout on a service that will never
+            # answer — a background `&` process's own output doesn't
+            # otherwise surface once the step that launched it has
+            # ended, so without this a crash-on-boot just looks like a
+            # generic timeout with no clue why.
+            if ! kill -0 "$(cat gofeeler.pid)" 2>/dev/null; then
+              echo "gofeeler process exited early:"
+              cat gofeeler.log
+              exit 1
+            fi
             sleep 1
           done
-          echo "service never became ready"
+          echo "service never became ready, log so far:"
+          cat gofeeler.log
           exit 1
 
       - name: Exercise the Branch 5 contract (see docs/development/TESTING.md)
