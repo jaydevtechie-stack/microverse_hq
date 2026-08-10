@@ -130,3 +130,20 @@ ALTER TABLE tasks ADD COLUMN IF NOT EXISTS account_id UUID REFERENCES accounts(i
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS context TEXT;
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS tags TEXT[];
 CREATE INDEX IF NOT EXISTS idx_tasks_tags ON tasks USING GIN (tags);
+
+-- Backs the Dashboard's service grid and Admin's Services tab. Icon/
+-- illustration/color theme and subdomain/required_role stay frontend-
+-- only static config — this table owns only the admin-editable content
+-- fields. Seed rows are inserted by db.js's ensureSchema() (always runs
+-- on boot), not here — DDL only, per this file's header note.
+CREATE TABLE IF NOT EXISTS services (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  key TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  tech TEXT,
+  title TEXT,
+  description TEXT,
+  status TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('online', 'basic', 'building', 'designing', 'planned')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);

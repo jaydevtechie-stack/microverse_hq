@@ -14,11 +14,26 @@
   },
   "services": {
     "headerTitle": "Services · admin",
-    "comingSoonTooltip": "Coming soon — no services table yet, see SCHEMA.md",
+    "addService": "+ Add service",
     "deactivateService": "Deactivate service",
     "activateService": "Activate service",
-    "editCardDetails": "Edit card details",
-    "readOnlyNote": "Read-only for now — activate/deactivate and edit need a real services table (see ROADMAP.md 4.0.2/4.0.3 notes and SCHEMA.md)."
+    "editCardDetails": "Edit card details"
+  },
+  "serviceForm": {
+    "fields": {
+      "key": "Key",
+      "name": "Name",
+      "tech": "Tech",
+      "title": "Title",
+      "description": "Description",
+      "status": "Status"
+    },
+    "validation": {
+      "keyRequired": "Key is required",
+      "nameRequired": "Name is required"
+    },
+    "save": "Save",
+    "saving": "Saving…"
   },
   "settingsPlaceholder": {
     "title": "Settings",

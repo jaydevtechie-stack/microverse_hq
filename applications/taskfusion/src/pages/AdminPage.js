@@ -5,20 +5,33 @@ import AdminUsersPage from './AdminUsersPage';
 import PlaceholderPage from '../components/PlaceholderPage';
 import Subnav from '../components/Subnav';
 import SplitView from '../components/SplitView';
-import { SERVICES } from '../data/services';
+import ServiceForm from '../components/ServiceForm';
+import useServices from '../hooks/useServices';
 import usePageMeta from '../hooks/usePageMeta';
+import { authHeaders } from '../services/keycloak';
 
 const TAB_IDS = ['users', 'services', 'settings', 'audit-log'];
 
-const ServiceList = ({ selectedKey, onSelect }) => {
+const ServiceList = ({ services, selectedKey, onSelect, onAdd }) => {
   const { t } = useTranslation('admin');
   return (
   <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-    <div style={{ padding: '14px 16px', borderBottom: '0.5px solid var(--mv-border)' }}>
+    <div
+      style={{
+        padding: '14px 16px',
+        borderBottom: '0.5px solid var(--mv-border)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      }}
+    >
       <span style={{ color: 'var(--mv-text)', fontSize: 13, fontWeight: 500 }}>{t('services.headerTitle')}</span>
+      <span onClick={onAdd} style={{ color: 'var(--mv-color-primary)', fontSize: 12, cursor: 'pointer' }}>
+        {t('services.addService')}
+      </span>
     </div>
     <div style={{ overflowY: 'auto', flex: 1 }}>
-      {SERVICES.map((service) => {
+      {services.map((service) => {
         const isSelected = service.key === selectedKey;
         return (
           <div
@@ -64,12 +77,10 @@ const ServiceList = ({ selectedKey, onSelect }) => {
   );
 };
 
-// Read-only for now — reads the same hardcoded SERVICES list the
-// Dashboard uses (no services table exists yet, see SCHEMA.md).
-// Activate/deactivate/edit-card-details from ARCHITECTURE.md's Dashboard
-// UI notes are real future scope, not built here — buttons are visibly
-// disabled rather than silently doing nothing.
-const ServiceDetail = ({ service, onClose }) => {
+// Real add/edit + activate/deactivate against the `services` table
+// (see business-services/task-service/routes/service-routes.js) —
+// replaces the previously-disabled stub buttons.
+const ServiceDetail = ({ service, onClose, onEdit, onToggleActive, toggling }) => {
   const { t } = useTranslation('admin');
   return (
   <>
@@ -78,47 +89,49 @@ const ServiceDetail = ({ service, onClose }) => {
     </span>
 
     <p style={{ color: 'var(--mv-text)', fontSize: 15, fontWeight: 500, margin: '14px 0 4px' }}>{service.name}</p>
-    <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 18px' }}>
+    <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 6px' }}>
       {t(`status.${service.status}`)} · {service.tech}
     </p>
+    {service.description && (
+      <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 18px', lineHeight: 1.5 }}>
+        {service.description}
+      </p>
+    )}
 
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <button
         type="button"
-        disabled
-        title={t('services.comingSoonTooltip')}
+        onClick={onToggleActive}
+        disabled={toggling}
         style={{
           padding: '9px 0',
           background: 'var(--mv-bg)',
           border: '0.5px solid var(--mv-border)',
-          color: 'var(--mv-badge-bg)',
+          color: 'var(--mv-text)',
           fontSize: 12,
           borderRadius: 8,
-          cursor: 'not-allowed',
+          cursor: toggling ? 'default' : 'pointer',
+          opacity: toggling ? 0.6 : 1,
         }}
       >
         {service.status === 'online' ? t('services.deactivateService') : t('services.activateService')}
       </button>
       <button
         type="button"
-        disabled
-        title={t('services.comingSoonTooltip')}
+        onClick={onEdit}
         style={{
           padding: '9px 0',
           background: 'var(--mv-bg)',
           border: '0.5px solid var(--mv-border)',
-          color: 'var(--mv-badge-bg)',
+          color: 'var(--mv-text)',
           fontSize: 12,
           borderRadius: 8,
-          cursor: 'not-allowed',
+          cursor: 'pointer',
         }}
       >
         {t('services.editCardDetails')}
       </button>
     </div>
-    <p style={{ color: 'var(--mv-badge-bg)', fontSize: 11, margin: '10px 0 0', lineHeight: 1.4 }}>
-      {t('services.readOnlyNote')}
-    </p>
   </>
   );
 };
@@ -136,8 +149,41 @@ const AdminPage = () => {
   const { tab } = useParams();
   const navigate = useNavigate();
   const [selectedServiceKey, setSelectedServiceKey] = useState(null);
+  // null | 'add' | 'edit' — which form (if any) the detail panel shows,
+  // layered over "just viewing the selected service."
+  const [formMode, setFormMode] = useState(null);
+  const [toggling, setToggling] = useState(false);
+  const { services, refetch } = useServices();
 
-  const selectedService = SERVICES.find((s) => s.key === selectedServiceKey);
+  const selectedService = services.find((s) => s.key === selectedServiceKey);
+
+  const closeDetail = () => {
+    setSelectedServiceKey(null);
+    setFormMode(null);
+  };
+
+  const handleSaved = (saved) => {
+    setFormMode(null);
+    setSelectedServiceKey(saved.key);
+    refetch();
+  };
+
+  // No stored "previous status" to restore, so deactivate lands on
+  // 'building' (mid-development, temporarily pulled) rather than
+  // guessing which pre-online status it should return to.
+  const handleToggleActive = async () => {
+    setToggling(true);
+    try {
+      const res = await fetch(`/api/services/${selectedService.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ status: selectedService.status === 'online' ? 'building' : 'online' }),
+      });
+      if (res.ok) refetch();
+    } finally {
+      setToggling(false);
+    }
+  };
 
   const tabs = TAB_IDS.map((id) => ({ id, label: t(`tabs.${id === 'audit-log' ? 'auditLog' : id}`) }));
 
@@ -147,18 +193,43 @@ const AdminPage = () => {
         tabs={tabs}
         active={tab}
         onChange={(next) => {
-          setSelectedServiceKey(null);
+          closeDetail();
           navigate(`/admin/${next}`);
         }}
       />
       {tab === 'users' && <AdminUsersPage />}
       {tab === 'services' && (
         <SplitView
-          open={Boolean(selectedService)}
-          listPanel={<ServiceList selectedKey={selectedServiceKey} onSelect={setSelectedServiceKey} />}
+          open={Boolean(selectedService) || formMode === 'add'}
+          listPanel={
+            <ServiceList
+              services={services}
+              selectedKey={selectedServiceKey}
+              onSelect={(key) => {
+                setSelectedServiceKey(key);
+                setFormMode(null);
+              }}
+              onAdd={() => {
+                setSelectedServiceKey(null);
+                setFormMode('add');
+              }}
+            />
+          }
           detailPanel={
-            selectedService && (
-              <ServiceDetail service={selectedService} onClose={() => setSelectedServiceKey(null)} />
+            formMode === 'add' ? (
+              <ServiceForm onSaved={handleSaved} onCancel={closeDetail} />
+            ) : formMode === 'edit' && selectedService ? (
+              <ServiceForm service={selectedService} onSaved={handleSaved} onCancel={() => setFormMode(null)} />
+            ) : (
+              selectedService && (
+                <ServiceDetail
+                  service={selectedService}
+                  onClose={closeDetail}
+                  onEdit={() => setFormMode('edit')}
+                  onToggleActive={handleToggleActive}
+                  toggling={toggling}
+                />
+              )
             )
           }
         />

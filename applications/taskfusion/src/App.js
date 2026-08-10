@@ -4,7 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { renderToStaticMarkup } from 'react-dom/server';
 import { initKeycloak, landingUrl } from './services/keycloak';
 import { ThemeProvider } from './context/ThemeContext';
-import { SERVICES } from './data/services';
+import { SERVICE_THEME } from './data/services';
 import { setFavicon } from './utils/favicon';
 import microverseLogo from './assets/brand/logos/microverse-logo.png';
 import LandingPage from './pages/LandingPage';
@@ -18,6 +18,7 @@ import TaskDetailPage from './pages/TaskDetailPage';
 import AdminPage from './pages/AdminPage';
 import ProjectHubPage from './pages/ProjectHubPage';
 import MyProfilePage from './pages/MyProfilePage';
+import ServiceLandingPage from './pages/ServiceLandingPage';
 import InactiveUserScrim from './components/InactiveUserScrim';
 import PmOrdersPage from './pages/PmOrdersPage';
 import DeliveryTeamPage from './pages/DeliveryTeamPage';
@@ -26,21 +27,25 @@ import AmBillingPage from './pages/AmBillingPage';
 
 // microverse.local carries everything platform-side (landing page,
 // /dashboard, /customer, /analyst — path-based). Domain services get
-// their own microsite subdomain instead — gofeeler.microverse.local is
-// the first one, same app/build, just a different root route.
-const isGofeelerHost = window.location.hostname.startsWith('gofeeler.');
+// their own microsite subdomain instead — same app/build, just a
+// different root route. `id` (not `key`/`name`) is what routing logic
+// compares against — see data/services.js's SERVICE_THEME comment.
+const currentService = SERVICE_THEME.find(
+  (service) => service.subdomain && window.location.hostname.startsWith(`${service.subdomain}.`)
+);
+// gofeeler is the only domain service with a real built app so far
+// (GofeelerSplitView) — every other microsite gets the public
+// ServiceLandingPage info portal regardless of its current status.
+const isGofeelerHost = currentService?.id === 'gofeeler';
 
 // One SPA build serves every host, so the favicon has to be picked at
 // runtime rather than baked into public/index.html: a service's own
 // Tabler icon (the one the dashboard card used before the line-art
 // illustration replaced it, see data/services.js) on its microsite,
 // the Microverse logo everywhere else on the platform host.
-const currentServiceForFavicon = SERVICES.find(
-  (service) => service.subdomain && window.location.hostname.startsWith(`${service.subdomain}.`)
-);
-if (currentServiceForFavicon) {
-  const Icon = currentServiceForFavicon.icon;
-  const svg = renderToStaticMarkup(<Icon color={currentServiceForFavicon.dark.fg} size={32} />);
+if (currentService) {
+  const Icon = currentService.icon;
+  const svg = renderToStaticMarkup(<Icon color={currentService.dark.fg} size={32} />);
   setFavicon(`data:image/svg+xml,${encodeURIComponent(svg)}`);
 } else {
   setFavicon(microverseLogo);
@@ -126,15 +131,29 @@ const App = () => {
             <Route
               path="/"
               element={
-                isGofeelerHost ? (
+                // Wait for initKeycloak() to resolve before picking a view —
+                // otherwise this renders once with keycloak still null (so
+                // it guesses "anonymous"/"no access") and again once the
+                // real auth state lands, producing a visible flash: the
+                // Login button on the platform host, or the coming-soon
+                // portal briefly showing before a real GofeelerSplitView
+                // user's task list replaces it. Nothing beats guessing
+                // wrong first.
+                !keycloak ? null : isGofeelerHost && keycloak.authenticated && keycloak.hasRealmRole('service:gofeeler') ? (
                   // Any staff-side platform role + service:gofeeler can view
                   // this page — PM sees every task, analyst/reviewer see only
                   // their own (GofeelerListPanel does that filtering internally)
-                  <PrivateRoute
-                    element={<GofeelerSplitView />}
-                    keycloak={keycloak}
-                    roles={['service:gofeeler']}
-                  />
+                  <GofeelerSplitView />
+                ) : currentService ? (
+                  // The service landing page is public and open to anyone —
+                  // it's the info portal a customer without service:gofeeler
+                  // (or not logged in at all) reads to find out what the
+                  // service does. Only a visitor who already holds the
+                  // service role gets sent straight to the real app instead;
+                  // see ServiceLandingPage's own comment for why this can't
+                  // be a PrivateRoute redirect-on-fail like the rest of the
+                  // app's gates.
+                  <ServiceLandingPage serviceKey={currentService.key} />
                 ) : (
                   <LandingPage />
                 )
