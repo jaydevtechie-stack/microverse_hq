@@ -40,9 +40,11 @@ intelligence/
 
 Classification, embeddings, extraction, OCR, summarization, vision — these are **reusable capabilities**, not full agents. The critical design decision: **this is one service exposing an API, not a Python library each agent imports.** Reason: Microverse is genuinely polyglot (GoFeeler is Go, SpringPix is Java, agents are Python) — a Python library isn't callable from Go or Java, but an API-exposed service is callable from anywhere. `ai-tools` is the shared capability layer every domain-service and agent calls into, regardless of what language it's written in.
 
+GoFeeler's Branch 5 `advanced` engine ([docs/architecture/1.0/domain-services.md](../1.0/domain-services.md)) doesn't call `ai-tools` yet — it's GoFeeler-local, calling an LLM provider directly through its own `Provider` interface, since it's the first consumer and `ai-tools` doesn't exist. That interface is the deliberate plug-in point: once `ai-tools` exists, it's a new `Provider` implementation, not a rewrite.
+
 | Tool | Used by |
 |---|---|
-| `classification` | GoFeeler's Branch 5 sentiment upgrade |
+| `classification` | GoFeeler's Branch 5 sentiment upgrade (once migrated off its direct-provider shim, above) |
 | `embeddings` | Semantic task-similarity (Scout 2.0's `get_task_history`), potential search-service enhancement beyond fuzzy/prefix matching |
 | `extraction` | Pulling structured entities/dates out of GoFeeler's uploaded chat/email exports before analysis |
 | `ocr` | Text extraction from scanned documents or images in asset-service uploads |
@@ -56,7 +58,7 @@ Classification, embeddings, extraction, OCR, summarization, vision — these are
 
 ## models / prompts — config only
 
-Both are artifacts other services consume, not services themselves: `models` holds which LLM/embedding model version is in use per capability; `prompts` holds version-controlled prompt templates (GoFeeler's classification prompt, Scout 2.0's reasoning prompt, etc.). Neither has a runtime component of its own.
+Both are artifacts other services consume, not services themselves: `models` holds which LLM/embedding model version is in use per capability; `prompts` holds version-controlled, dev-curated prompt text (Scout 2.0's reasoning prompt, agent system prompts, etc.). Neither has a runtime component of its own. **Not the same thing as GoFeeler's `sentiment_prompt_templates`** ([docs/schema.md](../../schema.md)) — that's a runtime Postgres table, analyst-authored and edited through the UI, scoped to GoFeeler specifically. Same "prompt" word, different audience (developer vs. analyst) and different mechanism (git-versioned file vs. DB row).
 
 ## workflows — a real naming collision worth being careful about
 
