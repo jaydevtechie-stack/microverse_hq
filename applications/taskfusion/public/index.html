@@ -5,7 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#000000" />
     <meta name="description" content="Microverse Taskfusion dashboard" />
-    <title>Taskfusion | Microverse</title>
+    <!-- Safe default — almost every route sits behind Keycloak auth, so
+         a crawler can't reach it anyway. usePageMeta overrides this per
+         page; only the public landing page opts back into indexing. -->
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Microverse</title>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>

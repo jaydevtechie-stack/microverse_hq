@@ -3,6 +3,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import CreateOrderForm from '../components/CreateOrderForm';
 import CloseButton from '../components/CloseButton';
+import usePageMeta from '../hooks/usePageMeta';
 
 // Standalone full-page version, used off the gofeeler microsite (e.g.
 // CustomerPage's "+ New order" link on the platform host). On the
@@ -10,6 +11,7 @@ import CloseButton from '../components/CloseButton';
 // inline as a panel instead of navigating to a whole new page.
 const CreateOrderPage = () => {
   const { t } = useTranslation('orders');
+  usePageMeta({ title: 'Microverse - New Order' });
   return (
     <div
       style={{

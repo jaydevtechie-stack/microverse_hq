@@ -6,9 +6,11 @@ import { SERVICES } from '../data/services';
 import ServiceCard from '../components/ServiceCard';
 import StatusFilterBar from '../components/StatusFilterBar';
 import BuildTracker from '../components/BuildTracker';
+import usePageMeta from '../hooks/usePageMeta';
 
 const Dashboard = () => {
   const { t } = useTranslation('dashboard');
+  usePageMeta({ title: 'Microverse - Dashboard' });
   const keycloak = getKeycloak();
   // Same fallback as Navbar's avatar-menu display name — full name when
   // Keycloak has one, login handle otherwise.

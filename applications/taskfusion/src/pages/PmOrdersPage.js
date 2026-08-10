@@ -2,6 +2,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import PlaceholderPage from '../components/PlaceholderPage';
+import usePageMeta from '../hooks/usePageMeta';
 
 // 4.3 — moved here from platform:admin, PM-scoped (pm_accounts +
 // service scope). Placeholder only: real order list + 4.1.2's
@@ -11,6 +12,7 @@ import PlaceholderPage from '../components/PlaceholderPage';
 // PM instead of Admin.
 const PmOrdersPage = () => {
   const { t } = useTranslation('orders');
+  usePageMeta({ title: 'Microverse - Orders' });
   return (
     <div style={{ margin: 'var(--mv-space-3)' }}>
       <PlaceholderPage title={t('pmOrdersPlaceholder.title')} note={t('pmOrdersPlaceholder.note')} />
