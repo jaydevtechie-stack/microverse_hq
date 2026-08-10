@@ -109,7 +109,7 @@ const ProjectDetail = ({ project, onClose }) => (
 
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
       <div style={infoBox}>
-        <p style={{ color: 'var(--mv-badge-bg)', fontSize: 11, margin: '0 0 4px' }}>Responsible user</p>
+        <p style={{ color: 'var(--mv-badge-bg)', fontSize: 11, margin: '0 0 4px' }}>Project manager</p>
         <p style={{ color: 'var(--mv-text)', fontSize: 13, margin: 0 }}>
           {project.responsible_user_name || 'Unassigned — user hasn’t logged in yet'}
         </p>

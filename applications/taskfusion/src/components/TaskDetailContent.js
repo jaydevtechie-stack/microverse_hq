@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { IconLink, IconMail, IconShare2 } from '@tabler/icons-react';
+import { IconLink, IconMail, IconPencil, IconShare2 } from '@tabler/icons-react';
 import { getKeycloak, authHeaders } from '../services/keycloak';
 import TaskStatusBadge from './TaskStatusBadge';
 import PmAssignPanel from './PmAssignPanel';
@@ -8,6 +8,8 @@ import AnalystPanel from './AnalystPanel';
 import ReviewerPanel from './ReviewerPanel';
 import CustomerProgressPanel from './CustomerProgressPanel';
 import TaskComments from './TaskComments';
+import TaskFilesList from './TaskFilesList';
+import EditOrderForm from './EditOrderForm';
 
 const detailRowStyle = {
   display: 'flex',
@@ -89,6 +91,7 @@ const ShareIconGroup = ({ task }) => {
 const TaskDetailContent = ({ id }) => {
   const keycloak = getKeycloak();
   const username = keycloak?.tokenParsed?.preferred_username;
+  const userId = keycloak?.tokenParsed?.sub;
   const isPM = keycloak?.hasRealmRole('platform:project-manager');
   const isAnalyst = keycloak?.hasRealmRole('platform:analyst');
   const isReviewer = keycloak?.hasRealmRole('platform:reviewer');
@@ -96,10 +99,12 @@ const TaskDetailContent = ({ id }) => {
 
   const [task, setTask] = useState(null);
   const [error, setError] = useState(null);
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     setTask(null);
     setError(null);
+    setEditing(false);
     fetch(`/api/tasks/${id}`, { headers: authHeaders() })
       .then((res) => {
         if (!res.ok) throw new Error(`task-service returned ${res.status}`);
@@ -113,6 +118,13 @@ const TaskDetailContent = ({ id }) => {
     ? actionPanelFor({ task, isPM, isAnalyst, isReviewer, isCustomer, username, onTaskUpdated: setTask })
     : null;
 
+  // Same window as TaskFilesList's add/remove — own submitted order,
+  // still unassigned. Both this and asset-service's file edit gate are
+  // enforced server-side too (task-service's PUT /api/tasks/:id,
+  // asset-service's own status check) — this just decides whether the
+  // edit affordance shows up.
+  const canEdit = Boolean(task) && isCustomer && task.customer_id === userId && task.status === 'unassigned';
+
   if (error) {
     return (
       <p style={{ color: 'var(--mv-color-danger)', fontSize: 13 }}>Couldn't load task: {error}</p>
@@ -123,8 +135,41 @@ const TaskDetailContent = ({ id }) => {
     return <p style={{ color: 'var(--mv-text-muted)', fontSize: 13 }}>Loading task…</p>;
   }
 
+  const projectManagerNames = task.project_managers?.length
+    ? task.project_managers.map((pm) => pm.name).join(', ')
+    : null;
+
+  // One compact line, not a stacked table — metadata is context for the
+  // order, not the point of the page. Wraps naturally at narrow widths;
+  // "·" separators instead of borders/rows.
+  const metaFields = [
+    ['Service', task.service],
+    ['Assignee', task.assignee || 'unassigned'],
+    ['Owner', task.owner || '—'],
+    ...(projectManagerNames ? [['Project manager', projectManagerNames]] : []),
+    ['Due', task.due_date ? new Date(task.due_date).toLocaleDateString() : '—'],
+    ...(task.closed_at ? [['Closed', new Date(task.closed_at).toLocaleDateString()]] : []),
+    ['Created', new Date(task.created_at).toLocaleDateString()],
+  ];
+
   return (
     <>
+      <p
+        style={{
+          color: 'var(--mv-text-muted)',
+          fontSize: 12,
+          lineHeight: 1.7,
+          margin: '14px 0 12px',
+        }}
+      >
+        {metaFields.map(([label, value], i) => (
+          <React.Fragment key={label}>
+            {i > 0 && ' · '}
+            {label}: <span style={{ color: 'var(--mv-text)' }}>{value}</span>
+          </React.Fragment>
+        ))}
+      </p>
+
       <div
         style={{
           display: 'flex',
@@ -132,74 +177,84 @@ const TaskDetailContent = ({ id }) => {
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: 8,
-          margin: '14px 0 18px',
+          margin: '0 0 18px',
         }}
       >
-        <p style={{ color: 'var(--mv-text)', fontSize: 16, fontWeight: 500, margin: 0 }}>
-          {task.title}
-        </p>
+        {editing ? (
+          <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: 0 }}>Editing order…</p>
+        ) : (
+          <p style={{ color: 'var(--mv-text)', fontSize: 16, fontWeight: 500, margin: 0 }}>
+            {task.title}
+          </p>
+        )}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <TaskStatusBadge status={task.status} />
+          {canEdit && !editing && (
+            <IconPencil
+              size={15}
+              color="var(--mv-text-muted)"
+              style={{ cursor: 'pointer' }}
+              aria-label="Edit order"
+              onClick={() => setEditing(true)}
+            />
+          )}
           <ShareIconGroup task={task} />
         </div>
       </div>
 
-      <div style={detailRowStyle}>
-        <span style={{ color: 'var(--mv-text-muted)' }}>Service</span>
-        <span style={{ color: 'var(--mv-text)' }}>{task.service}</span>
-      </div>
-      <div style={detailRowStyle}>
-        <span style={{ color: 'var(--mv-text-muted)' }}>Assignee</span>
-        <span style={{ color: 'var(--mv-text)' }}>{task.assignee || 'unassigned'}</span>
-      </div>
-      <div style={detailRowStyle}>
-        <span style={{ color: 'var(--mv-text-muted)' }}>Owner</span>
-        <span style={{ color: 'var(--mv-text)' }}>{task.owner || '—'}</span>
-      </div>
-      <div style={detailRowStyle}>
-        <span style={{ color: 'var(--mv-text-muted)' }}>Due</span>
-        <span style={{ color: 'var(--mv-text)' }}>
-          {task.due_date ? new Date(task.due_date).toLocaleDateString() : '—'}
-        </span>
-      </div>
-      {task.tags?.length > 0 && (
-        <div style={detailRowStyle}>
-          <span style={{ color: 'var(--mv-text-muted)' }}>Tags</span>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end' }}>
-            {task.tags.map((tag) => (
-              <span
-                key={tag}
-                style={{
-                  background: 'var(--mv-badge-bg)',
-                  color: 'var(--mv-text)',
-                  fontSize: 11,
-                  padding: '2px 8px',
-                  borderRadius: 999,
-                }}
-              >
-                {tag}
-              </span>
-            ))}
+      {editing ? (
+        <div style={{ marginBottom: 18 }}>
+          <EditOrderForm
+            task={task}
+            filesSlot={<TaskFilesList taskId={task.id} service={task.service} editable />}
+            onSaved={(updated) => {
+              setTask(updated);
+              setEditing(false);
+            }}
+            onCancel={() => setEditing(false)}
+          />
+        </div>
+      ) : (
+        <>
+          {task.tags?.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '0 0 14px' }}>
+              {task.tags.map((tag) => (
+                <span
+                  key={tag}
+                  style={{
+                    background: 'var(--mv-badge-bg)',
+                    color: 'var(--mv-text)',
+                    fontSize: 11,
+                    padding: '2px 8px',
+                    borderRadius: 999,
+                  }}
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+          {task.context && (
+            <p style={{ color: 'var(--mv-text)', fontSize: 13, margin: '0 0 14px' }}>{task.context}</p>
+          )}
+
+          <div
+            style={{
+              ...detailRowStyle,
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: 6,
+              borderBottom: actionPanel ? '0.5px solid var(--mv-border)' : 'none',
+            }}
+          >
+            <span style={{ color: 'var(--mv-text-muted)' }}>Files</span>
+            {/* Read-only here — add/remove only shows up in edit mode
+                (EditOrderForm's filesSlot above), not the plain view,
+                even though the server-side window is the same. */}
+            <TaskFilesList taskId={task.id} service={task.service} editable={false} />
           </div>
-        </div>
+        </>
       )}
-      {task.context && (
-        <div style={{ ...detailRowStyle, flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
-          <span style={{ color: 'var(--mv-text-muted)' }}>Context</span>
-          <span style={{ color: 'var(--mv-text)' }}>{task.context}</span>
-        </div>
-      )}
-      <div
-        style={{
-          ...detailRowStyle,
-          borderBottom: actionPanel ? '0.5px solid var(--mv-border)' : 'none',
-        }}
-      >
-        <span style={{ color: 'var(--mv-text-muted)' }}>Created</span>
-        <span style={{ color: 'var(--mv-text)' }}>
-          {new Date(task.created_at).toLocaleDateString()}
-        </span>
-      </div>
 
       {(isPM || isAnalyst || isReviewer) && (
         <div style={{ marginTop: 18 }}>

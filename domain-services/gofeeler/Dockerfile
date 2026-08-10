@@ -29,7 +29,7 @@ COPY --from=builder /app/gofeeler /usr/local/bin/gofeeler
 
 RUN ls -la /usr/local/bin/
 
-EXPOSE 8080
+EXPOSE 8082
 
 # Run the binary
 CMD ["gofeeler"]

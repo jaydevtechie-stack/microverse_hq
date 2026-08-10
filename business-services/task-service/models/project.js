@@ -32,13 +32,40 @@ async function getProject(id) {
 // ARCHITECTURE.md's Roles and permissions: ownership gets you into the
 // Account, service scope gets you the specific task types within it).
 // serviceScopes is the caller's own service:* claims, already stripped
-// of the "service:" prefix.
+// of the "service:" prefix — null bypasses the filter entirely, for
+// account-manager (platform:admin-like "not tied to one service"
+// visibility, same reasoning as platform:admin needing no service
+// pairing at all per ARCHITECTURE.md's Roles and permissions).
 async function listTasksForProject(projectId, serviceScopes) {
   const { rows } = await pool.query(
-    'SELECT * FROM tasks WHERE project_id = $1 AND service = ANY($2) ORDER BY created_at DESC',
-    [projectId, serviceScopes]
+    serviceScopes === null
+      ? 'SELECT * FROM tasks WHERE project_id = $1 ORDER BY created_at DESC'
+      : 'SELECT * FROM tasks WHERE project_id = $1 AND service = ANY($2) ORDER BY created_at DESC',
+    serviceScopes === null ? [projectId] : [projectId, serviceScopes]
   );
   return rows;
 }
 
-module.exports = { listForPm, getProject, listTasksForProject };
+// Customer-initiated — starts 'dormant', pending account-manager
+// approval (see db.js's status comment). No responsible_user_id yet;
+// that's assigned once the project actually becomes real work, not at
+// the request stage.
+async function createProject({ accountId, name }) {
+  const { rows } = await pool.query(
+    `INSERT INTO projects (account_id, name, status)
+     VALUES ($1, $2, 'dormant')
+     RETURNING *`,
+    [accountId, name]
+  );
+  return rows[0];
+}
+
+async function approveProject(id) {
+  const { rows } = await pool.query(
+    `UPDATE projects SET status = 'active' WHERE id = $1 AND status = 'dormant' RETURNING *`,
+    [id]
+  );
+  return rows[0] || null;
+}
+
+module.exports = { listForPm, getProject, listTasksForProject, createProject, approveProject };

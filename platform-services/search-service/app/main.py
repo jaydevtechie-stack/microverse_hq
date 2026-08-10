@@ -30,8 +30,8 @@ TAGS_SETTINGS = {
 # just grows from whatever gets typed (see the open-vocabulary approach
 # in ROADMAP.md).
 SEED_TAGS = [
-    "Positive", "Negative", "Neutral", "Mixed", "Sarcasm",
-    "Urgency", "Frustration", "Confusion", "Gratitude", "Escalation",
+    "positive", "negative", "neutral", "mixed", "sarcasm",
+    "urgency", "frustration", "confusion", "gratitude", "escalation",
 ]
 
 app = FastAPI(title="search-service", version="0.1")
@@ -98,7 +98,11 @@ class TagCreate(BaseModel):
 
 @app.post("/tags")
 async def create_or_bump_tag(payload: TagCreate):
-    name = payload.name.strip()
+    # Lowercase + trimmed at write time, not just matched case-
+    # insensitively at lookup — otherwise whichever casing happened to
+    # be typed first ("Urgency" vs "urgency") sticks permanently as the
+    # display value for everyone after it.
+    name = payload.name.strip().lower()
     if not name:
         raise HTTPException(status_code=400, detail="name is required")
 

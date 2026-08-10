@@ -100,12 +100,16 @@ async function ensureSchema() {
       ADD COLUMN IF NOT EXISTS roles TEXT[] NOT NULL DEFAULT '{}';
   `);
 
-  // Company or individual — every Customer belongs to exactly one,
-  // always (see ARCHITECTURE.md's Entity model). There is deliberately
-  // no separate `customers` table — a Customer is just a `users` row
-  // with `account_id` set (see the `account_id` ALTER below and
-  // models/user.js's ensureAccountForCustomer), same identity path as
-  // every other role.
+  // Company or individual. There is deliberately no separate
+  // `customers` table — a Customer is just a `users` row, same identity
+  // path as every other role. `account_id` (see the ALTER below and
+  // models/user.js's ensureAccountForCustomer) is a single "default"
+  // Account — set once, on a brand-new customer's first order, and
+  // never touched again by that auto-provisioning path. It's not the
+  // only Account a customer can belong to: `user_accounts` below covers
+  // the case a company-side contact needs (one person acting as the
+  // customer on more than one Account, e.g. an agency contact spanning
+  // several client accounts) — `account_id` alone can't express that.
   await pool.query(`
     CREATE TABLE IF NOT EXISTS accounts (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -126,6 +130,22 @@ async function ensureSchema() {
       pm_id UUID NOT NULL REFERENCES users(id),
       account_id UUID NOT NULL REFERENCES accounts(id),
       PRIMARY KEY (pm_id, account_id)
+    );
+  `);
+
+  // Additional Account memberships for a customer, beyond their single
+  // `account_id` default — same "many-to-many, doesn't force one shape"
+  // reasoning as pm_accounts above, added once a real scenario (one
+  // customer contact needing to place/see orders across more than one
+  // Account) showed `account_id` alone wasn't enough. `account_id`
+  // stays the account a bare "create order" attaches to when nothing
+  // else is specified; this table is the *other* Accounts that
+  // customer is also recognized on.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_accounts (
+      user_id UUID NOT NULL REFERENCES users(id),
+      account_id UUID NOT NULL REFERENCES accounts(id),
+      PRIMARY KEY (user_id, account_id)
     );
   `);
 
@@ -186,7 +206,29 @@ async function ensureSchema() {
     ALTER TABLE tasks ADD COLUMN IF NOT EXISTS context TEXT;
     ALTER TABLE tasks ADD COLUMN IF NOT EXISTS tags TEXT[];
   `);
+  // When the task reached a terminal status (done/paid/closed). Column
+  // only — nothing sets it yet, same "stub now, build later" posture as
+  // 4.0.3's Services tab: the real status-transition endpoints (submit
+  // for review, approve, bill) are Branch 6-9 work that doesn't exist
+  // in task-service yet, so there's no real event to stamp this from.
+  // Exists now so the schema/API/UI don't need another round-trip once
+  // those transitions land — they'll just start setting it.
+  await pool.query(`
+    ALTER TABLE tasks ADD COLUMN IF NOT EXISTS closed_at TIMESTAMPTZ;
+  `);
   await pool.query('CREATE INDEX IF NOT EXISTS idx_tasks_tags ON tasks USING GIN (tags);');
+
+  // A customer-created project starts 'dormant' — not visible/actionable
+  // as a real engagement until an account-manager approves it — and
+  // moves to 'active' from there. No DB-level CHECK (same as
+  // tasks.status — free-text column, enforced at the application layer,
+  // see SCHEMA.md's "current vs. target schema" note on why). Backfills
+  // existing rows to 'active' via the column DEFAULT — every project
+  // that existed before this column did was already a real, operating
+  // engagement, not something newly pending approval.
+  await pool.query(`
+    ALTER TABLE projects ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active';
+  `);
 }
 
 module.exports = { pool, ensureSchema };

@@ -34,16 +34,42 @@ async function assignAnalyst(id, email) {
 // id is accepted from the caller (client-minted, matching the MinIO
 // upload key already built from it before this insert runs — see
 // CreateOrderForm.js) and falls back to the column default
-// (gen_random_uuid()) if omitted. customer_id/account_id are never
-// taken from a request body — see routes/task-routes.js's POST /tasks.
-async function create({ id, service, title, context, tags, customerId, accountId }) {
+// (gen_random_uuid()) if omitted. customer_id/account_id/ownerEmail are
+// never taken from a request body — see routes/task-routes.js's
+// POST /tasks. owner starts as the creating customer (assignAnalyst
+// overwrites it once a PM assigns) — before that, the order is
+// exclusively theirs to act on (edit/cancel), so "current owner" is
+// the customer, not nobody; leaving it null until assignment left
+// customer-only views (Notes, CustomerProgressPanel) keyed on
+// `task.owner === username` unable to ever match their own fresh order.
+async function create({ id, service, title, context, tags, customerId, accountId, ownerEmail, dueDate }) {
   const { rows } = await pool.query(
-    `INSERT INTO tasks (id, service, title, context, tags, customer_id, account_id)
-     VALUES (COALESCE($1, gen_random_uuid()), $2, $3, $4, $5, $6, $7)
+    `INSERT INTO tasks (id, service, title, context, tags, customer_id, account_id, owner, due_date)
+     VALUES (COALESCE($1, gen_random_uuid()), $2, $3, $4, $5, $6, $7, $8, $9)
      RETURNING *`,
-    [id || null, service, title, context || null, tags || [], customerId, accountId]
+    [id || null, service, title, context || null, tags || [], customerId, accountId, ownerEmail || null, dueDate || null]
   );
   return rows[0];
+}
+
+// Customer self-edit of their own still-unassigned order — same fields
+// Create Order accepts (title/context/tags). Files are a separate
+// asset-service concern with its own independent unassigned-only gate
+// (TaskFilesList's add/remove) — no shared transaction between the two
+// services, so each enforces the edit window on its own record.
+// customer_id/status ownership+window checks happen in the route
+// handler; the WHERE status = 'unassigned' guard here is the same
+// last-instant race protection as assignAnalyst (returns null, not an
+// error, if the order was claimed between the caller's read and this
+// UPDATE running).
+async function updateOrderDetails(id, { title, context, tags, dueDate }) {
+  const { rows } = await pool.query(
+    `UPDATE tasks SET title = $2, context = $3, tags = $4, due_date = $5
+     WHERE id = $1 AND status = 'unassigned'
+     RETURNING *`,
+    [id, title, context || null, tags || [], dueDate || null]
+  );
+  return rows[0] || null;
 }
 
 async function pollingCounts() {
@@ -60,4 +86,11 @@ async function pollingCounts() {
   return rows[0];
 }
 
-module.exports = { findByService, findById, create, assignAnalyst, pollingCounts };
+module.exports = {
+  findByService,
+  findById,
+  create,
+  assignAnalyst,
+  updateOrderDetails,
+  pollingCounts,
+};

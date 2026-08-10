@@ -1,0 +1,199 @@
+name: GoFeeler CI
+
+on:
+  push:
+    branches: [develop, main]
+    paths:
+      - 'domain-services/gofeeler/**'
+      - '.github/workflows/gofeeler-ci.yml'
+  pull_request:
+    paths:
+      - 'domain-services/gofeeler/**'
+      - '.github/workflows/gofeeler-ci.yml'
+  # Lets `integration` (below) run on demand from the Actions tab
+  # without needing a push/PR — see that job's `if:` condition.
+  workflow_dispatch: {}
+
+defaults:
+  run:
+    working-directory: domain-services/gofeeler/app
+
+jobs:
+  unit:
+    name: Build, vet, unit test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: domain-services/gofeeler/app/go.mod
+
+      - run: go build ./...
+      - run: go vet ./...
+      - run: go test ./... -cover
+
+  integration:
+    name: Live-service integration (basic engine, templates, contract)
+    runs-on: ubuntu-latest
+    needs: unit
+    # Spins up real Postgres + Mongo service containers — the expensive
+    # part of this workflow. unit (above) still runs automatically on
+    # every push/PR; this only runs when manually dispatched from the
+    # Actions tab ("Run workflow"), to keep routine pushes cheap.
+    if: github.event_name == 'workflow_dispatch'
+
+    # Real Postgres/Mongo, no OPENAI_API_KEY — same "advanced engine
+    # disabled" posture as a fresh dev/prod boot with no key configured
+    # (see docs/roadmap/1.0/domain-services.md's Branch 5.1.1). Verifies
+    # the actual request/response contract over HTTP, not mocks.
+    #
+    # Postgres credentials are defined once below (job-level env) and
+    # referenced everywhere they're needed — the service container and
+    # DATABASE_URL — rather than the same literal appearing twice.
+    # Throwaway creds for an ephemeral CI-only container, not a real
+    # secret, so plain env vars rather than repo Secrets.
+    env:
+      POSTGRES_USER: gofeeler
+      POSTGRES_PASSWORD: gofeeler
+      POSTGRES_DB: gofeeler
+      MONGO_URL: mongodb://localhost:27017/gofeeler
+      PORT: 8082
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ env.POSTGRES_DB }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand(\"ping\")'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: domain-services/gofeeler/app/go.mod
+
+      - name: Build service binary
+        run: go build -o gofeeler main.go
+
+      # gofeeler's own schema (db/postgres.go's ensureSchema) creates
+      # sentiment_prompt_templates with created_by REFERENCES
+      # public.users(id) — a real table task-service owns and creates,
+      # not gofeeler. In the full docker-compose stack that table
+      # already exists by the time gofeeler boots (dev Postgres volume
+      # persists across restarts); here gofeeler is the only service
+      # running against a genuinely fresh database, so ensureSchema's
+      # CREATE TABLE fails outright on the FK and the process exits —
+      # this is what "service never became ready" actually was. Stub
+      # just enough of the real table for the FK to resolve; not a
+      # schema gofeeler should own or migrate for real. Verified locally
+      # against a fresh postgres:16-alpine container: reproduces the
+      # exact crash without this table, boots clean with it.
+      - name: Seed public.users stub for gofeeler's cross-service FK
+        env:
+          PGPASSWORD: ${{ env.POSTGRES_PASSWORD }}
+        run: |
+          psql -h localhost -U ${{ env.POSTGRES_USER }} -d ${{ env.POSTGRES_DB }} \
+            -c "CREATE TABLE IF NOT EXISTS public.users (id UUID PRIMARY KEY);"
+
+      - name: Start service in background
+        env:
+          DATABASE_URL: postgres://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@localhost:5432/${{ env.POSTGRES_DB }}
+        run: |
+          ./gofeeler > gofeeler.log 2>&1 &
+          echo $! > gofeeler.pid
+
+      - name: Wait for service to be ready
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8082/ >/dev/null; then
+              echo "service is up"
+              exit 0
+            fi
+            # Bail out early if the process already died instead of
+            # waiting out the full timeout on a service that will never
+            # answer — a background `&` process's own output doesn't
+            # otherwise surface once the step that launched it has
+            # ended, so without this a crash-on-boot just looks like a
+            # generic timeout with no clue why.
+            if ! kill -0 "$(cat gofeeler.pid)" 2>/dev/null; then
+              echo "gofeeler process exited early:"
+              cat gofeeler.log
+              exit 1
+            fi
+            sleep 1
+          done
+          echo "service never became ready, log so far:"
+          cat gofeeler.log
+          exit 1
+
+      - name: Exercise the Branch 5 contract (see docs/development/TESTING.md)
+        run: |
+          set -euo pipefail
+
+          echo "-- basic engine, positive --"
+          resp=$(curl -sf -X POST http://localhost:8082/analyze \
+            -H 'Content-Type: application/json' \
+            -d '{"text":"This was great and I love it!"}')
+          echo "$resp"
+          [ "$(echo "$resp" | jq -r .sentiment)" = "positive" ]
+          [ "$(echo "$resp" | jq -r .engine_used)" = "basic" ]
+
+          echo "-- basic engine, negative --"
+          resp=$(curl -sf -X POST http://localhost:8082/analyze \
+            -H 'Content-Type: application/json' \
+            -d '{"text":"I hate this, terrible experience."}')
+          [ "$(echo "$resp" | jq -r .sentiment)" = "negative" ]
+
+          echo "-- basic engine, engine omitted defaults to basic --"
+          resp=$(curl -sf -X POST http://localhost:8082/analyze \
+            -H 'Content-Type: application/json' \
+            -d '{"text":"The package arrived on Tuesday."}')
+          [ "$(echo "$resp" | jq -r .engine_used)" = "basic" ]
+
+          echo "-- advanced engine requested but unconfigured -> 400, no silent fallback --"
+          status=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:8082/analyze \
+            -H 'Content-Type: application/json' \
+            -d '{"text":"anything","engine":"advanced"}')
+          [ "$status" = "400" ]
+
+          echo "-- templates: seeded system defaults present on boot --"
+          resp=$(curl -sf http://localhost:8082/templates)
+          count=$(echo "$resp" | jq 'map(select(.isSystemDefault == true)) | length')
+          [ "$count" -ge 3 ]
+
+          echo "-- templates: self-service create --"
+          resp=$(curl -sf -X POST http://localhost:8082/templates \
+            -H 'Content-Type: application/json' \
+            -d '{"name":"CI test template","promptBody":"Classify this."}')
+          [ "$(echo "$resp" | jq -r .name)" = "CI test template" ]
+          [ "$(echo "$resp" | jq -r .isSystemDefault)" = "false" ]
+
+          echo "-- templates: missing required field -> 400 --"
+          status=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:8082/templates \
+            -H 'Content-Type: application/json' \
+            -d '{"name":"no body"}')
+          [ "$status" = "400" ]
+
+      - name: Stop service
+        if: always()
+        run: kill "$(cat gofeeler.pid)" 2>/dev/null || true

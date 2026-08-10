@@ -84,6 +84,11 @@ pub async fn presigned_put_url(
     Ok(req.uri().to_string())
 }
 
+pub async fn delete_object(client: &Client, key: &str) -> Result<(), aws_sdk_s3::Error> {
+    client.delete_object().bucket(bucket_name()).key(key).send().await?;
+    Ok(())
+}
+
 pub async fn presigned_get_url(client: &Client, key: &str) -> Result<String, aws_sdk_s3::Error> {
     let presign_config = PresigningConfig::expires_in(PRESIGN_TTL).expect("valid TTL");
     let req = client

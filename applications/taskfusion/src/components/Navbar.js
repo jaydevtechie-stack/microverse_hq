@@ -84,7 +84,7 @@ const Navbar = ({ keycloak }) => {
 
       {isCustomer && (
         <PlatformNavLink to="/customer" active={pathname === '/customer'}>
-          Customers
+          Accounts
         </PlatformNavLink>
       )}
 
@@ -114,12 +114,12 @@ const Navbar = ({ keycloak }) => {
         </>
       )}
 
-      {/* 4.3 — new platform:account-manager role: Customers/Billing,
+      {/* 4.3 — new platform:account-manager role: Accounts/Billing,
           moved from Admin, account-manager-scoped. */}
       {isAccountManager && (
         <>
           <PlatformNavLink to="/am/customers" active={pathname === '/am/customers'}>
-            Customers
+            Accounts
           </PlatformNavLink>
           <PlatformNavLink to="/am/billing" active={pathname === '/am/billing'}>
             Billing

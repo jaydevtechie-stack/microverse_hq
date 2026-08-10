@@ -259,12 +259,18 @@ services:
       context: ./domain-services/gofeeler
     container_name: microverse-gofeeler
     environment:
-      # Not read by the Go app yet — /analyze is still stateless
-      # keyword-matching with nothing persisted. Wired ahead of that
-      # work so the connection is there when it lands.
+      # sentiment_results persistence (Branch 5) — best-effort, only
+      # written when a request carries a taskId.
       MONGO_URL: mongodb://microverse-mongodb:27017/gofeeler
+      # sentiment_prompt_templates (Branch 5)
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@microverse-postgis:5432/${POSTGRES_DB}
+      # Advanced engine's LLM provider — advanced engine stays disabled
+      # (basic-only) if this is unset.
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      GOFEELER_LLM_MODEL: ${GOFEELER_LLM_MODEL}
     depends_on:
       - microverse-mongodb
+      - microverse-postgis
     networks:
       - microverse-network
 

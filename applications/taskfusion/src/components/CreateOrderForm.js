@@ -24,6 +24,12 @@ const fieldInputStyle = {
   fontFamily: 'inherit',
 };
 
+const fieldErrorStyle = {
+  color: 'var(--mv-color-danger)',
+  fontSize: 11,
+  margin: '-10px 0 14px',
+};
+
 // Hardcoded — this form only exists for Gofeeler right now (see the
 // "Gofeeler · New order" header wherever it's rendered). Becomes a
 // prop once other domain services get their own Create Order forms.
@@ -37,53 +43,64 @@ const CreateOrderForm = ({ onCreated } = {}) => {
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
   const [context, setContext] = useState('');
-  const [tags, setTags] = useState(['Negative', 'Urgency']);
+  // No default tags — every field here is mandatory and has to be a
+  // real choice, not a prefilled one nobody actually picked.
+  const [tags, setTags] = useState([]);
+  const [dueDate, setDueDate] = useState('');
   const [file, setFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   // Minted client-side, once per form instance — has to exist before
   // the file upload (its MinIO key includes the order_id) and gets
   // reused as this task's own id on create, so the two stay linked.
   const orderId = useRef(crypto.randomUUID());
 
+  const validate = () => {
+    const errors = {};
+    if (!title.trim()) errors.title = 'Title is required';
+    if (!context.trim()) errors.context = 'Context is required';
+    if (!file) errors.file = 'A file is required';
+    if (tags.length === 0) errors.tags = 'At least one sentiment tag is required';
+    if (!dueDate) errors.dueDate = 'Deadline is required';
+    return errors;
+  };
+
   const handleSubmit = async () => {
-    if (!title.trim()) {
-      setError('Title is required');
-      return;
-    }
+    const errors = validate();
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
 
     setSubmitting(true);
     setError(null);
 
     try {
-      if (file) {
-        const uploadRes = await fetch('/api/assets/upload-url', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...authHeaders() },
-          body: JSON.stringify({
-            service: SERVICE,
-            order_id: orderId.current,
-            filename: file.name,
-            // Falls back to text/plain, not octet-stream — the upload
-            // host's content-type allowlist only accepts
-            // text/image/json/pdf, and most real GoFeeler uploads
-            // (chat/email exports) are text anyway.
-            content_type: file.type || 'text/plain',
-          }),
-        });
-        const uploadBody = await uploadRes.json();
-        if (!uploadRes.ok) {
-          throw new Error(uploadBody.message || `asset-service returned ${uploadRes.status}`);
-        }
-
-        const putRes = await fetch(uploadBody.upload_url, {
-          method: 'PUT',
-          headers: { 'Content-Type': file.type || 'text/plain' },
-          body: file,
-        });
-        if (!putRes.ok) throw new Error('File upload failed');
+      const uploadRes = await fetch('/api/assets/upload-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({
+          service: SERVICE,
+          order_id: orderId.current,
+          filename: file.name,
+          // Falls back to text/plain, not octet-stream — the upload
+          // host's content-type allowlist only accepts
+          // text/image/json/pdf, and most real GoFeeler uploads
+          // (chat/email exports) are text anyway.
+          content_type: file.type || 'text/plain',
+        }),
+      });
+      const uploadBody = await uploadRes.json();
+      if (!uploadRes.ok) {
+        throw new Error(uploadBody.message || `asset-service returned ${uploadRes.status}`);
       }
+
+      const putRes = await fetch(uploadBody.upload_url, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type || 'text/plain' },
+        body: file,
+      });
+      if (!putRes.ok) throw new Error('File upload failed');
 
       const createRes = await fetch('/api/tasks', {
         method: 'POST',
@@ -94,6 +111,7 @@ const CreateOrderForm = ({ onCreated } = {}) => {
           title: title.trim(),
           context: context.trim() || null,
           tags,
+          dueDate: dueDate || null,
         }),
       });
       const task = await createRes.json();
@@ -113,46 +131,81 @@ const CreateOrderForm = ({ onCreated } = {}) => {
     }
   };
 
+  const clearFieldError = (field) => {
+    if (fieldErrors[field]) setFieldErrors((prev) => ({ ...prev, [field]: undefined }));
+  };
+
   return (
     <>
       <label style={fieldLabelStyle}>Title</label>
       <input
         type="text"
         value={title}
-        onChange={(e) => setTitle(e.target.value)}
+        onChange={(e) => {
+          setTitle(e.target.value);
+          clearFieldError('title');
+        }}
         placeholder="e.g. Q3 customer support chat review"
         style={fieldInputStyle}
       />
+      {fieldErrors.title && <p style={fieldErrorStyle}>{fieldErrors.title}</p>}
 
-      <label style={fieldLabelStyle}>Context (optional)</label>
+      <label style={fieldLabelStyle}>Context</label>
       <textarea
         value={context}
-        onChange={(e) => setContext(e.target.value)}
+        onChange={(e) => {
+          setContext(e.target.value);
+          clearFieldError('context');
+        }}
         placeholder="Anything the analyst should know before starting..."
         rows={3}
         style={{ ...fieldInputStyle, resize: 'none' }}
       />
+      {fieldErrors.context && <p style={fieldErrorStyle}>{fieldErrors.context}</p>}
 
       <label style={fieldLabelStyle}>Sentiment focus</label>
-      <div style={{ marginBottom: 18 }}>
-        <TagInput selected={tags} onChange={setTags} />
+      <div style={{ marginBottom: fieldErrors.tags ? 0 : 18 }}>
+        <TagInput
+          selected={tags}
+          onChange={(next) => {
+            setTags(next);
+            clearFieldError('tags');
+          }}
+        />
       </div>
+      {fieldErrors.tags && <p style={{ ...fieldErrorStyle, margin: '4px 0 14px' }}>{fieldErrors.tags}</p>}
+
+      <label style={fieldLabelStyle}>Deadline</label>
+      <input
+        type="date"
+        value={dueDate}
+        min={new Date().toISOString().slice(0, 10)}
+        onChange={(e) => {
+          setDueDate(e.target.value);
+          clearFieldError('dueDate');
+        }}
+        style={fieldInputStyle}
+      />
+      {fieldErrors.dueDate && <p style={fieldErrorStyle}>{fieldErrors.dueDate}</p>}
 
       <label style={fieldLabelStyle}>Upload content</label>
       <label
         style={{
           display: 'block',
-          border: '1px dashed var(--mv-border)',
+          border: `1px dashed ${fieldErrors.file ? 'var(--mv-color-danger)' : 'var(--mv-border)'}`,
           borderRadius: 10,
           padding: 22,
           textAlign: 'center',
-          marginBottom: 18,
+          marginBottom: fieldErrors.file ? 4 : 18,
           cursor: 'pointer',
         }}
       >
         <input
           type="file"
-          onChange={(e) => setFile(e.target.files?.[0] || null)}
+          onChange={(e) => {
+            setFile(e.target.files?.[0] || null);
+            clearFieldError('file');
+          }}
           style={{ display: 'none' }}
         />
         <IconUpload size={22} color="var(--mv-color-primary)" aria-hidden="true" />
@@ -163,6 +216,7 @@ const CreateOrderForm = ({ onCreated } = {}) => {
           Stored via asset-service → MinIO
         </p>
       </label>
+      {fieldErrors.file && <p style={{ ...fieldErrorStyle, margin: '0 0 18px' }}>{fieldErrors.file}</p>}
 
       {error && (
         <p style={{ color: 'var(--mv-color-danger)', fontSize: 12, margin: '0 0 14px' }}>
