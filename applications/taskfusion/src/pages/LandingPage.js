@@ -1,5 +1,6 @@
 // src/pages/LandingPage.js
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { login, getKeycloak } from '../services/keycloak';
 
 // Public front door, served on microverse.local. Logged-in users can
@@ -9,6 +10,7 @@ import { login, getKeycloak } from '../services/keycloak';
 // real role-vetting flow design.
 const LandingPage = () => {
   const keycloak = getKeycloak();
+  const { t } = useTranslation(['landing', 'common']);
 
   return (
     <div
@@ -43,14 +45,10 @@ const LandingPage = () => {
         }}
       >
         <h1 style={{ color: '#0b0f2e', fontSize: 28, margin: '0 0 12px' }}>
-          Welcome to Microverse
+          {t('landing:title')}
         </h1>
         <p style={{ color: '#4a5a8a', fontSize: 14, lineHeight: 1.6, margin: '0 0 28px' }}>
-          Microverse started as a playground for exploring how a dozen
-          different languages and frameworks could work together as one
-          real platform. Every service here — from sentiment analysis to
-          time tracking to billing — keeps its own tech and its own
-          personality, all orchestrated behind a single front door.
+          {t('landing:description')}
         </p>
         {!keycloak?.authenticated && (
           <button
@@ -66,7 +64,7 @@ const LandingPage = () => {
               cursor: 'pointer',
             }}
           >
-            Login
+            {t('common:login')}
           </button>
         )}
       </div>

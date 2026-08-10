@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';  // Ensure this is from 'react-dom/clie
 import './assets/brand/design-system/tokens.css'; // Microverse design tokens, must load before Bootstrap
 import './assets/scss/main.scss'; // Bootstrap themed with the design tokens' palette
 import './index.css';
+import './i18n';
 import App from './App';
 import reportWebVitals from './metrics/reportWebVitals';  // Import reportWebVitals
 
