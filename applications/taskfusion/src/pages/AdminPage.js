@@ -1,30 +1,20 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import AdminUsersPage from './AdminUsersPage';
 import PlaceholderPage from '../components/PlaceholderPage';
 import Subnav from '../components/Subnav';
 import SplitView from '../components/SplitView';
 import { SERVICES } from '../data/services';
 
-const TABS = [
-  { id: 'users', label: 'Users' },
-  { id: 'services', label: 'Services' },
-  { id: 'settings', label: 'Settings' },
-  { id: 'audit-log', label: 'Audit log' },
-];
+const TAB_IDS = ['users', 'services', 'settings', 'audit-log'];
 
-const STATUS_LABEL = {
-  online: 'online',
-  basic: 'basic',
-  building: 'building',
-  designing: 'designing',
-  planned: 'planned',
-};
-
-const ServiceList = ({ selectedKey, onSelect }) => (
+const ServiceList = ({ selectedKey, onSelect }) => {
+  const { t } = useTranslation('admin');
+  return (
   <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
     <div style={{ padding: '14px 16px', borderBottom: '0.5px solid var(--mv-border)' }}>
-      <span style={{ color: 'var(--mv-text)', fontSize: 13, fontWeight: 500 }}>Services · admin</span>
+      <span style={{ color: 'var(--mv-text)', fontSize: 13, fontWeight: 500 }}>{t('services.headerTitle')}</span>
     </div>
     <div style={{ overflowY: 'auto', flex: 1 }}>
       {SERVICES.map((service) => {
@@ -62,7 +52,7 @@ const ServiceList = ({ selectedKey, onSelect }) => (
                 {service.name}
               </div>
               <div style={{ color: 'var(--mv-badge-bg)', fontSize: 11, whiteSpace: 'nowrap' }}>
-                {STATUS_LABEL[service.status]} · {service.tech}
+                {t(`status.${service.status}`)} · {service.tech}
               </div>
             </div>
           </div>
@@ -70,29 +60,32 @@ const ServiceList = ({ selectedKey, onSelect }) => (
       })}
     </div>
   </div>
-);
+  );
+};
 
 // Read-only for now — reads the same hardcoded SERVICES list the
 // Dashboard uses (no services table exists yet, see SCHEMA.md).
 // Activate/deactivate/edit-card-details from ARCHITECTURE.md's Dashboard
 // UI notes are real future scope, not built here — buttons are visibly
 // disabled rather than silently doing nothing.
-const ServiceDetail = ({ service, onClose }) => (
+const ServiceDetail = ({ service, onClose }) => {
+  const { t } = useTranslation('admin');
+  return (
   <>
     <span onClick={onClose} style={{ color: 'var(--mv-color-primary)', fontSize: 12, cursor: 'pointer' }}>
-      ← Back
+      {t('common:back')}
     </span>
 
     <p style={{ color: 'var(--mv-text)', fontSize: 15, fontWeight: 500, margin: '14px 0 4px' }}>{service.name}</p>
     <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 18px' }}>
-      {STATUS_LABEL[service.status]} · {service.tech}
+      {t(`status.${service.status}`)} · {service.tech}
     </p>
 
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <button
         type="button"
         disabled
-        title="Coming soon — no services table yet, see SCHEMA.md"
+        title={t('services.comingSoonTooltip')}
         style={{
           padding: '9px 0',
           background: 'var(--mv-bg)',
@@ -103,12 +96,12 @@ const ServiceDetail = ({ service, onClose }) => (
           cursor: 'not-allowed',
         }}
       >
-        {service.status === 'online' ? 'Deactivate service' : 'Activate service'}
+        {service.status === 'online' ? t('services.deactivateService') : t('services.activateService')}
       </button>
       <button
         type="button"
         disabled
-        title="Coming soon — no services table yet, see SCHEMA.md"
+        title={t('services.comingSoonTooltip')}
         style={{
           padding: '9px 0',
           background: 'var(--mv-bg)',
@@ -119,15 +112,15 @@ const ServiceDetail = ({ service, onClose }) => (
           cursor: 'not-allowed',
         }}
       >
-        Edit card details
+        {t('services.editCardDetails')}
       </button>
     </div>
     <p style={{ color: 'var(--mv-badge-bg)', fontSize: 11, margin: '10px 0 0', lineHeight: 1.4 }}>
-      Read-only for now — activate/deactivate and edit need a real services table (see ROADMAP.md 4.0.2/4.0.3
-      notes and SCHEMA.md).
+      {t('services.readOnlyNote')}
     </p>
   </>
-);
+  );
+};
 
 // platform:admin-gated shell — Users (4.0.1, real data) and Services
 // (read-only stub) subnav tabs, plus 4.3's Settings/Audit log stubs.
@@ -137,16 +130,19 @@ const ServiceDetail = ({ service, onClose }) => (
 // /admin/:tab) rather than local state, so each tab is a real,
 // bookmarkable route.
 const AdminPage = () => {
+  const { t } = useTranslation('admin');
   const { tab } = useParams();
   const navigate = useNavigate();
   const [selectedServiceKey, setSelectedServiceKey] = useState(null);
 
   const selectedService = SERVICES.find((s) => s.key === selectedServiceKey);
 
+  const tabs = TAB_IDS.map((id) => ({ id, label: t(`tabs.${id === 'audit-log' ? 'auditLog' : id}`) }));
+
   return (
     <div style={{ margin: 'var(--mv-space-3)' }}>
       <Subnav
-        tabs={TABS}
+        tabs={tabs}
         active={tab}
         onChange={(next) => {
           setSelectedServiceKey(null);
@@ -166,13 +162,10 @@ const AdminPage = () => {
         />
       )}
       {tab === 'settings' && (
-        <PlaceholderPage title="Settings" note="Coming soon — platform-wide admin settings." />
+        <PlaceholderPage title={t('settingsPlaceholder.title')} note={t('settingsPlaceholder.note')} />
       )}
       {tab === 'audit-log' && (
-        <PlaceholderPage
-          title="Audit log"
-          note="Coming soon — built from the event-bus stream (Branch 8), not a separate write path. Also the likely fallback for Admin's cross-Account Orders/Billing visibility now that both moved out of Admin in 4.3 — see the open question in ROADMAP.md's 4.3 entry."
-        />
+        <PlaceholderPage title={t('auditLogPlaceholder.title')} note={t('auditLogPlaceholder.note')} />
       )}
     </div>
   );

@@ -1,3 +1,5 @@
 {
-  "login": "Login"
+  "login": "Login",
+  "back": "← Back",
+  "cancel": "Cancel"
 }

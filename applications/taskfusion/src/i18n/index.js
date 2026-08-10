@@ -11,6 +11,7 @@ import enCommon from './locales/en/common.json';
 import enLanding from './locales/en/landing.json';
 import enNavbar from './locales/en/navbar.json';
 import enDashboard from './locales/en/dashboard.json';
+import enAdmin from './locales/en/admin.json';
 
 i18n.use(initReactI18next).init({
   resources: {
@@ -19,12 +20,13 @@ i18n.use(initReactI18next).init({
       landing: enLanding,
       navbar: enNavbar,
       dashboard: enDashboard,
+      admin: enAdmin,
     },
   },
   lng: 'en',
   fallbackLng: 'en',
   defaultNS: 'common',
-  ns: ['common', 'landing', 'navbar', 'dashboard'],
+  ns: ['common', 'landing', 'navbar', 'dashboard', 'admin'],
   interpolation: {
     escapeValue: false, // React already escapes output
   },

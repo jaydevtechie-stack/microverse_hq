@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import SplitView from '../components/SplitView';
 import { authHeaders } from '../services/keycloak';
 
@@ -11,7 +12,9 @@ const initials = (name) =>
 
 const ROLE_COLOR = 'var(--mv-color-primary)';
 
-const UserList = ({ users, error, selectedId, onSelect }) => (
+const UserList = ({ users, error, selectedId, onSelect }) => {
+  const { t } = useTranslation('admin');
+  return (
   <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
     <div
       style={{
@@ -19,20 +22,20 @@ const UserList = ({ users, error, selectedId, onSelect }) => (
         borderBottom: '0.5px solid var(--mv-border)',
       }}
     >
-      <span style={{ color: 'var(--mv-text)', fontSize: 13, fontWeight: 500 }}>Users · admin</span>
+      <span style={{ color: 'var(--mv-text)', fontSize: 13, fontWeight: 500 }}>{t('users.headerTitle')}</span>
     </div>
     <div style={{ overflowY: 'auto', flex: 1 }}>
       {error && (
         <p style={{ color: 'var(--mv-color-danger)', fontSize: 13, padding: '12px 16px' }}>
-          Couldn't load users: {error}
+          {t('users.loadError', { error })}
         </p>
       )}
       {!error && !users && (
-        <p style={{ color: 'var(--mv-text-muted)', fontSize: 13, padding: '12px 16px' }}>Loading users…</p>
+        <p style={{ color: 'var(--mv-text-muted)', fontSize: 13, padding: '12px 16px' }}>{t('users.loading')}</p>
       )}
       {users?.length === 0 && (
         <p style={{ color: 'var(--mv-text-muted)', fontSize: 13, padding: '12px 16px' }}>
-          No users synced yet — a user shows up here after their first authenticated request.
+          {t('users.empty')}
         </p>
       )}
       {users?.map((user) => {
@@ -76,12 +79,15 @@ const UserList = ({ users, error, selectedId, onSelect }) => (
       })}
     </div>
   </div>
-);
+  );
+};
 
-const UserDetail = ({ user, onClose, onToggleActive }) => (
+const UserDetail = ({ user, onClose, onToggleActive }) => {
+  const { t } = useTranslation('admin');
+  return (
   <>
     <span onClick={onClose} style={{ color: 'var(--mv-color-primary)', fontSize: 12, cursor: 'pointer' }}>
-      ← Back
+      {t('common:back')}
     </span>
 
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '14px 0 16px' }}>
@@ -119,15 +125,15 @@ const UserDetail = ({ user, onClose, onToggleActive }) => (
           color: user.active ? 'var(--mv-color-success)' : 'var(--mv-badge-text)',
         }}
       >
-        {user.active ? 'active' : 'deactivated'}
+        {user.active ? t('users.active') : t('users.deactivated')}
       </span>
     </div>
 
-    <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>Roles</p>
+    <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>{t('users.rolesLabel')}</p>
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
       {user.roles.length === 0 && (
         <span style={{ color: 'var(--mv-badge-bg)', fontSize: 12 }}>
-          No roles synced yet — populated from this user's next request.
+          {t('users.noRoles')}
         </span>
       )}
       {user.roles.map((role) => (
@@ -156,7 +162,7 @@ const UserDetail = ({ user, onClose, onToggleActive }) => (
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ color: 'var(--mv-text-muted)', fontSize: 12 }}>Permissions (Keycloak)</span>
+        <span style={{ color: 'var(--mv-text-muted)', fontSize: 12 }}>{t('users.permissionsLabel')}</span>
         <span
           style={{
             color: 'var(--mv-badge-bg)',
@@ -167,11 +173,11 @@ const UserDetail = ({ user, onClose, onToggleActive }) => (
             opacity: 0.6,
           }}
         >
-          coming soon
+          {t('users.comingSoonBadge')}
         </span>
       </div>
       <p style={{ color: 'var(--mv-badge-bg)', fontSize: 11, margin: '6px 0 0', lineHeight: 1.4 }}>
-        Fetch live role/permission detail from Keycloak on demand — nice-to-have, not required for 4.0.1.
+        {t('users.permissionsNote')}
       </p>
     </div>
 
@@ -190,10 +196,11 @@ const UserDetail = ({ user, onClose, onToggleActive }) => (
         cursor: 'pointer',
       }}
     >
-      {user.active ? 'Deactivate user' : 'Reactivate user'}
+      {user.active ? t('users.deactivateUser') : t('users.reactivateUser')}
     </button>
   </>
-);
+  );
+};
 
 // Master-detail split view for Admin's Users tab (4.0.1) — mockup:
 // admin_users_page_split_view.html. Deactivate/reactivate is a real
