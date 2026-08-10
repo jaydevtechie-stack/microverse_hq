@@ -231,7 +231,33 @@ Not yet designed. Will hold raster hotspot-detection results as spatial data (`g
 
 **MongoDB** — db name `gofeeler`, on `microverse-mongodb`
 
-Raw uploaded content (chat/email/comment exports) plus sentiment analysis results — shape varies too much per source to fit relational columns. No fixed collection schema documented yet; worth adding one here once Branch 5 (LLM integration) settles what a stored result actually looks like.
+Raw uploaded content (chat/email/comment exports) plus sentiment analysis results — shape varies too much per source to fit relational columns.
+
+**`sentiment_results` collection (Branch 5 shape):**
+```
+{
+  task_id,             -- REFERENCES task-service's tasks.id (UUID, cross-database reference, not enforced by an FK)
+  engine_used,          -- "basic" | "advanced"
+  template_id,          -- Postgres sentiment_prompt_templates.id, null for basic engine
+  template_name,         -- denormalized at write time — templates can be renamed later; this captures the name as-used
+  llm_provider,          -- null for basic engine
+  model_version,         -- null for basic engine
+  raw_content,           -- the uploaded chat/email/comment text analyzed
+  result,               -- score/label/tags, shape TBD alongside the actual analysis output
+  analyzed_at
+}
+```
+Uniform shape across both engines (LLM fields simply `null` for `basic`) rather than two different event shapes — keeps downstream consumers (Djaboard) from branching on engine type. These same four traceability fields (`engine_used`, `template_id`, `llm_provider`, `model_version`) are expected to flow into Djaboard's reporting schema once that's designed — see [docs/roadmap/1.0/domain-services.md](roadmap/1.0/domain-services.md)'s Branch 5.
+
+## sentiment_prompt_templates — 🟡 designed, not yet migrated
+
+**PostgreSQL** — same instance as `task-service`/`rustledger` (`microverse-postgis`), not the `gofeeler` Mongo database — this is structured, relational, and shared across analysts, unlike the per-analysis results above.
+
+```
+id, name, prompt_body, created_by (REFERENCES users(id)), is_system_default BOOLEAN, created_at
+```
+
+Shared pool, visible to every analyst; any analyst can create or edit (self-service — blast radius is contained to their own analyses, no gating). System ships a small preconfigured set with `is_system_default = true`. Distinct from `intelligence/prompts` ([docs/architecture/2.0/intelligence.md](architecture/2.0/intelligence.md)), which is version-controlled, dev-curated text for agent reasoning prompts — same word, different mechanism and audience.
 
 ---
 
