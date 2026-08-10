@@ -1,5 +1,6 @@
 // src/pages/PmOrdersPage.js
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import PlaceholderPage from '../components/PlaceholderPage';
 
 // 4.3 — moved here from platform:admin, PM-scoped (pm_accounts +
@@ -8,13 +9,13 @@ import PlaceholderPage from '../components/PlaceholderPage';
 // ARCHITECTURE.md's business-services "The task pool") are later-phase
 // work. This nav item exists now so that UI has a home reserved under
 // PM instead of Admin.
-const PmOrdersPage = () => (
-  <div style={{ margin: 'var(--mv-space-3)' }}>
-    <PlaceholderPage
-      title="Orders"
-      note="Coming soon — PM-scoped order list, plus the shared-pool claim mechanism from Branch 4's 4.1.2, land here once designed."
-    />
-  </div>
-);
+const PmOrdersPage = () => {
+  const { t } = useTranslation('orders');
+  return (
+    <div style={{ margin: 'var(--mv-space-3)' }}>
+      <PlaceholderPage title={t('pmOrdersPlaceholder.title')} note={t('pmOrdersPlaceholder.note')} />
+    </div>
+  );
+};
 
 export default PmOrdersPage;
