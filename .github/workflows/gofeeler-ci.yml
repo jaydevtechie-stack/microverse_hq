@@ -1,0 +1,149 @@
+name: GoFeeler CI
+
+on:
+  push:
+    branches: [develop, main]
+    paths:
+      - 'domain-services/gofeeler/**'
+      - '.github/workflows/gofeeler-ci.yml'
+  pull_request:
+    paths:
+      - 'domain-services/gofeeler/**'
+      - '.github/workflows/gofeeler-ci.yml'
+
+defaults:
+  run:
+    working-directory: domain-services/gofeeler/app
+
+jobs:
+  unit:
+    name: Build, vet, unit test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: domain-services/gofeeler/app/go.mod
+
+      - run: go build ./...
+      - run: go vet ./...
+      - run: go test ./... -cover
+
+  integration:
+    name: Live-service integration (basic engine, templates, contract)
+    runs-on: ubuntu-latest
+    needs: unit
+
+    # Real Postgres/Mongo, no OPENAI_API_KEY — same "advanced engine
+    # disabled" posture as a fresh dev/prod boot with no key configured
+    # (see docs/roadmap/1.0/domain-services.md's Branch 5.1.1). Verifies
+    # the actual request/response contract over HTTP, not mocks.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: gofeeler
+          POSTGRES_PASSWORD: gofeeler
+          POSTGRES_DB: gofeeler
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand(\"ping\")'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgres://gofeeler:gofeeler@localhost:5432/gofeeler
+      MONGO_URL: mongodb://localhost:27017/gofeeler
+      PORT: 8082
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: domain-services/gofeeler/app/go.mod
+
+      - name: Build service binary
+        run: go build -o gofeeler main.go
+
+      - name: Start service in background
+        run: |
+          ./gofeeler &
+          echo $! > gofeeler.pid
+
+      - name: Wait for service to be ready
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8082/ >/dev/null; then
+              echo "service is up"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "service never became ready"
+          exit 1
+
+      - name: Exercise the Branch 5 contract (see docs/development/TESTING.md)
+        run: |
+          set -euo pipefail
+
+          echo "-- basic engine, positive --"
+          resp=$(curl -sf -X POST http://localhost:8082/analyze \
+            -H 'Content-Type: application/json' \
+            -d '{"text":"This was great and I love it!"}')
+          echo "$resp"
+          [ "$(echo "$resp" | jq -r .sentiment)" = "positive" ]
+          [ "$(echo "$resp" | jq -r .engine_used)" = "basic" ]
+
+          echo "-- basic engine, negative --"
+          resp=$(curl -sf -X POST http://localhost:8082/analyze \
+            -H 'Content-Type: application/json' \
+            -d '{"text":"I hate this, terrible experience."}')
+          [ "$(echo "$resp" | jq -r .sentiment)" = "negative" ]
+
+          echo "-- basic engine, engine omitted defaults to basic --"
+          resp=$(curl -sf -X POST http://localhost:8082/analyze \
+            -H 'Content-Type: application/json' \
+            -d '{"text":"The package arrived on Tuesday."}')
+          [ "$(echo "$resp" | jq -r .engine_used)" = "basic" ]
+
+          echo "-- advanced engine requested but unconfigured -> 400, no silent fallback --"
+          status=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:8082/analyze \
+            -H 'Content-Type: application/json' \
+            -d '{"text":"anything","engine":"advanced"}')
+          [ "$status" = "400" ]
+
+          echo "-- templates: seeded system defaults present on boot --"
+          resp=$(curl -sf http://localhost:8082/templates)
+          count=$(echo "$resp" | jq 'map(select(.isSystemDefault == true)) | length')
+          [ "$count" -ge 3 ]
+
+          echo "-- templates: self-service create --"
+          resp=$(curl -sf -X POST http://localhost:8082/templates \
+            -H 'Content-Type: application/json' \
+            -d '{"name":"CI test template","promptBody":"Classify this."}')
+          [ "$(echo "$resp" | jq -r .name)" = "CI test template" ]
+          [ "$(echo "$resp" | jq -r .isSystemDefault)" = "false" ]
+
+          echo "-- templates: missing required field -> 400 --"
+          status=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:8082/templates \
+            -H 'Content-Type: application/json' \
+            -d '{"name":"no body"}')
+          [ "$status" = "400" ]
+
+      - name: Stop service
+        if: always()
+        run: kill "$(cat gofeeler.pid)" 2>/dev/null || true

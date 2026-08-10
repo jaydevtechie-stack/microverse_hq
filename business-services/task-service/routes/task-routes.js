@@ -2,14 +2,43 @@
 
 const express = require('express');
 const router = express.Router();
-const { findByService, findById, create, assignAnalyst } = require('../models/task');
-const { listForTask } = require('../models/comment');
+const { findByService, findById, create, assignAnalyst, updateOrderDetails } = require('../models/task');
+const { listForTask, findLatestByCommentId, createComment } = require('../models/comment');
 const { getUser, ensureAccountForCustomer } = require('../models/user');
 const { recommendAnalysts } = require('../models/scout');
+const { listPmsForAccount } = require('../models/account');
+
+// The PM(s) a customer should reach out to about this order — ownership
+// (pm_accounts, which Accounts a PM can see at all) narrowed to service
+// scope (does this PM actually hold service:{task.service}), same two
+// independent checks the Project Hub itself uses (ARCHITECTURE.md's
+// Roles and permissions). pm_accounts carries no service column of its
+// own — a PM's service scope lives on their own `users.roles`, checked
+// here rather than in the join.
+async function projectManagersFor(task) {
+  if (!task.account_id) return [];
+  const pms = await listPmsForAccount(task.account_id);
+  return pms
+    .filter((pm) => pm.roles?.includes(`service:${task.service}`))
+    .map((pm) => ({ id: pm.id, name: pm.name, email: pm.email }));
+}
+
+// A customer must never see another customer's orders — real privacy
+// boundary, not just a display preference (title/context/tags/files are
+// all customer-submitted content). Same PM-first precedence
+// GofeelerListPanel.js already uses client-side (a PM sees everything,
+// a customer sees only their own): platform:project-manager is the
+// escape hatch here too, since a PM viewing across accounts is
+// legitimate and shouldn't get clipped by also happening to hold
+// platform:customer. Analyst/reviewer pool visibility is unaffected —
+// that's a different, intentional "see the open queue" design, not the
+// privacy boundary this is closing.
+function isCustomerOnly(req) {
+  const roles = req.claims?.realm_access?.roles || [];
+  return roles.includes('platform:customer') && !roles.includes('platform:project-manager');
+}
 
 // Fetch tasks tagged with a given domain service, e.g. ?service=gofeeler.
-// The caller (taskfusion) is responsible for only requesting a service
-// the logged-in user actually holds the matching role for.
 router.get('/tasks', async (req, res) => {
   const { service } = req.query;
 
@@ -18,20 +47,29 @@ router.get('/tasks', async (req, res) => {
   }
 
   try {
-    const tasks = await findByService(service);
+    let tasks = await findByService(service);
+    if (isCustomerOnly(req)) {
+      tasks = tasks.filter((t) => t.customer_id === req.claims?.sub);
+    }
     res.status(200).json(tasks);
   } catch (err) {
     res.status(500).json({ message: 'Error fetching tasks', error: err.message });
   }
 });
 
-// Single task, for the detail page — no role/ownership check here yet,
-// same as GET /tasks; the frontend route is what's role-gated for now.
+// Single task, for the detail page. project_managers is enrichment, not
+// a column — computed fresh on every read from pm_accounts + roles
+// rather than stored, so it can't drift out of sync with a PM's actual
+// current assignments/roles.
 router.get('/tasks/:id', async (req, res) => {
   try {
     const task = await findById(req.params.id);
     if (!task) return res.status(404).json({ message: 'Task not found' });
-    res.status(200).json(task);
+    if (isCustomerOnly(req) && task.customer_id !== req.claims?.sub) {
+      return res.status(403).json({ message: "Not this customer's order" });
+    }
+    const projectManagers = await projectManagersFor(task);
+    res.status(200).json({ ...task, project_managers: projectManagers });
   } catch (err) {
     res.status(500).json({ message: 'Error fetching task', error: err.message });
   }
@@ -51,7 +89,7 @@ router.post('/tasks', async (req, res) => {
   }
 
   const roles = req.claims?.realm_access?.roles || [];
-  const { id, service, title, context, tags } = req.body;
+  const { id, service, title, context, tags, dueDate } = req.body;
   if (!service || !title?.trim()) {
     return res.status(400).json({ message: '"service" and "title" are required' });
   }
@@ -64,11 +102,71 @@ router.post('/tasks', async (req, res) => {
   try {
     const accountId = await ensureAccountForCustomer(customerId);
     const task = await create({
-      id, service, title: title.trim(), context, tags, customerId, accountId,
+      id,
+      service,
+      title: title.trim(),
+      context,
+      tags,
+      customerId,
+      accountId,
+      // Owner starts as the creator — before a PM assigns an analyst,
+      // the order is exclusively the customer's to act on, so they're
+      // "current owner" in the same sense assignAnalyst later hands
+      // that role to whoever the task is actively with.
+      ownerEmail: req.claims?.email,
+      dueDate: dueDate || null,
     });
     res.status(201).json(task);
   } catch (err) {
     res.status(500).json({ message: 'Error creating task', error: err.message });
+  }
+});
+
+// Customer edits their own still-unassigned order — same fields Create
+// Order accepts (title/context/tags). Files are a separate asset-service
+// concern with its own identical unassigned-only window (TaskFilesList's
+// add/remove) — no shared transaction between the two services, so each
+// enforces the edit window independently against its own record. Locked
+// the instant a PM assigns an analyst, same boundary as everywhere else
+// customer edit rights end (see ARCHITECTURE.md's Role x Action matrix).
+router.put('/tasks/:id', async (req, res) => {
+  const customerId = req.claims?.sub;
+  if (!customerId) {
+    return res.status(401).json({ message: 'Missing or unparseable Authorization token' });
+  }
+
+  const roles = req.claims?.realm_access?.roles || [];
+  if (!roles.includes('platform:customer')) {
+    return res.status(403).json({ message: 'Requires platform:customer' });
+  }
+
+  const { title, context, tags, dueDate } = req.body;
+  if (!title?.trim()) {
+    return res.status(400).json({ message: '"title" is required' });
+  }
+
+  try {
+    const task = await findById(req.params.id);
+    if (!task) return res.status(404).json({ message: 'Task not found' });
+    if (task.customer_id !== customerId) {
+      return res.status(403).json({ message: "Not this customer's order" });
+    }
+    if (task.status !== 'unassigned') {
+      return res.status(409).json({ message: `Task is already "${task.status}", no longer editable` });
+    }
+
+    const updated = await updateOrderDetails(task.id, {
+      title: title.trim(),
+      context,
+      tags,
+      dueDate: dueDate || null,
+    });
+    if (!updated) {
+      return res.status(409).json({ message: 'Task status changed just now, no longer editable' });
+    }
+    res.status(200).json({ ...updated, project_managers: await projectManagersFor(updated) });
+  } catch (err) {
+    res.status(500).json({ message: 'Error updating task', error: err.message });
   }
 });
 
@@ -132,14 +230,11 @@ router.get('/tasks/:id/recommended-analysts', async (req, res) => {
 });
 
 // Nested one level deep — top-level comments with their (at most one
-// level of) replies attached. Read-only for now: no POST yet, comments
-// are seeded directly (Branch 3.3 works with seeded data; real
-// submission is Branch 4, alongside the rest of the end-to-end rework).
-// ?visibility=internal|customer scopes to staff discussion or
-// customer-facing notes; omitted, it returns both — callers showing a
-// customer their own view MUST pass visibility=customer explicitly,
-// same "frontend is responsible" trust posture as the rest of
-// task-service until real auth enforcement lands.
+// level of) replies attached. ?visibility=internal|customer scopes to
+// staff discussion or customer-facing notes; omitted, it returns both —
+// callers showing a customer their own view MUST pass
+// visibility=customer explicitly, same "frontend is responsible" trust
+// posture as the rest of task-service until real auth enforcement lands.
 router.get('/tasks/:id/comments', async (req, res) => {
   const { visibility } = req.query;
   if (visibility && !['internal', 'customer'].includes(visibility)) {
@@ -151,6 +246,70 @@ router.get('/tasks/:id/comments', async (req, res) => {
     res.status(200).json(comments);
   } catch (err) {
     res.status(500).json({ message: 'Error fetching comments', error: err.message });
+  }
+});
+
+// Deliberately independent of the order's edit window (unassigned-only,
+// see PUT /tasks/:id) — comments/notes stay postable at any task status,
+// by design (a customer needs to be reachable — and reachable back —
+// after a PM's already assigned an analyst, not just before).
+// SCHEMA.md's task_comments application-side rules, enforced here:
+//  - a reply inherits its parent thread's visibility (never
+//    client-supplied for a reply — flipping visibility mid-thread isn't
+//    allowed)
+//  - one level of replies only — replying to something that's itself a
+//    reply is rejected
+//  - a customer may only post to visibility=customer threads, and only
+//    on an order they actually own
+router.post('/tasks/:id/comments', async (req, res) => {
+  const { content, visibility, parentCommentId } = req.body;
+  if (!content?.trim()) {
+    return res.status(400).json({ message: '"content" is required' });
+  }
+
+  const author = req.claims?.email || req.claims?.preferred_username;
+  if (!author) {
+    return res.status(401).json({ message: 'Missing or unparseable Authorization token' });
+  }
+
+  try {
+    const task = await findById(req.params.id);
+    if (!task) return res.status(404).json({ message: 'Task not found' });
+    if (isCustomerOnly(req) && task.customer_id !== req.claims?.sub) {
+      return res.status(403).json({ message: "Not this customer's order" });
+    }
+
+    let resolvedVisibility;
+    if (parentCommentId) {
+      const parent = await findLatestByCommentId(parentCommentId);
+      if (!parent || parent.task_id !== task.id) {
+        return res.status(404).json({ message: 'Parent comment not found' });
+      }
+      if (parent.parent_comment_id) {
+        return res.status(400).json({ message: 'Cannot reply to a reply — one level of threading only' });
+      }
+      resolvedVisibility = parent.visibility;
+    } else {
+      if (!['internal', 'customer'].includes(visibility)) {
+        return res.status(400).json({ message: 'visibility must be "internal" or "customer"' });
+      }
+      resolvedVisibility = visibility;
+    }
+
+    if (isCustomerOnly(req) && resolvedVisibility !== 'customer') {
+      return res.status(403).json({ message: 'Customers can only post to customer-visible threads' });
+    }
+
+    const comment = await createComment({
+      taskId: task.id,
+      content: content.trim(),
+      visibility: resolvedVisibility,
+      parentCommentId: parentCommentId || null,
+      author,
+    });
+    res.status(201).json(comment);
+  } catch (err) {
+    res.status(500).json({ message: 'Error creating comment', error: err.message });
   }
 });
 
