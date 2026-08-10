@@ -39,13 +39,26 @@ jobs:
     # disabled" posture as a fresh dev/prod boot with no key configured
     # (see docs/roadmap/1.0/domain-services.md's Branch 5.1.1). Verifies
     # the actual request/response contract over HTTP, not mocks.
+    #
+    # Postgres credentials are defined once below (job-level env) and
+    # referenced everywhere they're needed — the service container and
+    # DATABASE_URL — rather than the same literal appearing twice.
+    # Throwaway creds for an ephemeral CI-only container, not a real
+    # secret, so plain env vars rather than repo Secrets.
+    env:
+      POSTGRES_USER: gofeeler
+      POSTGRES_PASSWORD: gofeeler
+      POSTGRES_DB: gofeeler
+      MONGO_URL: mongodb://localhost:27017/gofeeler
+      PORT: 8082
+
     services:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: gofeeler
-          POSTGRES_PASSWORD: gofeeler
-          POSTGRES_DB: gofeeler
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ env.POSTGRES_DB }}
         ports:
           - 5432:5432
         options: >-
@@ -64,11 +77,6 @@ jobs:
           --health-timeout 5s
           --health-retries 10
 
-    env:
-      DATABASE_URL: postgres://gofeeler:gofeeler@localhost:5432/gofeeler
-      MONGO_URL: mongodb://localhost:27017/gofeeler
-      PORT: 8082
-
     steps:
       - uses: actions/checkout@v4
 
@@ -80,6 +88,8 @@ jobs:
         run: go build -o gofeeler main.go
 
       - name: Start service in background
+        env:
+          DATABASE_URL: postgres://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@localhost:5432/${{ env.POSTGRES_DB }}
         run: |
           ./gofeeler &
           echo $! > gofeeler.pid
