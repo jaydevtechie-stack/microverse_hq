@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { IconLink, IconMail, IconPencil, IconShare2 } from '@tabler/icons-react';
 import { getKeycloak, authHeaders } from '../services/keycloak';
 import TaskStatusBadge from './TaskStatusBadge';
@@ -50,6 +51,7 @@ function actionPanelFor({ task, isPM, isAnalyst, isReviewer, isCustomer, usernam
 // Web Share (mobile/some desktop browsers) falls back to copy-link
 // where it isn't available, rather than a dead button.
 const ShareIconGroup = ({ task }) => {
+  const { t } = useTranslation('gofeeler');
   const [copied, setCopied] = useState(false);
   const shareUrl = window.location.href;
 
@@ -78,10 +80,10 @@ const ShareIconGroup = ({ task }) => {
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      {copied && <span style={{ color: 'var(--mv-color-primary)', fontSize: 11 }}>Copied!</span>}
-      <IconLink size={15} style={iconStyle} onClick={copyLink} title="Copy link" />
-      <IconMail size={15} style={iconStyle} onClick={shareViaEmail} title="Share via email" />
-      <IconShare2 size={15} style={iconStyle} onClick={share} title="Share" />
+      {copied && <span style={{ color: 'var(--mv-color-primary)', fontSize: 11 }}>{t('taskDetail.share.copied')}</span>}
+      <IconLink size={15} style={iconStyle} onClick={copyLink} title={t('taskDetail.share.copyLink')} />
+      <IconMail size={15} style={iconStyle} onClick={shareViaEmail} title={t('taskDetail.share.shareViaEmail')} />
+      <IconShare2 size={15} style={iconStyle} onClick={share} title={t('taskDetail.share.shareTitle')} />
     </div>
   );
 };
@@ -89,6 +91,7 @@ const ShareIconGroup = ({ task }) => {
 // The task info + role-specific action panel — shared by the standalone
 // TaskDetailPage and GofeelerSplitView's embedded detail panel.
 const TaskDetailContent = ({ id }) => {
+  const { t } = useTranslation('gofeeler');
   const keycloak = getKeycloak();
   const username = keycloak?.tokenParsed?.preferred_username;
   const userId = keycloak?.tokenParsed?.sub;
@@ -127,12 +130,12 @@ const TaskDetailContent = ({ id }) => {
 
   if (error) {
     return (
-      <p style={{ color: 'var(--mv-color-danger)', fontSize: 13 }}>Couldn't load task: {error}</p>
+      <p style={{ color: 'var(--mv-color-danger)', fontSize: 13 }}>{t('taskDetail.loadError', { error })}</p>
     );
   }
 
   if (!task) {
-    return <p style={{ color: 'var(--mv-text-muted)', fontSize: 13 }}>Loading task…</p>;
+    return <p style={{ color: 'var(--mv-text-muted)', fontSize: 13 }}>{t('taskDetail.loading')}</p>;
   }
 
   const projectManagerNames = task.project_managers?.length
@@ -143,13 +146,13 @@ const TaskDetailContent = ({ id }) => {
   // order, not the point of the page. Wraps naturally at narrow widths;
   // "·" separators instead of borders/rows.
   const metaFields = [
-    ['Service', task.service],
-    ['Assignee', task.assignee || 'unassigned'],
-    ['Owner', task.owner || '—'],
-    ...(projectManagerNames ? [['Project manager', projectManagerNames]] : []),
-    ['Due', task.due_date ? new Date(task.due_date).toLocaleDateString() : '—'],
-    ...(task.closed_at ? [['Closed', new Date(task.closed_at).toLocaleDateString()]] : []),
-    ['Created', new Date(task.created_at).toLocaleDateString()],
+    [t('taskDetail.meta.service'), task.service],
+    [t('taskDetail.meta.assignee'), task.assignee || t('taskDetail.meta.unassigned')],
+    [t('taskDetail.meta.owner'), task.owner || '—'],
+    ...(projectManagerNames ? [[t('taskDetail.meta.projectManager'), projectManagerNames]] : []),
+    [t('taskDetail.meta.due'), task.due_date ? new Date(task.due_date).toLocaleDateString() : '—'],
+    ...(task.closed_at ? [[t('taskDetail.meta.closed'), new Date(task.closed_at).toLocaleDateString()]] : []),
+    [t('taskDetail.meta.created'), new Date(task.created_at).toLocaleDateString()],
   ];
 
   return (
@@ -181,7 +184,7 @@ const TaskDetailContent = ({ id }) => {
         }}
       >
         {editing ? (
-          <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: 0 }}>Editing order…</p>
+          <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: 0 }}>{t('taskDetail.editingOrder')}</p>
         ) : (
           <p style={{ color: 'var(--mv-text)', fontSize: 16, fontWeight: 500, margin: 0 }}>
             {task.title}
@@ -194,7 +197,7 @@ const TaskDetailContent = ({ id }) => {
               size={15}
               color="var(--mv-text-muted)"
               style={{ cursor: 'pointer' }}
-              aria-label="Edit order"
+              aria-label={t('taskDetail.editOrderAriaLabel')}
               onClick={() => setEditing(true)}
             />
           )}
@@ -247,7 +250,7 @@ const TaskDetailContent = ({ id }) => {
               borderBottom: actionPanel ? '0.5px solid var(--mv-border)' : 'none',
             }}
           >
-            <span style={{ color: 'var(--mv-text-muted)' }}>Files</span>
+            <span style={{ color: 'var(--mv-text-muted)' }}>{t('taskDetail.filesLabel')}</span>
             {/* Read-only here — add/remove only shows up in edit mode
                 (EditOrderForm's filesSlot above), not the plain view,
                 even though the server-side window is the same. */}
@@ -258,7 +261,7 @@ const TaskDetailContent = ({ id }) => {
 
       {(isPM || isAnalyst || isReviewer) && (
         <div style={{ marginTop: 18 }}>
-          <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>Comments</p>
+          <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>{t('taskDetail.commentsLabel')}</p>
           <div
             style={{
               background: 'var(--mv-bg)',
@@ -272,7 +275,7 @@ const TaskDetailContent = ({ id }) => {
           </div>
 
           <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>
-            Notes (visible to customer)
+            {t('taskDetail.notesVisibleToCustomer')}
           </p>
           <div
             style={{
@@ -289,7 +292,7 @@ const TaskDetailContent = ({ id }) => {
 
       {isCustomer && task.owner === username && (
         <div style={{ marginTop: 18 }}>
-          <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>Notes</p>
+          <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>{t('taskDetail.notesLabel')}</p>
           <div
             style={{
               background: 'var(--mv-bg)',

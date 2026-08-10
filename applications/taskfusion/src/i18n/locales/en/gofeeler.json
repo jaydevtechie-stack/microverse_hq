@@ -7,5 +7,48 @@
     "emptyPm": "No tasks yet.",
     "emptyCustomer": "You haven't submitted any orders yet.",
     "emptyOther": "No tasks assigned to you right now."
+  },
+  "taskDetail": {
+    "share": {
+      "copied": "Copied!",
+      "copyLink": "Copy link",
+      "shareViaEmail": "Share via email",
+      "shareTitle": "Share"
+    },
+    "meta": {
+      "service": "Service",
+      "assignee": "Assignee",
+      "unassigned": "unassigned",
+      "owner": "Owner",
+      "projectManager": "Project manager",
+      "due": "Due",
+      "closed": "Closed",
+      "created": "Created"
+    },
+    "editingOrder": "Editing order…",
+    "editOrderAriaLabel": "Edit order",
+    "filesLabel": "Files",
+    "commentsLabel": "Comments",
+    "notesVisibleToCustomer": "Notes (visible to customer)",
+    "notesLabel": "Notes",
+    "loadError": "Couldn't load task: {{error}}",
+    "loading": "Loading task…"
+  },
+  "comments": {
+    "loadError": "Couldn't load comments: {{error}}",
+    "loading": "Loading comments…",
+    "empty": "No comments yet.",
+    "composePlaceholder": "Add a comment…",
+    "replyPlaceholder": "Write a reply…",
+    "post": "Post",
+    "posting": "Posting…",
+    "reply": "Reply"
+  },
+  "files": {
+    "loading": "Loading files…",
+    "empty": "No files attached.",
+    "removeAriaLabel": "Remove {{filename}}",
+    "working": "Working…",
+    "addFile": "Add file"
   }
 }
