@@ -95,6 +95,26 @@ jobs:
       - name: Build service binary
         run: go build -o gofeeler main.go
 
+      # gofeeler's own schema (db/postgres.go's ensureSchema) creates
+      # sentiment_prompt_templates with created_by REFERENCES
+      # public.users(id) — a real table task-service owns and creates,
+      # not gofeeler. In the full docker-compose stack that table
+      # already exists by the time gofeeler boots (dev Postgres volume
+      # persists across restarts); here gofeeler is the only service
+      # running against a genuinely fresh database, so ensureSchema's
+      # CREATE TABLE fails outright on the FK and the process exits —
+      # this is what "service never became ready" actually was. Stub
+      # just enough of the real table for the FK to resolve; not a
+      # schema gofeeler should own or migrate for real. Verified locally
+      # against a fresh postgres:16-alpine container: reproduces the
+      # exact crash without this table, boots clean with it.
+      - name: Seed public.users stub for gofeeler's cross-service FK
+        env:
+          PGPASSWORD: ${{ env.POSTGRES_PASSWORD }}
+        run: |
+          psql -h localhost -U ${{ env.POSTGRES_USER }} -d ${{ env.POSTGRES_DB }} \
+            -c "CREATE TABLE IF NOT EXISTS public.users (id UUID PRIMARY KEY);"
+
       - name: Start service in background
         env:
           DATABASE_URL: postgres://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@localhost:5432/${{ env.POSTGRES_DB }}
