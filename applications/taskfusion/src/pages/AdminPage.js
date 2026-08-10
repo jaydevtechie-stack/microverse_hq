@@ -6,6 +6,7 @@ import PlaceholderPage from '../components/PlaceholderPage';
 import Subnav from '../components/Subnav';
 import SplitView from '../components/SplitView';
 import { SERVICES } from '../data/services';
+import usePageMeta from '../hooks/usePageMeta';
 
 const TAB_IDS = ['users', 'services', 'settings', 'audit-log'];
 
@@ -131,6 +132,7 @@ const ServiceDetail = ({ service, onClose }) => {
 // bookmarkable route.
 const AdminPage = () => {
   const { t } = useTranslation('admin');
+  usePageMeta({ title: 'Microverse - Admin' });
   const { tab } = useParams();
   const navigate = useNavigate();
   const [selectedServiceKey, setSelectedServiceKey] = useState(null);

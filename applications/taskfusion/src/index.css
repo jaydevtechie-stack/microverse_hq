@@ -13,3 +13,34 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Dashboard service grid — fixed column count so cards keep a stable
+   size when the status filter narrows the list, instead of stretching
+   to fill the row (see platform_dashboard_4col.html mock-up). Collapses
+   to 2 columns at the same breakpoint as useIsMobile's MOBILE_BREAKPOINT
+   (640px, shared with Navbar's hamburger collapse) so the grid and nav
+   switch to mobile layout together. */
+.mv-service-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  padding-bottom: 18px;
+}
+
+@media (max-width: 640px) {
+  .mv-service-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ~ column width in the 4-col/2-col grid above, so the icon tile
+   reads as square rather than a tall rectangle. */
+.mv-service-card-icon {
+  height: 300px;
+}
+
+@media (max-width: 640px) {
+  .mv-service-card-icon {
+    height: 150px;
+  }
+}

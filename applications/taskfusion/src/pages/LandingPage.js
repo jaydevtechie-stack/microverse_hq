@@ -2,6 +2,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { login, getKeycloak } from '../services/keycloak';
+import usePageMeta from '../hooks/usePageMeta';
 
 // Public front door, served on microverse.local. Logged-in users can
 // land here too (e.g. via the navbar logo) — the Login button just
@@ -11,6 +12,11 @@ import { login, getKeycloak } from '../services/keycloak';
 const LandingPage = () => {
   const keycloak = getKeycloak();
   const { t } = useTranslation(['landing', 'common']);
+
+  // The one page anonymous visitors (including search engines) can
+  // actually reach — everything else sits behind Keycloak auth, so
+  // this is the only page worth indexing for customer discovery.
+  usePageMeta({ title: 'Microverse', description: t('landing:description'), indexable: true });
 
   return (
     <div

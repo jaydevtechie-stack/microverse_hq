@@ -6,9 +6,11 @@ import { ANALYST, METRICS, TASKS } from '../data/analysts';
 import ProfileHeader from '../components/ProfileHeader';
 import MetricCard from '../components/MetricCard';
 import TaskList from '../components/TaskList';
+import usePageMeta from '../hooks/usePageMeta';
 
 const AnalystPage = () => {
   const { t } = useTranslation('analyst');
+  usePageMeta({ title: 'Microverse - Analysts' });
   return (
   <div
     style={{

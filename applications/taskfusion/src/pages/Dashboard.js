@@ -6,11 +6,15 @@ import { SERVICES } from '../data/services';
 import ServiceCard from '../components/ServiceCard';
 import StatusFilterBar from '../components/StatusFilterBar';
 import BuildTracker from '../components/BuildTracker';
+import usePageMeta from '../hooks/usePageMeta';
 
 const Dashboard = () => {
   const { t } = useTranslation('dashboard');
+  usePageMeta({ title: 'Microverse - Dashboard' });
   const keycloak = getKeycloak();
-  const username = keycloak?.tokenParsed?.preferred_username;
+  // Same fallback as Navbar's avatar-menu display name — full name when
+  // Keycloak has one, login handle otherwise.
+  const username = keycloak?.tokenParsed?.name || keycloak?.tokenParsed?.preferred_username;
   const [filter, setFilter] = useState('all');
 
   const visibleServices = useMemo(() => {
@@ -53,14 +57,7 @@ const Dashboard = () => {
           <StatusFilterBar active={filter} onChange={setFilter} />
         </div>
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
-            gap: 12,
-            paddingBottom: 18,
-          }}
-        >
+        <div className="mv-service-grid">
           {visibleServices.map((service) => (
             <ServiceCard key={service.key} service={service} keycloak={keycloak} />
           ))}

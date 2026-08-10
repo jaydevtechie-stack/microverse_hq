@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IconUserEdit, IconLock } from '@tabler/icons-react';
 import { getKeycloak, authHeaders, keycloakAccountUrl } from '../services/keycloak';
+import usePageMeta from '../hooks/usePageMeta';
 
 const initials = (name) =>
   (name || '?')
@@ -17,6 +18,7 @@ const initials = (name) =>
 // Mockup: my_profile_page_with_avatar_dropdown.html.
 const MyProfilePage = () => {
   const { t } = useTranslation('profile');
+  usePageMeta({ title: 'Microverse - My Profile' });
   const keycloak = getKeycloak();
   const [user, setUser] = useState(null);
   const [error, setError] = useState(null);

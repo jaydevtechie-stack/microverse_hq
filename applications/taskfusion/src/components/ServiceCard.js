@@ -1,10 +1,12 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
 import { hostUrlForSubdomain } from '../services/keycloak';
 
 const ServiceCard = ({ service, keycloak }) => {
+  const { t } = useTranslation('dashboard');
   const { theme } = useTheme();
-  const { name, tech, status, icon: Icon, subdomain, requiredRole } = service;
+  const { name, tech, status, illustration: Illustration, subdomain, requiredRole } = service;
   const { fg, bg } = service[theme];
   const isOnline = status === 'online';
 
@@ -29,16 +31,14 @@ const ServiceCard = ({ service, keycloak }) => {
       }}
     >
       <div
+        className="mv-service-card-icon"
         style={{
-          height: 76,
           background: bg,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
           position: 'relative',
+          overflow: 'hidden',
         }}
       >
-        <Icon size={26} color={fg} aria-hidden="true" />
+        <Illustration color={fg} />
         <span
           style={{
             position: 'absolute',
@@ -51,7 +51,7 @@ const ServiceCard = ({ service, keycloak }) => {
             borderRadius: 10,
           }}
         >
-          {status}
+          {t(`status.${status}`)}
         </span>
       </div>
       <div style={{ padding: '10px 12px' }}>

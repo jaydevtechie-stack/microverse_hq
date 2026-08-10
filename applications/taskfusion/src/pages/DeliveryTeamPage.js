@@ -3,6 +3,7 @@ import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PlaceholderPage from '../components/PlaceholderPage';
 import Subnav from '../components/Subnav';
+import usePageMeta from '../hooks/usePageMeta';
 
 const TABS = [
   { id: 'analysts', label: 'Analysts' },
@@ -24,6 +25,7 @@ const NOTES = {
 // URL-driven (route is /pm/delivery-team/:tab) so each tab is a real,
 // bookmarkable route.
 const DeliveryTeamPage = () => {
+  usePageMeta({ title: 'Microverse - Delivery Team' });
   const { tab } = useParams();
   const navigate = useNavigate();
 

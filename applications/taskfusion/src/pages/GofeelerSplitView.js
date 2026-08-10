@@ -6,6 +6,7 @@ import GofeelerListPanel from '../components/GofeelerListPanel';
 import TaskDetailContent from '../components/TaskDetailContent';
 import CreateOrderForm from '../components/CreateOrderForm';
 import useIsMobile from '../hooks/useIsMobile';
+import usePageMeta from '../hooks/usePageMeta';
 
 const MIN_SPLIT = 20;
 const MAX_SPLIT = 60;
@@ -22,6 +23,7 @@ const MAX_SPLIT = 60;
 // local state instead, but a real app needs addressable routes.
 const GofeelerSplitView = () => {
   const { t } = useTranslation(['common', 'orders']);
+  usePageMeta({ title: 'Microverse - Gofeeler' });
   const { pathname } = useLocation();
   const { id } = useParams();
   const isMobile = useIsMobile();

@@ -1,8 +1,12 @@
 // src/App.js
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';  // Use Routes instead of Switch
+import { renderToStaticMarkup } from 'react-dom/server';
 import { initKeycloak, landingUrl } from './services/keycloak';
 import { ThemeProvider } from './context/ThemeContext';
+import { SERVICES } from './data/services';
+import { setFavicon } from './utils/favicon';
+import microverseLogo from './assets/brand/logos/microverse-logo.png';
 import LandingPage from './pages/LandingPage';
 import Navbar from './components/Navbar';
 import Dashboard from './pages/Dashboard';  // Example protected page
@@ -25,6 +29,22 @@ import AmBillingPage from './pages/AmBillingPage';
 // their own microsite subdomain instead — gofeeler.microverse.local is
 // the first one, same app/build, just a different root route.
 const isGofeelerHost = window.location.hostname.startsWith('gofeeler.');
+
+// One SPA build serves every host, so the favicon has to be picked at
+// runtime rather than baked into public/index.html: a service's own
+// Tabler icon (the one the dashboard card used before the line-art
+// illustration replaced it, see data/services.js) on its microsite,
+// the Microverse logo everywhere else on the platform host.
+const currentServiceForFavicon = SERVICES.find(
+  (service) => service.subdomain && window.location.hostname.startsWith(`${service.subdomain}.`)
+);
+if (currentServiceForFavicon) {
+  const Icon = currentServiceForFavicon.icon;
+  const svg = renderToStaticMarkup(<Icon color={currentServiceForFavicon.dark.fg} size={32} />);
+  setFavicon(`data:image/svg+xml,${encodeURIComponent(svg)}`);
+} else {
+  setFavicon(microverseLogo);
+}
 
 // No dedicated /login or /logout pages — keycloak-js already redirects
 // to Keycloak's own hosted login/logout flow. Any failure case (no

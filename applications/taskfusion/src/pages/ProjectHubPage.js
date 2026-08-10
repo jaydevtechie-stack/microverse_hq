@@ -4,6 +4,7 @@ import { IconBuilding } from '@tabler/icons-react';
 import SplitView from '../components/SplitView';
 import { authHeaders } from '../services/keycloak';
 import { STATUS_STYLE } from '../components/TaskStatusBadge';
+import usePageMeta from '../hooks/usePageMeta';
 
 const TAB_IDS = ['projects', 'accounts'];
 
@@ -244,6 +245,7 @@ const AccountDetail = ({ account, onClose }) => {
 // platform:project-manager + any service scope — see ARCHITECTURE.md's
 // Roles and permissions). Mockup: platform_projects_hub_and_admin.html.
 const ProjectHubPage = () => {
+  usePageMeta({ title: 'Microverse - Projects' });
   const [tab, setTab] = useState('projects');
   const [items, setItems] = useState(null);
   const [error, setError] = useState(null);
