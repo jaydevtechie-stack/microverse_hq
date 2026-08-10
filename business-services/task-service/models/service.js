@@ -1,8 +1,25 @@
 // business-services/task-service/models/service.js
 const { pool } = require('../db');
 
+// Online services first, then roughly "closest to launch" — the
+// reverse of data/services.js's STATUS_ORDER (which the frontend's
+// phase bar reads ascending, least-done first). Alphabetical within
+// each status group. Single source of truth for both the Dashboard
+// grid and Admin's Services list, same as listUsers' `ORDER BY name`.
 async function listServices() {
-  const { rows } = await pool.query('SELECT * FROM services ORDER BY name');
+  const { rows } = await pool.query(`
+    SELECT * FROM services
+    ORDER BY
+      CASE status
+        WHEN 'online' THEN 0
+        WHEN 'basic' THEN 1
+        WHEN 'building' THEN 2
+        WHEN 'designing' THEN 3
+        WHEN 'planned' THEN 4
+        ELSE 5
+      END,
+      name
+  `);
   return rows;
 }
 
