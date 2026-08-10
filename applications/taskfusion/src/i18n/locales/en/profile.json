@@ -1,0 +1,8 @@
+{
+  "loadError": "Couldn't load full profile: {{error}}",
+  "rolesLabel": "Roles",
+  "editProfile": "Edit profile",
+  "changePassword": "Change password",
+  "keycloakNote": "Both open Keycloak's account console — not handled in-app.",
+  "nothingElseHere": "Nothing else here yet"
+}

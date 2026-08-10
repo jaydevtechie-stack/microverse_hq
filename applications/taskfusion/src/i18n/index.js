@@ -16,6 +16,7 @@ import enOrders from './locales/en/orders.json';
 import enAccounts from './locales/en/accounts.json';
 import enGofeeler from './locales/en/gofeeler.json';
 import enProjectHub from './locales/en/projectHub.json';
+import enProfile from './locales/en/profile.json';
 
 i18n.use(initReactI18next).init({
   resources: {
@@ -29,12 +30,13 @@ i18n.use(initReactI18next).init({
       accounts: enAccounts,
       gofeeler: enGofeeler,
       projectHub: enProjectHub,
+      profile: enProfile,
     },
   },
   lng: 'en',
   fallbackLng: 'en',
   defaultNS: 'common',
-  ns: ['common', 'landing', 'navbar', 'dashboard', 'admin', 'orders', 'accounts', 'gofeeler', 'projectHub'],
+  ns: ['common', 'landing', 'navbar', 'dashboard', 'admin', 'orders', 'accounts', 'gofeeler', 'projectHub', 'profile'],
   interpolation: {
     escapeValue: false, // React already escapes output
   },
