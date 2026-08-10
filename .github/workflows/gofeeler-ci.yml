@@ -10,6 +10,9 @@ on:
     paths:
       - 'domain-services/gofeeler/**'
       - '.github/workflows/gofeeler-ci.yml'
+  # Lets `integration` (below) run on demand from the Actions tab
+  # without needing a push/PR — see that job's `if:` condition.
+  workflow_dispatch: {}
 
 defaults:
   run:
@@ -34,6 +37,11 @@ jobs:
     name: Live-service integration (basic engine, templates, contract)
     runs-on: ubuntu-latest
     needs: unit
+    # Spins up real Postgres + Mongo service containers — the expensive
+    # part of this workflow. unit (above) still runs automatically on
+    # every push/PR; this only runs when manually dispatched from the
+    # Actions tab ("Run workflow"), to keep routine pushes cheap.
+    if: github.event_name == 'workflow_dispatch'
 
     # Real Postgres/Mongo, no OPENAI_API_KEY — same "advanced engine
     # disabled" posture as a fresh dev/prod boot with no key configured
