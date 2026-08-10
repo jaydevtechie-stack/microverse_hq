@@ -16,5 +16,7 @@
   "buildTracker": {
     "servicesOnline": "{{onlineCount}} of {{totalCount}} services online",
     "label": "Build tracker"
-  }
+  },
+  "loading": "Loading services…",
+  "loadError": "Couldn't load services: {{error}}"
 }

@@ -1,14 +1,15 @@
 import Keycloak from 'keycloak-js';
+import { SERVICE_THEME } from '../data/services';
 
 let keycloak;
 
 // microverse.local carries everything platform-side (landing page,
 // /dashboard, /customer, /analyst — path-based, not subdomain-based).
 // Domain services get their own "microsite" subdomain instead (e.g.
-// gofeeler.microverse.local). This list is just the microsites, so
-// cross-service links can strip whichever one is currently active to
-// get back to the bare host, or jump to another microsite.
-const KNOWN_MICROSITES = ['gofeeler'];
+// gofeeler.microverse.local). Derived from SERVICE_THEME rather than a
+// second hand-maintained list, so a new service's subdomain only needs
+// to be added in one place.
+const KNOWN_MICROSITES = SERVICE_THEME.map((service) => service.subdomain).filter(Boolean);
 
 function baseHostname() {
   const { hostname } = window.location;

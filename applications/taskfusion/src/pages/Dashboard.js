@@ -2,7 +2,7 @@
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getKeycloak } from '../services/keycloak';
-import { SERVICES } from '../data/services';
+import useServices from '../hooks/useServices';
 import ServiceCard from '../components/ServiceCard';
 import StatusFilterBar from '../components/StatusFilterBar';
 import BuildTracker from '../components/BuildTracker';
@@ -16,15 +16,16 @@ const Dashboard = () => {
   // Keycloak has one, login handle otherwise.
   const username = keycloak?.tokenParsed?.name || keycloak?.tokenParsed?.preferred_username;
   const [filter, setFilter] = useState('all');
+  const { services, loading, error } = useServices();
 
   const visibleServices = useMemo(() => {
-    if (filter === 'all') return SERVICES;
-    if (filter === 'online') return SERVICES.filter((s) => s.status === 'online');
+    if (filter === 'all') return services;
+    if (filter === 'online') return services.filter((s) => s.status === 'online');
     // "progress" — anything not online and not planned
-    return SERVICES.filter((s) => s.status !== 'online' && s.status !== 'planned');
-  }, [filter]);
+    return services.filter((s) => s.status !== 'online' && s.status !== 'planned');
+  }, [filter, services]);
 
-  const onlineCount = SERVICES.filter((s) => s.status === 'online').length;
+  const onlineCount = services.filter((s) => s.status === 'online').length;
 
   return (
     <div
@@ -57,15 +58,20 @@ const Dashboard = () => {
           <StatusFilterBar active={filter} onChange={setFilter} />
         </div>
 
-        <div className="mv-service-grid">
-          {visibleServices.map((service) => (
-            <ServiceCard key={service.key} service={service} keycloak={keycloak} />
-          ))}
-        </div>
+        {loading && <p style={{ color: 'var(--mv-text-muted)', fontSize: 12 }}>{t('loading')}</p>}
+        {error && <p style={{ color: 'var(--mv-color-danger)', fontSize: 12 }}>{t('loadError', { error })}</p>}
+
+        {!loading && !error && (
+          <div className="mv-service-grid">
+            {visibleServices.map((service) => (
+              <ServiceCard key={service.key} service={service} keycloak={keycloak} />
+            ))}
+          </div>
+        )}
       </div>
 
       <div style={{ padding: '14px 18px', borderTop: '0.5px solid var(--mv-border)' }}>
-        <BuildTracker onlineCount={onlineCount} totalCount={SERVICES.length} />
+        <BuildTracker onlineCount={onlineCount} totalCount={services.length} />
       </div>
     </div>
   );
