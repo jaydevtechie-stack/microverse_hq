@@ -1,6 +1,7 @@
 // src/components/Navbar.js
 import React, { useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { IconBell, IconSun, IconMoon, IconMenu2, IconX, IconUser, IconLogout } from '@tabler/icons-react';
 import { logout, landingUrl, hostUrlForSubdomain, isOnMicrosite } from '../services/keycloak';
 import { useTheme } from '../context/ThemeContext';
@@ -45,6 +46,7 @@ const PlatformNavLink = ({ to, active, children }) => {
 };
 
 const Navbar = ({ keycloak }) => {
+  const { t } = useTranslation('navbar');
   const { theme, toggleTheme } = useTheme();
   const { pathname } = useLocation();
   const isDashboard = pathname === '/dashboard';
@@ -79,18 +81,18 @@ const Navbar = ({ keycloak }) => {
   const navLinks = (
     <>
       <PlatformNavLink to="/dashboard" active={isDashboard}>
-        Dashboard
+        {t('dashboard')}
       </PlatformNavLink>
 
       {isCustomer && (
         <PlatformNavLink to="/customer" active={pathname === '/customer'}>
-          Accounts
+          {t('accounts')}
         </PlatformNavLink>
       )}
 
       {isAnalyst && (
         <PlatformNavLink to="/analyst" active={pathname === '/analyst'}>
-          Analysts
+          {t('analysts')}
         </PlatformNavLink>
       )}
 
@@ -103,13 +105,13 @@ const Navbar = ({ keycloak }) => {
       {isPMWithServiceScope && (
         <>
           <PlatformNavLink to="/pm/projects" active={pathname === '/pm/projects'}>
-            Projects
+            {t('projects')}
           </PlatformNavLink>
           <PlatformNavLink to="/pm/orders" active={pathname === '/pm/orders'}>
-            Orders
+            {t('orders')}
           </PlatformNavLink>
           <PlatformNavLink to="/pm/delivery-team/analysts" active={pathname.startsWith('/pm/delivery-team')}>
-            Delivery team
+            {t('deliveryTeam')}
           </PlatformNavLink>
         </>
       )}
@@ -119,10 +121,10 @@ const Navbar = ({ keycloak }) => {
       {isAccountManager && (
         <>
           <PlatformNavLink to="/am/customers" active={pathname === '/am/customers'}>
-            Accounts
+            {t('accounts')}
           </PlatformNavLink>
           <PlatformNavLink to="/am/billing" active={pathname === '/am/billing'}>
-            Billing
+            {t('billing')}
           </PlatformNavLink>
         </>
       )}
@@ -133,7 +135,7 @@ const Navbar = ({ keycloak }) => {
           platform_projects_hub_and_admin.html's #subnav pattern). */}
       {isAdmin && (
         <PlatformNavLink to="/admin/users" active={pathname.startsWith('/admin')}>
-          Admin
+          {t('admin')}
         </PlatformNavLink>
       )}
     </>
@@ -143,7 +145,7 @@ const Navbar = ({ keycloak }) => {
     <button
       type="button"
       onClick={toggleTheme}
-      aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+      aria-label={theme === 'dark' ? t('switchToLightTheme') : t('switchToDarkTheme')}
       style={{
         background: 'none',
         border: 'none',
@@ -191,7 +193,7 @@ const Navbar = ({ keycloak }) => {
         padding: 0,
       }}
     >
-      Logout
+      {t('logout')}
     </button>
   );
 
@@ -207,7 +209,7 @@ const Navbar = ({ keycloak }) => {
         style={{ cursor: 'pointer' }}
         role="button"
         tabIndex={0}
-        aria-label="Account menu"
+        aria-label={t('accountMenu')}
       >
         {avatarChip}
       </div>
@@ -252,7 +254,7 @@ const Navbar = ({ keycloak }) => {
               }}
             >
               <IconUser size={14} color="var(--mv-color-primary)" />
-              <span style={{ color: 'var(--mv-color-primary)', fontSize: 13 }}>My Profile</span>
+              <span style={{ color: 'var(--mv-color-primary)', fontSize: 13 }}>{t('myProfile')}</span>
             </a>
           ) : (
             <Link
@@ -268,7 +270,7 @@ const Navbar = ({ keycloak }) => {
               }}
             >
               <IconUser size={14} color="var(--mv-color-primary)" />
-              <span style={{ color: 'var(--mv-color-primary)', fontSize: 13 }}>My Profile</span>
+              <span style={{ color: 'var(--mv-color-primary)', fontSize: 13 }}>{t('myProfile')}</span>
             </Link>
           )}
 
@@ -284,7 +286,7 @@ const Navbar = ({ keycloak }) => {
             }}
           >
             <IconLogout size={14} color="var(--mv-color-danger)" />
-            <span style={{ color: 'var(--mv-color-danger)', fontSize: 13 }}>Log out</span>
+            <span style={{ color: 'var(--mv-color-danger)', fontSize: 13 }}>{t('logOut')}</span>
           </div>
         </div>
       )}
@@ -338,7 +340,7 @@ const Navbar = ({ keycloak }) => {
             <button
               type="button"
               onClick={() => setMenuOpen((open) => !open)}
-              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+              aria-label={menuOpen ? t('closeMenu') : t('openMenu')}
               style={{
                 background: 'none',
                 border: 'none',
@@ -376,11 +378,11 @@ const Navbar = ({ keycloak }) => {
           {navLinks}
           {isOnMicrosite() ? (
             <a href={profileHref} style={navLinkStyle(false)}>
-              My Profile
+              {t('myProfile')}
             </a>
           ) : (
             <Link to="/profile" style={navLinkStyle(pathname === '/profile')}>
-              My Profile
+              {t('myProfile')}
             </Link>
           )}
           <div

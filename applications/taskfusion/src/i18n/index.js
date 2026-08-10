@@ -9,18 +9,20 @@ import { initReactI18next } from 'react-i18next';
 
 import enCommon from './locales/en/common.json';
 import enLanding from './locales/en/landing.json';
+import enNavbar from './locales/en/navbar.json';
 
 i18n.use(initReactI18next).init({
   resources: {
     en: {
       common: enCommon,
       landing: enLanding,
+      navbar: enNavbar,
     },
   },
   lng: 'en',
   fallbackLng: 'en',
   defaultNS: 'common',
-  ns: ['common', 'landing'],
+  ns: ['common', 'landing', 'navbar'],
   interpolation: {
     escapeValue: false, // React already escapes output
   },
