@@ -1,5 +1,14 @@
 {
   "login": "Login",
   "back": "← Back",
-  "cancel": "Cancel"
+  "cancel": "Cancel",
+  "close": "Close",
+  "dragToResize": "Drag to resize",
+  "fileUploadFailed": "File upload failed",
+  "scrim": {
+    "title": "Your account is deactivated",
+    "note": "You can view content but can't take any action. Contact your project manager if this seems wrong.",
+    "myProfile": "My Profile",
+    "manageAccount": "Manage account (Keycloak)"
+  }
 }

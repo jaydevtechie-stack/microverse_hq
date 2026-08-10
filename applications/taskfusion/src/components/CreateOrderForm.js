@@ -102,7 +102,7 @@ const CreateOrderForm = ({ onCreated } = {}) => {
         headers: { 'Content-Type': file.type || 'text/plain' },
         body: file,
       });
-      if (!putRes.ok) throw new Error('File upload failed');
+      if (!putRes.ok) throw new Error(t('common:fileUploadFailed'));
 
       const createRes = await fetch('/api/tasks', {
         method: 'POST',
