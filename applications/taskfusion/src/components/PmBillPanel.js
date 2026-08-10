@@ -1,19 +1,21 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 // Dummy — no billing-service/rustledger integration yet (ROADMAP.md's
 // "PM approval → bill creation handoff to rustledger" is still
 // unbranched work). Clicking just shows a local confirmation; nothing
 // is actually created or sent anywhere.
 const PmBillPanel = () => {
+  const { t } = useTranslation('gofeeler');
   const [billed, setBilled] = useState(false);
 
   return (
     <div>
       <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 6px' }}>
-        Analysis approved and complete
+        {t('panels.pmBill.analysisApproved')}
       </p>
       <p style={{ color: 'var(--mv-text)', fontSize: 13, margin: '0 0 18px' }}>
-        Ready to bill the customer for this order.
+        {t('panels.pmBill.readyToBill')}
       </p>
 
       <button
@@ -33,7 +35,7 @@ const PmBillPanel = () => {
           marginBottom: billed ? 12 : 0,
         }}
       >
-        {billed ? 'Bill created' : 'Create bill'}
+        {billed ? t('panels.pmBill.billCreated') : t('panels.pmBill.createBill')}
       </button>
 
       {billed && (
@@ -47,7 +49,7 @@ const PmBillPanel = () => {
             fontSize: 12,
           }}
         >
-          Bill created — order will move to "paid" status once the customer pays
+          {t('panels.pmBill.billCreatedNote')}
         </div>
       )}
     </div>

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { IconX } from '@tabler/icons-react';
 
 const DEBOUNCE_MS = 250;
@@ -9,6 +10,7 @@ const DEBOUNCE_MS = 250;
 // suggestion or creating a new tag both POST to the same shared
 // vocabulary (bumping usage_count if it already exists).
 const TagInput = ({ selected, onChange }) => {
+  const { t } = useTranslation('gofeeler');
   const [inputValue, setInputValue] = useState('');
   const [matches, setMatches] = useState([]);
   const [exactMatch, setExactMatch] = useState(false);
@@ -62,7 +64,7 @@ const TagInput = ({ selected, onChange }) => {
           type="text"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
-          placeholder="Type a tag, e.g. 'urgency'..."
+          placeholder={t('tagInput.placeholder')}
           style={{
             width: '100%',
             background: 'var(--mv-bg)',
@@ -109,7 +111,7 @@ const TagInput = ({ selected, onChange }) => {
                   borderTop: matches.length > 0 ? '0.5px solid var(--mv-border)' : 'none',
                 }}
               >
-                + Create "{inputValue.trim()}"
+                {t('tagInput.createTag', { value: inputValue.trim() })}
               </div>
             )}
           </div>
@@ -117,7 +119,7 @@ const TagInput = ({ selected, onChange }) => {
       </div>
 
       <p style={{ color: 'var(--mv-badge-bg)', fontSize: 11, margin: '0 0 8px' }}>
-        Fuzzy-matched against search-service's shared tag index — new tags are added automatically
+        {t('tagInput.hint')}
       </p>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, minHeight: 28 }}>

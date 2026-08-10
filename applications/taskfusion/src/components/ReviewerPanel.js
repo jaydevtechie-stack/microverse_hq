@@ -1,23 +1,25 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import SentimentBar from './SentimentBar';
 
 // Approve/Reject and reassign are stubs — no PATCH /api/tasks/:id yet
 // (ROADMAP.md Branch 4). Comments and customer-facing notes live in
 // TaskDetailContent now, not here.
 const ReviewerPanel = () => {
+  const { t } = useTranslation('gofeeler');
   const [decision, setDecision] = useState(null);
 
   return (
     <div>
       <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 6px' }}>
-        Analyst's results
+        {t('panels.reviewer.analystResults')}
       </p>
       <div style={{ marginBottom: 18 }}>
-        <SentimentBar label="Negative" percent={71} />
+        <SentimentBar label={t('panels.sentimentNegative')} percent={71} />
       </div>
 
       <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 6px' }}>
-        Reassign reviewer
+        {t('panels.reviewer.reassignReviewer')}
       </p>
       <select
         style={{
@@ -32,8 +34,8 @@ const ReviewerPanel = () => {
           boxSizing: 'border-box',
         }}
       >
-        <option>You (default — project manager)</option>
-        <option>John (dedicated reviewer)</option>
+        <option>{t('panels.reviewer.defaultOption')}</option>
+        <option>{t('panels.reviewer.namedOption')}</option>
       </select>
 
       <div style={{ display: 'flex', gap: 10 }}>
@@ -52,7 +54,7 @@ const ReviewerPanel = () => {
             cursor: 'pointer',
           }}
         >
-          Approve
+          {t('panels.reviewer.approve')}
         </button>
         <button
           type="button"
@@ -69,18 +71,18 @@ const ReviewerPanel = () => {
             cursor: 'pointer',
           }}
         >
-          Reject
+          {t('panels.reviewer.reject')}
         </button>
       </div>
 
       {decision === 'approved' && (
         <p style={{ color: 'var(--mv-color-success)', fontSize: 12, margin: '10px 0 0' }}>
-          Approved — order will move to "done" status
+          {t('panels.reviewer.approved')}
         </p>
       )}
       {decision === 'rejected' && (
         <p style={{ color: 'var(--mv-color-danger)', fontSize: 12, margin: '10px 0 0' }}>
-          Rejected — order will move back to "analyst" status
+          {t('panels.reviewer.rejected')}
         </p>
       )}
     </div>

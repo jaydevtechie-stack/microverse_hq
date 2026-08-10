@@ -50,5 +50,74 @@
     "removeAriaLabel": "Remove {{filename}}",
     "working": "Working…",
     "addFile": "Add file"
+  },
+  "panels": {
+    "sentimentNegative": "Negative",
+    "analyst": {
+      "analyse": "Analyse",
+      "results": "Results",
+      "addNote": "Add a note",
+      "notePlaceholder": "Add a note...",
+      "moveToReview": "Move to review",
+      "sentToReview": "Sent to review — order will move to \"reviewer\" status"
+    },
+    "reviewer": {
+      "analystResults": "Analyst's results",
+      "reassignReviewer": "Reassign reviewer",
+      "defaultOption": "You (default — project manager)",
+      "namedOption": "John (dedicated reviewer)",
+      "approve": "Approve",
+      "reject": "Reject",
+      "approved": "Approved — order will move to \"done\" status",
+      "rejected": "Rejected — order will move back to \"analyst\" status"
+    },
+    "pmAssign": {
+      "backToAssignment": "← Back to assignment",
+      "scoutsReason": "Scout's reason: {{reason}}",
+      "tasksDone": "Tasks done",
+      "activeTasks": "Active tasks",
+      "idleFor": "Idle for",
+      "currentTasks": "Current tasks",
+      "noActiveTasks": "No active tasks.",
+      "assigning": "Assigning…",
+      "assignName": "Assign {{name}}",
+      "scoutTitle": "Scout",
+      "recommendationAgent": "Recommendation agent",
+      "scoutDescription": "Scans the pool for the best-fit analyst, weighing current availability.",
+      "loadError": "Couldn't load candidates: {{error}}",
+      "loading": "Loading candidates…",
+      "noneAvailable": "No active analyst holds platform:analyst + service:{{service}} yet.",
+      "sizedByRanking": "Sized by Scout's availability ranking — top pick first",
+      "orAssignDirectly": "Or assign directly",
+      "chooseAnalyst": "Choose an analyst...",
+      "assign": "Assign",
+      "assignTo": "Assign to {{name}}"
+    },
+    "pmBill": {
+      "analysisApproved": "Analysis approved and complete",
+      "readyToBill": "Ready to bill the customer for this order.",
+      "createBill": "Create bill",
+      "billCreated": "Bill created",
+      "billCreatedNote": "Bill created — order will move to \"paid\" status once the customer pays"
+    },
+    "customerProgress": {
+      "steps": {
+        "submitted": "Submitted",
+        "analysed": "Analysed",
+        "reviewed": "Reviewed",
+        "paid": "Paid"
+      },
+      "readyToDownload": "Results ready to download",
+      "readyInvoicePending": "Results ready — invoice pending",
+      "invoicePaid": "Your invoice has been paid",
+      "downloadUnlocks": "Download unlocks once your invoice is paid",
+      "downloadResults": "Download results",
+      "viewInvoice": "View invoice"
+    }
+  },
+  "tagInput": {
+    "placeholder": "Type a tag, e.g. 'urgency'...",
+    "createTag": "+ Create \"{{value}}\"",
+    "hint": "Fuzzy-matched against search-service's shared tag index — new tags are added automatically"
   }
 }

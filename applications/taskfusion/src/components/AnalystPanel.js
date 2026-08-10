@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import SentimentBar from './SentimentBar';
 
 // Dummy result — GoFeeler's real /analyze endpoint exists but isn't
@@ -8,6 +9,7 @@ import SentimentBar from './SentimentBar';
 // and customer-facing notes live in TaskDetailContent now, not here —
 // visible to any staff role regardless of the active action panel.
 const AnalystPanel = () => {
+  const { t } = useTranslation('gofeeler');
   const [note, setNote] = useState('');
   const [movedToReview, setMovedToReview] = useState(false);
 
@@ -27,20 +29,20 @@ const AnalystPanel = () => {
           cursor: 'pointer',
         }}
       >
-        Analyse
+        {t('panels.analyst.analyse')}
       </button>
 
-      <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>Results</p>
+      <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>{t('panels.analyst.results')}</p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
-        <SentimentBar label="Negative" percent={71} />
+        <SentimentBar label={t('panels.sentimentNegative')} percent={71} />
       </div>
 
-      <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>Add a note</p>
+      <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>{t('panels.analyst.addNote')}</p>
       <input
         type="text"
         value={note}
         onChange={(e) => setNote(e.target.value)}
-        placeholder="Add a note..."
+        placeholder={t('panels.analyst.notePlaceholder')}
         style={{
           width: '100%',
           background: 'var(--mv-bg)',
@@ -69,12 +71,12 @@ const AnalystPanel = () => {
           cursor: 'pointer',
         }}
       >
-        Move to review
+        {t('panels.analyst.moveToReview')}
       </button>
 
       {movedToReview && (
         <p style={{ color: 'var(--mv-color-primary)', fontSize: 12, margin: '10px 0 0' }}>
-          Sent to review — order will move to "reviewer" status
+          {t('panels.analyst.sentToReview')}
         </p>
       )}
     </div>
