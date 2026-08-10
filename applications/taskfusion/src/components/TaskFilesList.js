@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { IconPaperclip, IconUpload, IconX } from '@tabler/icons-react';
 import { authHeaders } from '../services/keycloak';
 
@@ -18,6 +19,7 @@ const formatSize = (bytes) => {
 // window server-side; this is just so the buttons don't appear when
 // they'd 403 anyway). Read-only otherwise, same as before.
 const TaskFilesList = ({ taskId, service, editable = false }) => {
+  const { t } = useTranslation(['gofeeler', 'common']);
   const [files, setFiles] = useState(null);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -66,7 +68,7 @@ const TaskFilesList = ({ taskId, service, editable = false }) => {
         headers: { 'Content-Type': file.type || 'text/plain' },
         body: file,
       });
-      if (!putRes.ok) throw new Error('File upload failed');
+      if (!putRes.ok) throw new Error(t('common:fileUploadFailed'));
 
       await refetch();
     } catch (err) {
@@ -98,7 +100,7 @@ const TaskFilesList = ({ taskId, service, editable = false }) => {
   };
 
   if (!files) {
-    return <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: 0 }}>Loading files…</p>;
+    return <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: 0 }}>{t('gofeeler:files.loading')}</p>;
   }
 
   return (
@@ -108,7 +110,7 @@ const TaskFilesList = ({ taskId, service, editable = false }) => {
       )}
 
       {files.length === 0 && (
-        <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: 0 }}>No files attached.</p>
+        <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: 0 }}>{t('gofeeler:files.empty')}</p>
       )}
 
       {files.map((file) => (
@@ -131,7 +133,7 @@ const TaskFilesList = ({ taskId, service, editable = false }) => {
             <IconX
               size={13}
               color="var(--mv-color-danger)"
-              aria-label={`Remove ${file.filename}`}
+              aria-label={t('gofeeler:files.removeAriaLabel', { filename: file.filename })}
               style={{ cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.5 : 1 }}
               onClick={() => !busy && handleRemove(file.filename)}
             />
@@ -153,7 +155,7 @@ const TaskFilesList = ({ taskId, service, editable = false }) => {
           }}
         >
           <IconUpload size={13} aria-hidden="true" />
-          {busy ? 'Working…' : 'Add file'}
+          {busy ? t('gofeeler:files.working') : t('gofeeler:files.addFile')}
           <input
             ref={fileInputRef}
             type="file"

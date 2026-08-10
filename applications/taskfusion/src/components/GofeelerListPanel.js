@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { getKeycloak, authHeaders } from '../services/keycloak';
 import { STATUS_STYLE } from './TaskStatusBadge';
 
@@ -13,6 +14,7 @@ import { STATUS_STYLE } from './TaskStatusBadge';
 // stays mounted across the /create panel switch and wouldn't otherwise
 // refetch.
 const GofeelerListPanel = ({ selectedId, refreshKey }) => {
+  const { t } = useTranslation('gofeeler');
   const keycloak = getKeycloak();
   const isPM = keycloak?.hasRealmRole('platform:project-manager');
   const isCustomer = keycloak?.hasRealmRole('platform:customer');
@@ -54,7 +56,7 @@ const GofeelerListPanel = ({ selectedId, refreshKey }) => {
         }}
       >
         <span style={{ color: 'var(--mv-text)', fontSize: 13, fontWeight: 500 }}>
-          Orders &amp; tasks
+          {t('listPanel.header')}
         </span>
         {isCustomer && (
           <Link
@@ -69,7 +71,7 @@ const GofeelerListPanel = ({ selectedId, refreshKey }) => {
               whiteSpace: 'nowrap',
             }}
           >
-            + New
+            {t('listPanel.newLink')}
           </Link>
         )}
       </div>
@@ -77,23 +79,23 @@ const GofeelerListPanel = ({ selectedId, refreshKey }) => {
       <div style={{ overflowY: 'auto', flex: 1 }}>
         {error && (
           <p style={{ color: 'var(--mv-color-danger)', fontSize: 13, padding: '12px 16px' }}>
-            Couldn't load tasks: {error}
+            {t('listPanel.loadError', { error })}
           </p>
         )}
 
         {!error && !tasks && (
           <p style={{ color: 'var(--mv-text-muted)', fontSize: 13, padding: '12px 16px' }}>
-            Loading tasks…
+            {t('listPanel.loading')}
           </p>
         )}
 
         {visibleTasks && visibleTasks.length === 0 && (
           <p style={{ color: 'var(--mv-text-muted)', fontSize: 13, padding: '12px 16px' }}>
             {isPM
-              ? 'No tasks yet.'
+              ? t('listPanel.emptyPm')
               : isCustomer
-                ? "You haven't submitted any orders yet."
-                : 'No tasks assigned to you right now.'}
+                ? t('listPanel.emptyCustomer')
+                : t('listPanel.emptyOther')}
           </p>
         )}
 

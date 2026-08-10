@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import useIsMobile from '../hooks/useIsMobile';
 
 const MIN_SPLIT = 20;
@@ -17,6 +18,7 @@ const MAX_SPLIT = 60;
 // mockups' resizer, disabled on mobile where the list disappears
 // entirely instead of shrinking to a sliver).
 const SplitView = ({ open, listPanel, detailPanel }) => {
+  const { t } = useTranslation('common');
   const isMobile = useIsMobile();
   const [splitRatio, setSplitRatio] = useState(50);
   const containerRef = useRef(null);
@@ -73,7 +75,7 @@ const SplitView = ({ open, listPanel, detailPanel }) => {
       {splitOpen && (
         <div
           onMouseDown={handleResizeStart}
-          title="Drag to resize"
+          title={t('dragToResize')}
           style={{
             width: 6,
             flexShrink: 0,

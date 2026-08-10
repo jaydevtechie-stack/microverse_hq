@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { authHeaders } from '../services/keycloak';
 
 const textareaStyle = {
@@ -38,6 +39,7 @@ const submitButtonStyle = (disabled) => ({
 // task-service resolves a reply's visibility from its parent instead
 // (a reply can't flip visibility partway down a thread).
 const TaskComments = ({ taskId, visibility }) => {
+  const { t } = useTranslation('gofeeler');
   const [comments, setComments] = useState(null);
   const [error, setError] = useState(null);
 
@@ -73,21 +75,21 @@ const TaskComments = ({ taskId, visibility }) => {
   if (error) {
     return (
       <p style={{ color: 'var(--mv-color-danger)', fontSize: 12, margin: 0 }}>
-        Couldn't load comments: {error}
+        {t('comments.loadError', { error })}
       </p>
     );
   }
 
   if (!comments) {
     return (
-      <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: 0 }}>Loading comments…</p>
+      <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: 0 }}>{t('comments.loading')}</p>
     );
   }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {comments.length === 0 && (
-        <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: 0 }}>No comments yet.</p>
+        <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: 0 }}>{t('comments.empty')}</p>
       )}
 
       {comments.map((comment) => (
@@ -133,6 +135,7 @@ const CommentRow = ({ author, createdAt, content }) => (
 // button separate from anything else on the page (including the
 // order's own Save changes button, if one happens to be showing).
 const ComposeBox = ({ onSubmit }) => {
+  const { t } = useTranslation('gofeeler');
   const [content, setContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -156,7 +159,7 @@ const ComposeBox = ({ onSubmit }) => {
       <textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        placeholder="Add a comment…"
+        placeholder={t('comments.composePlaceholder')}
         rows={2}
         style={textareaStyle}
       />
@@ -167,7 +170,7 @@ const ComposeBox = ({ onSubmit }) => {
         disabled={submitting || !content.trim()}
         style={submitButtonStyle(submitting || !content.trim())}
       >
-        {submitting ? 'Posting…' : 'Post'}
+        {submitting ? t('comments.posting') : t('comments.post')}
       </button>
     </div>
   );
@@ -177,6 +180,7 @@ const ComposeBox = ({ onSubmit }) => {
 // comment — keeps a long thread scannable. Its own submit button, same
 // as ComposeBox — posting a reply doesn't touch the top-level box.
 const ReplyBox = ({ commentId, onSubmit }) => {
+  const { t } = useTranslation(['gofeeler', 'common']);
   const [open, setOpen] = useState(false);
   const [content, setContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -197,7 +201,7 @@ const ReplyBox = ({ commentId, onSubmit }) => {
           cursor: 'pointer',
         }}
       >
-        Reply
+        {t('gofeeler:comments.reply')}
       </button>
     );
   }
@@ -222,7 +226,7 @@ const ReplyBox = ({ commentId, onSubmit }) => {
       <textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        placeholder="Write a reply…"
+        placeholder={t('gofeeler:comments.replyPlaceholder')}
         rows={2}
         style={textareaStyle}
         autoFocus
@@ -243,7 +247,7 @@ const ReplyBox = ({ commentId, onSubmit }) => {
             cursor: submitting ? 'default' : 'pointer',
           }}
         >
-          Cancel
+          {t('common:cancel')}
         </button>
         <button
           type="button"
@@ -251,7 +255,7 @@ const ReplyBox = ({ commentId, onSubmit }) => {
           disabled={submitting || !content.trim()}
           style={submitButtonStyle(submitting || !content.trim())}
         >
-          {submitting ? 'Posting…' : 'Reply'}
+          {submitting ? t('gofeeler:comments.posting') : t('gofeeler:comments.reply')}
         </button>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { IconUpload } from '@tabler/icons-react';
 import TagInput from './TagInput';
 import { authHeaders } from '../services/keycloak';
@@ -40,6 +41,7 @@ const SERVICE = 'gofeeler';
 // GofeelerSplitView passes one to refetch its sibling list panel;
 // CreateOrderPage has no sibling list, so it's left undefined there.
 const CreateOrderForm = ({ onCreated } = {}) => {
+  const { t } = useTranslation('orders');
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
   const [context, setContext] = useState('');
@@ -59,11 +61,11 @@ const CreateOrderForm = ({ onCreated } = {}) => {
 
   const validate = () => {
     const errors = {};
-    if (!title.trim()) errors.title = 'Title is required';
-    if (!context.trim()) errors.context = 'Context is required';
-    if (!file) errors.file = 'A file is required';
-    if (tags.length === 0) errors.tags = 'At least one sentiment tag is required';
-    if (!dueDate) errors.dueDate = 'Deadline is required';
+    if (!title.trim()) errors.title = t('validation.titleRequired');
+    if (!context.trim()) errors.context = t('validation.contextRequired');
+    if (!file) errors.file = t('validation.fileRequired');
+    if (tags.length === 0) errors.tags = t('validation.tagsRequired');
+    if (!dueDate) errors.dueDate = t('validation.deadlineRequired');
     return errors;
   };
 
@@ -100,7 +102,7 @@ const CreateOrderForm = ({ onCreated } = {}) => {
         headers: { 'Content-Type': file.type || 'text/plain' },
         body: file,
       });
-      if (!putRes.ok) throw new Error('File upload failed');
+      if (!putRes.ok) throw new Error(t('common:fileUploadFailed'));
 
       const createRes = await fetch('/api/tasks', {
         method: 'POST',
@@ -137,7 +139,7 @@ const CreateOrderForm = ({ onCreated } = {}) => {
 
   return (
     <>
-      <label style={fieldLabelStyle}>Title</label>
+      <label style={fieldLabelStyle}>{t('fields.title')}</label>
       <input
         type="text"
         value={title}
@@ -145,25 +147,25 @@ const CreateOrderForm = ({ onCreated } = {}) => {
           setTitle(e.target.value);
           clearFieldError('title');
         }}
-        placeholder="e.g. Q3 customer support chat review"
+        placeholder={t('createForm.titlePlaceholder')}
         style={fieldInputStyle}
       />
       {fieldErrors.title && <p style={fieldErrorStyle}>{fieldErrors.title}</p>}
 
-      <label style={fieldLabelStyle}>Context</label>
+      <label style={fieldLabelStyle}>{t('fields.context')}</label>
       <textarea
         value={context}
         onChange={(e) => {
           setContext(e.target.value);
           clearFieldError('context');
         }}
-        placeholder="Anything the analyst should know before starting..."
+        placeholder={t('createForm.contextPlaceholder')}
         rows={3}
         style={{ ...fieldInputStyle, resize: 'none' }}
       />
       {fieldErrors.context && <p style={fieldErrorStyle}>{fieldErrors.context}</p>}
 
-      <label style={fieldLabelStyle}>Sentiment focus</label>
+      <label style={fieldLabelStyle}>{t('fields.sentimentFocus')}</label>
       <div style={{ marginBottom: fieldErrors.tags ? 0 : 18 }}>
         <TagInput
           selected={tags}
@@ -175,7 +177,7 @@ const CreateOrderForm = ({ onCreated } = {}) => {
       </div>
       {fieldErrors.tags && <p style={{ ...fieldErrorStyle, margin: '4px 0 14px' }}>{fieldErrors.tags}</p>}
 
-      <label style={fieldLabelStyle}>Deadline</label>
+      <label style={fieldLabelStyle}>{t('fields.deadline')}</label>
       <input
         type="date"
         value={dueDate}
@@ -188,7 +190,7 @@ const CreateOrderForm = ({ onCreated } = {}) => {
       />
       {fieldErrors.dueDate && <p style={fieldErrorStyle}>{fieldErrors.dueDate}</p>}
 
-      <label style={fieldLabelStyle}>Upload content</label>
+      <label style={fieldLabelStyle}>{t('fields.uploadContent')}</label>
       <label
         style={{
           display: 'block',
@@ -210,10 +212,10 @@ const CreateOrderForm = ({ onCreated } = {}) => {
         />
         <IconUpload size={22} color="var(--mv-color-primary)" aria-hidden="true" />
         <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '8px 0 0' }}>
-          {file?.name || 'Drag a file here, or click to browse'}
+          {file?.name || t('createForm.dropzoneHint')}
         </p>
         <p style={{ color: 'var(--mv-badge-bg)', fontSize: 11, margin: '2px 0 0' }}>
-          Stored via asset-service → MinIO
+          {t('createForm.storageNote')}
         </p>
       </label>
       {fieldErrors.file && <p style={{ ...fieldErrorStyle, margin: '0 0 18px' }}>{fieldErrors.file}</p>}
@@ -241,7 +243,7 @@ const CreateOrderForm = ({ onCreated } = {}) => {
           opacity: submitting ? 0.6 : 1,
         }}
       >
-        {submitting ? 'Creating…' : 'Create order'}
+        {submitting ? t('createForm.submitting') : t('createForm.submit')}
       </button>
     </>
   );

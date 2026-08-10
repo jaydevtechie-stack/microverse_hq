@@ -1,0 +1,123 @@
+{
+  "listPanel": {
+    "header": "Orders & tasks",
+    "newLink": "+ New",
+    "loadError": "Couldn't load tasks: {{error}}",
+    "loading": "Loading tasks…",
+    "emptyPm": "No tasks yet.",
+    "emptyCustomer": "You haven't submitted any orders yet.",
+    "emptyOther": "No tasks assigned to you right now."
+  },
+  "taskDetail": {
+    "share": {
+      "copied": "Copied!",
+      "copyLink": "Copy link",
+      "shareViaEmail": "Share via email",
+      "shareTitle": "Share"
+    },
+    "meta": {
+      "service": "Service",
+      "assignee": "Assignee",
+      "unassigned": "unassigned",
+      "owner": "Owner",
+      "projectManager": "Project manager",
+      "due": "Due",
+      "closed": "Closed",
+      "created": "Created"
+    },
+    "editingOrder": "Editing order…",
+    "editOrderAriaLabel": "Edit order",
+    "filesLabel": "Files",
+    "commentsLabel": "Comments",
+    "notesVisibleToCustomer": "Notes (visible to customer)",
+    "notesLabel": "Notes",
+    "loadError": "Couldn't load task: {{error}}",
+    "loading": "Loading task…"
+  },
+  "comments": {
+    "loadError": "Couldn't load comments: {{error}}",
+    "loading": "Loading comments…",
+    "empty": "No comments yet.",
+    "composePlaceholder": "Add a comment…",
+    "replyPlaceholder": "Write a reply…",
+    "post": "Post",
+    "posting": "Posting…",
+    "reply": "Reply"
+  },
+  "files": {
+    "loading": "Loading files…",
+    "empty": "No files attached.",
+    "removeAriaLabel": "Remove {{filename}}",
+    "working": "Working…",
+    "addFile": "Add file"
+  },
+  "panels": {
+    "sentimentNegative": "Negative",
+    "analyst": {
+      "analyse": "Analyse",
+      "results": "Results",
+      "addNote": "Add a note",
+      "notePlaceholder": "Add a note...",
+      "moveToReview": "Move to review",
+      "sentToReview": "Sent to review — order will move to \"reviewer\" status"
+    },
+    "reviewer": {
+      "analystResults": "Analyst's results",
+      "reassignReviewer": "Reassign reviewer",
+      "defaultOption": "You (default — project manager)",
+      "namedOption": "John (dedicated reviewer)",
+      "approve": "Approve",
+      "reject": "Reject",
+      "approved": "Approved — order will move to \"done\" status",
+      "rejected": "Rejected — order will move back to \"analyst\" status"
+    },
+    "pmAssign": {
+      "backToAssignment": "← Back to assignment",
+      "scoutsReason": "Scout's reason: {{reason}}",
+      "tasksDone": "Tasks done",
+      "activeTasks": "Active tasks",
+      "idleFor": "Idle for",
+      "currentTasks": "Current tasks",
+      "noActiveTasks": "No active tasks.",
+      "assigning": "Assigning…",
+      "assignName": "Assign {{name}}",
+      "scoutTitle": "Scout",
+      "recommendationAgent": "Recommendation agent",
+      "scoutDescription": "Scans the pool for the best-fit analyst, weighing current availability.",
+      "loadError": "Couldn't load candidates: {{error}}",
+      "loading": "Loading candidates…",
+      "noneAvailable": "No active analyst holds platform:analyst + service:{{service}} yet.",
+      "sizedByRanking": "Sized by Scout's availability ranking — top pick first",
+      "orAssignDirectly": "Or assign directly",
+      "chooseAnalyst": "Choose an analyst...",
+      "assign": "Assign",
+      "assignTo": "Assign to {{name}}"
+    },
+    "pmBill": {
+      "analysisApproved": "Analysis approved and complete",
+      "readyToBill": "Ready to bill the customer for this order.",
+      "createBill": "Create bill",
+      "billCreated": "Bill created",
+      "billCreatedNote": "Bill created — order will move to \"paid\" status once the customer pays"
+    },
+    "customerProgress": {
+      "steps": {
+        "submitted": "Submitted",
+        "analysed": "Analysed",
+        "reviewed": "Reviewed",
+        "paid": "Paid"
+      },
+      "readyToDownload": "Results ready to download",
+      "readyInvoicePending": "Results ready — invoice pending",
+      "invoicePaid": "Your invoice has been paid",
+      "downloadUnlocks": "Download unlocks once your invoice is paid",
+      "downloadResults": "Download results",
+      "viewInvoice": "View invoice"
+    }
+  },
+  "tagInput": {
+    "placeholder": "Type a tag, e.g. 'urgency'...",
+    "createTag": "+ Create \"{{value}}\"",
+    "hint": "Fuzzy-matched against search-service's shared tag index — new tags are added automatically"
+  }
+}

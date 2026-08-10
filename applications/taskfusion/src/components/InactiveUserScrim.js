@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { IconLock } from '@tabler/icons-react';
 import { authHeaders, keycloakAccountUrl, isOnMicrosite, hostUrlForSubdomain } from '../services/keycloak';
 
@@ -10,6 +11,7 @@ import { authHeaders, keycloakAccountUrl, isOnMicrosite, hostUrlForSubdomain } f
 // /profile itself — that's the one page still fully usable.
 // Mockup: services_landing_with_scrim.html.
 const InactiveUserScrim = ({ keycloak }) => {
+  const { t } = useTranslation('common');
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [active, setActive] = useState(true);
@@ -61,10 +63,10 @@ const InactiveUserScrim = ({ keycloak }) => {
       >
         <IconLock size={22} color="var(--mv-text-muted)" />
         <p style={{ color: 'var(--mv-text)', fontSize: 14, fontWeight: 500, margin: '12px 0 4px' }}>
-          Your account is deactivated
+          {t('scrim.title')}
         </p>
         <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 18px', lineHeight: 1.5 }}>
-          You can view content but can't take any action. Contact your project manager if this seems wrong.
+          {t('scrim.note')}
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <button
@@ -81,7 +83,7 @@ const InactiveUserScrim = ({ keycloak }) => {
               cursor: 'pointer',
             }}
           >
-            My Profile
+            {t('scrim.myProfile')}
           </button>
           <a
             href={keycloakAccountUrl()}
@@ -95,7 +97,7 @@ const InactiveUserScrim = ({ keycloak }) => {
               textDecoration: 'none',
             }}
           >
-            Manage account (Keycloak)
+            {t('scrim.manageAccount')}
           </a>
         </div>
       </div>

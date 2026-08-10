@@ -1,0 +1,37 @@
+{
+  "fields": {
+    "title": "Title",
+    "context": "Context",
+    "sentimentFocus": "Sentiment focus",
+    "deadline": "Deadline",
+    "uploadContent": "Upload content",
+    "files": "Files"
+  },
+  "validation": {
+    "titleRequired": "Title is required",
+    "contextRequired": "Context is required",
+    "fileRequired": "A file is required",
+    "tagsRequired": "At least one sentiment tag is required",
+    "deadlineRequired": "Deadline is required"
+  },
+  "createForm": {
+    "titlePlaceholder": "e.g. Q3 customer support chat review",
+    "contextPlaceholder": "Anything the analyst should know before starting...",
+    "dropzoneHint": "Drag a file here, or click to browse",
+    "storageNote": "Stored via asset-service → MinIO",
+    "submitting": "Creating…",
+    "submit": "Create order"
+  },
+  "editForm": {
+    "saving": "Saving…",
+    "save": "Save changes"
+  },
+  "createPage": {
+    "eyebrow": "Gofeeler · New order",
+    "heading": "Create sentiment analysis order"
+  },
+  "pmOrdersPlaceholder": {
+    "title": "Orders",
+    "note": "Coming soon — PM-scoped order list, plus the shared-pool claim mechanism from Branch 4's 4.1.2, land here once designed."
+  }
+}

@@ -1,7 +1,9 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 const BuildTracker = ({ onlineCount, totalCount }) => {
-  const label = `${onlineCount} of ${totalCount} services online`;
+  const { t } = useTranslation('dashboard');
+  const label = t('buildTracker.servicesOnline', { onlineCount, totalCount });
   const onlineFraction = onlineCount / totalCount;
 
   return (
@@ -16,7 +18,7 @@ const BuildTracker = ({ onlineCount, totalCount }) => {
       >
         <span style={{ color: 'var(--mv-text-muted)', fontSize: 12 }}>{label}</span>
         <span style={{ color: 'var(--mv-text-muted)', fontSize: 11, opacity: 0.7 }}>
-          Build tracker
+          {t('buildTracker.label')}
         </span>
       </div>
       <div style={{ display: 'flex', gap: 2, height: 5, borderRadius: 3, overflow: 'hidden' }}>

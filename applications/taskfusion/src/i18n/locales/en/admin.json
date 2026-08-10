@@ -1,0 +1,46 @@
+{
+  "tabs": {
+    "users": "Users",
+    "services": "Services",
+    "settings": "Settings",
+    "auditLog": "Audit log"
+  },
+  "status": {
+    "online": "online",
+    "basic": "basic",
+    "building": "building",
+    "designing": "designing",
+    "planned": "planned"
+  },
+  "services": {
+    "headerTitle": "Services · admin",
+    "comingSoonTooltip": "Coming soon — no services table yet, see SCHEMA.md",
+    "deactivateService": "Deactivate service",
+    "activateService": "Activate service",
+    "editCardDetails": "Edit card details",
+    "readOnlyNote": "Read-only for now — activate/deactivate and edit need a real services table (see ROADMAP.md 4.0.2/4.0.3 notes and SCHEMA.md)."
+  },
+  "settingsPlaceholder": {
+    "title": "Settings",
+    "note": "Coming soon — platform-wide admin settings."
+  },
+  "auditLogPlaceholder": {
+    "title": "Audit log",
+    "note": "Coming soon — built from the event-bus stream (Branch 8), not a separate write path. Also the likely fallback for Admin's cross-Account Orders/Billing visibility now that both moved out of Admin in 4.3 — see the open question in ROADMAP.md's 4.3 entry."
+  },
+  "users": {
+    "headerTitle": "Users · admin",
+    "loadError": "Couldn't load users: {{error}}",
+    "loading": "Loading users…",
+    "empty": "No users synced yet — a user shows up here after their first authenticated request.",
+    "active": "active",
+    "deactivated": "deactivated",
+    "rolesLabel": "Roles",
+    "noRoles": "No roles synced yet — populated from this user's next request.",
+    "permissionsLabel": "Permissions (Keycloak)",
+    "comingSoonBadge": "coming soon",
+    "permissionsNote": "Fetch live role/permission detail from Keycloak on demand — nice-to-have, not required for 4.0.1.",
+    "deactivateUser": "Deactivate user",
+    "reactivateUser": "Reactivate user"
+  }
+}

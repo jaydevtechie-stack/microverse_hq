@@ -1,15 +1,13 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
-const FILTERS = [
-  { key: 'all', label: 'All' },
-  { key: 'online', label: 'Online' },
-  { key: 'progress', label: 'In progress' },
-];
+const FILTER_KEYS = ['all', 'online', 'progress'];
 
 const StatusFilterBar = ({ active, onChange }) => {
+  const { t } = useTranslation('dashboard');
   return (
     <div style={{ display: 'flex', gap: 6 }}>
-      {FILTERS.map(({ key, label }) => {
+      {FILTER_KEYS.map((key) => {
         const isActive = active === key;
         return (
           <button
@@ -26,7 +24,7 @@ const StatusFilterBar = ({ active, onChange }) => {
               cursor: 'pointer',
             }}
           >
-            {label}
+            {t(`filters.${key}`)}
           </button>
         );
       })}

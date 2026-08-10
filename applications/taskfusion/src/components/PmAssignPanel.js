@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { IconBinoculars, IconInfoCircle } from '@tabler/icons-react';
 import { authHeaders } from '../services/keycloak';
 import { STATUS_STYLE } from './TaskStatusBadge';
@@ -33,10 +34,12 @@ const statBox = {
 // own detail panel; nesting a second split there is too cramped to be
 // usable. Same interaction (info icon → profile, back link → form,
 // Assign button present in both places), adapted layout.
-const CandidateProfile = ({ candidate, onBack, onAssign, assigning }) => (
+const CandidateProfile = ({ candidate, onBack, onAssign, assigning }) => {
+  const { t } = useTranslation('gofeeler');
+  return (
   <div>
     <span onClick={onBack} style={{ color: 'var(--mv-color-primary)', fontSize: 12, cursor: 'pointer' }}>
-      ← Back to assignment
+      {t('panels.pmAssign.backToAssignment')}
     </span>
 
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '14px 0 16px' }}>
@@ -64,31 +67,31 @@ const CandidateProfile = ({ candidate, onBack, onAssign, assigning }) => (
     </div>
 
     <p style={{ color: 'var(--mv-badge-bg)', fontSize: 11, margin: '0 0 14px' }}>
-      Scout's reason: {candidate.reason}
+      {t('panels.pmAssign.scoutsReason', { reason: candidate.reason })}
     </p>
 
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 18 }}>
       <div style={statBox}>
-        <p style={{ color: 'var(--mv-badge-bg)', fontSize: 10, margin: '0 0 3px' }}>Tasks done</p>
+        <p style={{ color: 'var(--mv-badge-bg)', fontSize: 10, margin: '0 0 3px' }}>{t('panels.pmAssign.tasksDone')}</p>
         <p style={{ color: 'var(--mv-text)', fontSize: 15, fontWeight: 500, margin: 0 }}>{candidate.tasks_done}</p>
       </div>
       <div style={statBox}>
-        <p style={{ color: 'var(--mv-badge-bg)', fontSize: 10, margin: '0 0 3px' }}>Active tasks</p>
+        <p style={{ color: 'var(--mv-badge-bg)', fontSize: 10, margin: '0 0 3px' }}>{t('panels.pmAssign.activeTasks')}</p>
         <p style={{ color: 'var(--mv-text)', fontSize: 15, fontWeight: 500, margin: 0 }}>
           {candidate.active_tasks.length}
         </p>
       </div>
       <div style={statBox}>
-        <p style={{ color: 'var(--mv-badge-bg)', fontSize: 10, margin: '0 0 3px' }}>Idle for</p>
+        <p style={{ color: 'var(--mv-badge-bg)', fontSize: 10, margin: '0 0 3px' }}>{t('panels.pmAssign.idleFor')}</p>
         <p style={{ color: 'var(--mv-text)', fontSize: 15, fontWeight: 500, margin: 0 }}>
           {relativeTime(candidate.oldest_active_assigned_at) || '—'}
         </p>
       </div>
     </div>
 
-    <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>Current tasks</p>
+    <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>{t('panels.pmAssign.currentTasks')}</p>
     {candidate.active_tasks.length === 0 && (
-      <p style={{ color: 'var(--mv-badge-bg)', fontSize: 12 }}>No active tasks.</p>
+      <p style={{ color: 'var(--mv-badge-bg)', fontSize: 12 }}>{t('panels.pmAssign.noActiveTasks')}</p>
     )}
     {candidate.active_tasks.map((t) => (
       <div
@@ -134,10 +137,11 @@ const CandidateProfile = ({ candidate, onBack, onAssign, assigning }) => (
         cursor: assigning ? 'not-allowed' : 'pointer',
       }}
     >
-      {assigning ? 'Assigning…' : `Assign ${candidate.name}`}
+      {assigning ? t('panels.pmAssign.assigning') : t('panels.pmAssign.assignName', { name: candidate.name })}
     </button>
   </div>
-);
+  );
+};
 
 // Scout (4.1.1) ranks candidates by availability — see
 // business-services/task-service/models/scout.js for the honest
@@ -147,6 +151,7 @@ const CandidateProfile = ({ candidate, onBack, onAssign, assigning }) => (
 // candidate's info icon opens their profile (4.1.1.1, real stats only
 // — no fabricated rating/turnaround/efficiency).
 const PmAssignPanel = ({ task, onAssigned }) => {
+  const { t } = useTranslation('gofeeler');
   const [candidates, setCandidates] = useState(null);
   const [fetchError, setFetchError] = useState(null);
   const [picked, setPicked] = useState('');
@@ -222,26 +227,26 @@ const PmAssignPanel = ({ task, onAssigned }) => {
         >
           <IconBinoculars size={22} color="#412402" />
         </div>
-        <p style={{ color: 'var(--mv-text)', fontSize: 14, fontWeight: 500, margin: '0 0 2px' }}>Scout</p>
-        <p style={{ color: 'var(--mv-color-warning)', fontSize: 11, margin: '0 0 8px' }}>Recommendation agent</p>
+        <p style={{ color: 'var(--mv-text)', fontSize: 14, fontWeight: 500, margin: '0 0 2px' }}>{t('panels.pmAssign.scoutTitle')}</p>
+        <p style={{ color: 'var(--mv-color-warning)', fontSize: 11, margin: '0 0 8px' }}>{t('panels.pmAssign.recommendationAgent')}</p>
         <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: 0, lineHeight: 1.5 }}>
-          Scans the pool for the best-fit analyst, weighing current availability.
+          {t('panels.pmAssign.scoutDescription')}
         </p>
       </div>
 
       {fetchError && (
         <p style={{ color: 'var(--mv-color-danger)', fontSize: 12, marginBottom: 14 }}>
-          Couldn't load candidates: {fetchError}
+          {t('panels.pmAssign.loadError', { error: fetchError })}
         </p>
       )}
 
       {!fetchError && !candidates && (
-        <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, marginBottom: 14 }}>Loading candidates…</p>
+        <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, marginBottom: 14 }}>{t('panels.pmAssign.loading')}</p>
       )}
 
       {candidates?.length === 0 && (
         <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, marginBottom: 14 }}>
-          No active analyst holds platform:analyst + service:{task.service} yet.
+          {t('panels.pmAssign.noneAvailable', { service: task.service })}
         </p>
       )}
 
@@ -287,10 +292,10 @@ const PmAssignPanel = ({ task, onAssigned }) => {
             })}
           </div>
           <p style={{ color: 'var(--mv-badge-bg)', fontSize: 11, margin: '0 0 18px' }}>
-            Sized by Scout's availability ranking — top pick first
+            {t('panels.pmAssign.sizedByRanking')}
           </p>
 
-          <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 6px' }}>Or assign directly</p>
+          <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 6px' }}>{t('panels.pmAssign.orAssignDirectly')}</p>
           <select
             value={picked}
             onChange={(e) => setPicked(e.target.value)}
@@ -306,7 +311,7 @@ const PmAssignPanel = ({ task, onAssigned }) => {
               boxSizing: 'border-box',
             }}
           >
-            <option value="">Choose an analyst...</option>
+            <option value="">{t('panels.pmAssign.chooseAnalyst')}</option>
             {candidates.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -330,7 +335,11 @@ const PmAssignPanel = ({ task, onAssigned }) => {
               cursor: picked && !assigning ? 'pointer' : 'not-allowed',
             }}
           >
-            {assigning ? 'Assigning…' : pickedCandidate ? `Assign to ${pickedCandidate.name}` : 'Assign'}
+            {assigning
+              ? t('panels.pmAssign.assigning')
+              : pickedCandidate
+                ? t('panels.pmAssign.assignTo', { name: pickedCandidate.name })
+                : t('panels.pmAssign.assign')}
           </button>
 
           {assignError && (

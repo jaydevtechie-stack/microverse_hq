@@ -1,7 +1,8 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { IconCheck, IconLock } from '@tabler/icons-react';
 
-const STEPS = ['Submitted', 'Analysed', 'Reviewed', 'Paid'];
+const STEP_KEYS = ['submitted', 'analysed', 'reviewed', 'paid'];
 
 // done = first 3 steps complete, invoice not paid yet; paid/closed = all
 // 4 complete. Matches ARCHITECTURE.md: reaching paid unlocks download.
@@ -12,14 +13,15 @@ function completedCount(status) {
 }
 
 const CustomerProgressPanel = ({ task }) => {
+  const { t } = useTranslation('gofeeler');
   const done = completedCount(task.status);
   const unlocked = task.status === 'paid' || task.status === 'closed';
 
   return (
     <div>
       <div style={{ display: 'flex', marginBottom: 18 }}>
-        {STEPS.map((step, i) => (
-          <div key={step} style={{ flex: 1, textAlign: 'center' }}>
+        {STEP_KEYS.map((stepKey, i) => (
+          <div key={stepKey} style={{ flex: 1, textAlign: 'center' }}>
             <div
               style={{
                 width: 24,
@@ -40,7 +42,7 @@ const CustomerProgressPanel = ({ task }) => {
                 fontSize: 10,
               }}
             >
-              {step}
+              {t(`panels.customerProgress.steps.${stepKey}`)}
             </span>
           </div>
         ))}
@@ -61,12 +63,12 @@ const CustomerProgressPanel = ({ task }) => {
         {!unlocked && <IconLock size={18} color="var(--mv-badge-bg)" />}
         <div>
           <p style={{ color: 'var(--mv-text)', fontSize: 13, margin: 0 }}>
-            {unlocked ? 'Results ready to download' : 'Results ready — invoice pending'}
+            {unlocked ? t('panels.customerProgress.readyToDownload') : t('panels.customerProgress.readyInvoicePending')}
           </p>
           <p style={{ color: 'var(--mv-badge-bg)', fontSize: 11, margin: '2px 0 0' }}>
             {unlocked
-              ? 'Your invoice has been paid'
-              : 'Download unlocks once your invoice is paid'}
+              ? t('panels.customerProgress.invoicePaid')
+              : t('panels.customerProgress.downloadUnlocks')}
           </p>
         </div>
       </div>
@@ -85,7 +87,7 @@ const CustomerProgressPanel = ({ task }) => {
           cursor: 'pointer',
         }}
       >
-        {unlocked ? 'Download results' : 'View invoice'}
+        {unlocked ? t('panels.customerProgress.downloadResults') : t('panels.customerProgress.viewInvoice')}
       </button>
     </div>
   );

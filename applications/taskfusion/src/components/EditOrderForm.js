@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import TagInput from './TagInput';
 import { authHeaders } from '../services/keycloak';
 
@@ -37,6 +38,7 @@ const fieldErrorStyle = {
 // customer ownership); task-service's PUT /api/tasks/:id enforces the
 // same window server-side regardless.
 const EditOrderForm = ({ task, onSaved, onCancel, filesSlot }) => {
+  const { t } = useTranslation(['orders', 'common']);
   const [title, setTitle] = useState(task.title);
   const [context, setContext] = useState(task.context || '');
   const [tags, setTags] = useState(task.tags || []);
@@ -51,10 +53,10 @@ const EditOrderForm = ({ task, onSaved, onCancel, filesSlot }) => {
   // isn't something this form's own state can validate.
   const validate = () => {
     const errors = {};
-    if (!title.trim()) errors.title = 'Title is required';
-    if (!context.trim()) errors.context = 'Context is required';
-    if (tags.length === 0) errors.tags = 'At least one sentiment tag is required';
-    if (!dueDate) errors.dueDate = 'Deadline is required';
+    if (!title.trim()) errors.title = t('orders:validation.titleRequired');
+    if (!context.trim()) errors.context = t('orders:validation.contextRequired');
+    if (tags.length === 0) errors.tags = t('orders:validation.tagsRequired');
+    if (!dueDate) errors.dueDate = t('orders:validation.deadlineRequired');
     return errors;
   };
 
@@ -94,7 +96,7 @@ const EditOrderForm = ({ task, onSaved, onCancel, filesSlot }) => {
 
   return (
     <div style={{ width: '100%' }}>
-      <label style={fieldLabelStyle}>Title</label>
+      <label style={fieldLabelStyle}>{t('orders:fields.title')}</label>
       <input
         type="text"
         value={title}
@@ -106,7 +108,7 @@ const EditOrderForm = ({ task, onSaved, onCancel, filesSlot }) => {
       />
       {fieldErrors.title && <p style={fieldErrorStyle}>{fieldErrors.title}</p>}
 
-      <label style={fieldLabelStyle}>Context</label>
+      <label style={fieldLabelStyle}>{t('orders:fields.context')}</label>
       <textarea
         value={context}
         onChange={(e) => {
@@ -118,7 +120,7 @@ const EditOrderForm = ({ task, onSaved, onCancel, filesSlot }) => {
       />
       {fieldErrors.context && <p style={fieldErrorStyle}>{fieldErrors.context}</p>}
 
-      <label style={fieldLabelStyle}>Sentiment focus</label>
+      <label style={fieldLabelStyle}>{t('orders:fields.sentimentFocus')}</label>
       <div style={{ marginBottom: fieldErrors.tags ? 0 : 18 }}>
         <TagInput
           selected={tags}
@@ -130,7 +132,7 @@ const EditOrderForm = ({ task, onSaved, onCancel, filesSlot }) => {
       </div>
       {fieldErrors.tags && <p style={{ ...fieldErrorStyle, margin: '4px 0 14px' }}>{fieldErrors.tags}</p>}
 
-      <label style={fieldLabelStyle}>Deadline</label>
+      <label style={fieldLabelStyle}>{t('orders:fields.deadline')}</label>
       <input
         type="date"
         value={dueDate}
@@ -145,7 +147,7 @@ const EditOrderForm = ({ task, onSaved, onCancel, filesSlot }) => {
 
       {filesSlot && (
         <>
-          <label style={fieldLabelStyle}>Files</label>
+          <label style={fieldLabelStyle}>{t('orders:fields.files')}</label>
           <div style={{ marginBottom: 18 }}>{filesSlot}</div>
         </>
       )}
@@ -171,7 +173,7 @@ const EditOrderForm = ({ task, onSaved, onCancel, filesSlot }) => {
             opacity: submitting ? 0.6 : 1,
           }}
         >
-          {submitting ? 'Saving…' : 'Save changes'}
+          {submitting ? t('orders:editForm.saving') : t('orders:editForm.save')}
         </button>
         <button
           type="button"
@@ -188,7 +190,7 @@ const EditOrderForm = ({ task, onSaved, onCancel, filesSlot }) => {
             cursor: submitting ? 'default' : 'pointer',
           }}
         >
-          Cancel
+          {t('common:cancel')}
         </button>
       </div>
     </div>

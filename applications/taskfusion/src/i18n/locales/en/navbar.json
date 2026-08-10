@@ -1,0 +1,18 @@
+{
+  "dashboard": "Dashboard",
+  "accounts": "Accounts",
+  "analysts": "Analysts",
+  "projects": "Projects",
+  "orders": "Orders",
+  "deliveryTeam": "Delivery team",
+  "billing": "Billing",
+  "admin": "Admin",
+  "myProfile": "My Profile",
+  "logout": "Logout",
+  "logOut": "Log out",
+  "switchToLightTheme": "Switch to light theme",
+  "switchToDarkTheme": "Switch to dark theme",
+  "accountMenu": "Account menu",
+  "openMenu": "Open menu",
+  "closeMenu": "Close menu"
+}

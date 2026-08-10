@@ -1,0 +1,13 @@
+{
+  "welcomeBack": "Welcome back, {{username}}.",
+  "allServices": "All services",
+  "filters": {
+    "all": "All",
+    "online": "Online",
+    "progress": "In progress"
+  },
+  "buildTracker": {
+    "servicesOnline": "{{onlineCount}} of {{totalCount}} services online",
+    "label": "Build tracker"
+  }
+}

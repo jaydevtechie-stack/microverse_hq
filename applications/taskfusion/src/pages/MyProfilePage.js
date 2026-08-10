@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { IconUserEdit, IconLock } from '@tabler/icons-react';
 import { getKeycloak, authHeaders, keycloakAccountUrl } from '../services/keycloak';
 
@@ -15,6 +16,7 @@ const initials = (name) =>
 // account console (see ARCHITECTURE.md's Roles and permissions).
 // Mockup: my_profile_page_with_avatar_dropdown.html.
 const MyProfilePage = () => {
+  const { t } = useTranslation('profile');
   const keycloak = getKeycloak();
   const [user, setUser] = useState(null);
   const [error, setError] = useState(null);
@@ -71,11 +73,11 @@ const MyProfilePage = () => {
 
         {error && (
           <p style={{ color: 'var(--mv-color-danger)', fontSize: 11, margin: '0 0 12px' }}>
-            Couldn't load full profile: {error}
+            {t('loadError', { error })}
           </p>
         )}
 
-        <p style={{ color: 'var(--mv-badge-bg)', fontSize: 11, margin: '0 0 6px' }}>Roles</p>
+        <p style={{ color: 'var(--mv-badge-bg)', fontSize: 11, margin: '0 0 6px' }}>{t('rolesLabel')}</p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 24 }}>
           {roles.map((role) => (
             <span
@@ -110,7 +112,7 @@ const MyProfilePage = () => {
               textDecoration: 'none',
             }}
           >
-            <IconUserEdit size={14} /> Edit profile
+            <IconUserEdit size={14} /> {t('editProfile')}
           </a>
           <a
             href={keycloakAccountUrl()}
@@ -128,16 +130,16 @@ const MyProfilePage = () => {
               textDecoration: 'none',
             }}
           >
-            <IconLock size={14} /> Change password
+            <IconLock size={14} /> {t('changePassword')}
           </a>
         </div>
         <p style={{ color: 'var(--mv-badge-bg)', fontSize: 10, margin: '10px 0 0', lineHeight: 1.4 }}>
-          Both open Keycloak's account console — not handled in-app.
+          {t('keycloakNote')}
         </p>
       </div>
 
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ color: 'var(--mv-badge-bg)', fontSize: 12 }}>Nothing else here yet</p>
+        <p style={{ color: 'var(--mv-badge-bg)', fontSize: 12 }}>{t('nothingElseHere')}</p>
       </div>
     </div>
   );

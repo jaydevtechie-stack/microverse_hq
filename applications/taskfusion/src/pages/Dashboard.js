@@ -1,5 +1,6 @@
 // src/pages/Dashboard.js
 import React, { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getKeycloak } from '../services/keycloak';
 import { SERVICES } from '../data/services';
 import ServiceCard from '../components/ServiceCard';
@@ -7,6 +8,7 @@ import StatusFilterBar from '../components/StatusFilterBar';
 import BuildTracker from '../components/BuildTracker';
 
 const Dashboard = () => {
+  const { t } = useTranslation('dashboard');
   const keycloak = getKeycloak();
   const username = keycloak?.tokenParsed?.preferred_username;
   const [filter, setFilter] = useState('all');
@@ -33,7 +35,7 @@ const Dashboard = () => {
       <div style={{ padding: '16px 18px 0' }}>
         {username && (
           <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>
-            Welcome back, {username}.
+            {t('welcomeBack', { username })}
           </p>
         )}
 
@@ -46,7 +48,7 @@ const Dashboard = () => {
           }}
         >
           <span style={{ color: 'var(--mv-text)', fontSize: 13, fontWeight: 500 }}>
-            All services
+            {t('allServices')}
           </span>
           <StatusFilterBar active={filter} onChange={setFilter} />
         </div>
