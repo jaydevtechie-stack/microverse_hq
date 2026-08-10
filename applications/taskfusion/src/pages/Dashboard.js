@@ -64,7 +64,7 @@ const Dashboard = () => {
         {!loading && !error && (
           <div className="mv-service-grid">
             {visibleServices.map((service) => (
-              <ServiceCard key={service.key} service={service} keycloak={keycloak} />
+              <ServiceCard key={service.key} service={service} />
             ))}
           </div>
         )}

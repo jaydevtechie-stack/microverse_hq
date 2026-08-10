@@ -3,18 +3,21 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
 import { hostUrlForSubdomain } from '../services/keycloak';
 
-const ServiceCard = ({ service, keycloak }) => {
+const ServiceCard = ({ service }) => {
   const { t } = useTranslation('dashboard');
   const { theme } = useTheme();
-  const { name, tech, status, illustration: Illustration, subdomain, requiredRole } = service;
+  const { name, tech, status, illustration: Illustration, subdomain } = service;
   const { fg, bg } = service[theme];
   const isOnline = status === 'online';
 
-  // The card always shows — description/status stays visible even
-  // without the role. Only the link itself is gated: no subdomain, no
-  // role check needed, no role, no link, no click.
-  const hasAccess = !requiredRole || keycloak?.hasRealmRole(requiredRole);
-  const href = subdomain && hasAccess ? hostUrlForSubdomain(subdomain) : undefined;
+  // Every service subdomain now has something real to show regardless
+  // of role — either the built app (gofeeler, if the visitor has
+  // service:gofeeler) or the public ServiceLandingPage info portal
+  // (everyone else). So the card links whenever a subdomain exists;
+  // access is no longer a gate on the link itself, just on what the
+  // destination page shows once you're there (see ServiceLandingPage's
+  // own hasAccess/contact-account-manager logic).
+  const href = subdomain ? hostUrlForSubdomain(subdomain) : undefined;
 
   return (
     <a
