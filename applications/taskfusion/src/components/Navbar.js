@@ -55,10 +55,14 @@ const Navbar = ({ keycloak }) => {
   const avatarMenuRef = useRef(null);
   useClickOutside(avatarMenuRef, () => setAvatarMenuOpen(false));
 
-  const isCustomerOrPM =
-    keycloak.hasRealmRole('platform:customer') || keycloak.hasRealmRole('platform:project-manager');
-  const isAnalystOrPM =
-    keycloak.hasRealmRole('platform:analyst') || keycloak.hasRealmRole('platform:project-manager');
+  // 4.3 supersedes 4.0.2's nav for platform:project-manager entirely —
+  // PM's own section below (Projects/Orders/Delivery team) replaces
+  // these, so PM no longer also picks up platform:customer's/
+  // platform:analyst's links the way it did pre-4.3 (that produced a
+  // real collision: two differently-scoped "Analysts" links with the
+  // same label, one being Delivery team's roster).
+  const isCustomer = keycloak.hasRealmRole('platform:customer');
+  const isAnalyst = keycloak.hasRealmRole('platform:analyst');
   // Project Hub's page-level gate (see ARCHITECTURE.md's Roles and
   // permissions) — platform:project-manager plus *any* service scope,
   // not a specific one, since the page itself spans whatever services
@@ -68,6 +72,9 @@ const Navbar = ({ keycloak }) => {
   );
   const isPMWithServiceScope = keycloak.hasRealmRole('platform:project-manager') && hasAnyServiceScope;
   const isAdmin = keycloak.hasRealmRole('platform:admin');
+  // 4.3 — new role, not yet provisioned in Keycloak. Nav item is
+  // future-ready: it'll just start rendering once someone holds it.
+  const isAccountManager = keycloak.hasRealmRole('platform:account-manager');
 
   const navLinks = (
     <>
@@ -75,37 +82,60 @@ const Navbar = ({ keycloak }) => {
         Dashboard
       </PlatformNavLink>
 
-      {/* Customer/Analyst links are role-gated the same way their
-          routes are in App.js — platform:project-manager sees both */}
-      {isCustomerOrPM && (
+      {isCustomer && (
         <PlatformNavLink to="/customer" active={pathname === '/customer'}>
           Customers
         </PlatformNavLink>
       )}
 
-      {isAnalystOrPM && (
+      {isAnalyst && (
         <PlatformNavLink to="/analyst" active={pathname === '/analyst'}>
           Analysts
         </PlatformNavLink>
       )}
 
+      {/* 4.3 — supersedes the single "Projects" link: Projects/Orders
+          (PM-scoped, moved from Admin)/Delivery team. Delivery team's
+          Analysts/Reviewers live as an in-page Subnav on
+          DeliveryTeamPage.js (see platform_projects_hub_and_admin.html's
+          #subnav pattern), not a navbar dropdown. See
+          docs/architecture/1.0/nav-config.json. */}
       {isPMWithServiceScope && (
-        <PlatformNavLink to="/hub" active={pathname.startsWith('/hub')}>
-          Projects
-        </PlatformNavLink>
+        <>
+          <PlatformNavLink to="/pm/projects" active={pathname === '/pm/projects'}>
+            Projects
+          </PlatformNavLink>
+          <PlatformNavLink to="/pm/orders" active={pathname === '/pm/orders'}>
+            Orders
+          </PlatformNavLink>
+          <PlatformNavLink to="/pm/delivery-team/analysts" active={pathname.startsWith('/pm/delivery-team')}>
+            Delivery team
+          </PlatformNavLink>
+        </>
       )}
 
+      {/* 4.3 — new platform:account-manager role: Customers/Billing,
+          moved from Admin, account-manager-scoped. */}
+      {isAccountManager && (
+        <>
+          <PlatformNavLink to="/am/customers" active={pathname === '/am/customers'}>
+            Customers
+          </PlatformNavLink>
+          <PlatformNavLink to="/am/billing" active={pathname === '/am/billing'}>
+            Billing
+          </PlatformNavLink>
+        </>
+      )}
+
+      {/* 4.3 — Admin stays one top-level item, no longer holding global
+          Orders or Billing; Users/Services/Settings/Audit-log live as
+          an in-page Subnav on AdminPage.js, not a navbar dropdown (see
+          platform_projects_hub_and_admin.html's #subnav pattern). */}
       {isAdmin && (
-        <PlatformNavLink to="/admin" active={pathname.startsWith('/admin')}>
+        <PlatformNavLink to="/admin/users" active={pathname.startsWith('/admin')}>
           Admin
         </PlatformNavLink>
       )}
-
-      {/* Orders / Djaboard: business-services/order-service and
-          domain-services/djaboard don't have their own pages yet —
-          placeholders until those exist, not real links */}
-      <span style={{ color: 'var(--mv-text-muted)', fontSize: 13 }}>Orders</span>
-      <span style={{ color: 'var(--mv-text-muted)', fontSize: 13 }}>Djaboard</span>
     </>
   );
 
