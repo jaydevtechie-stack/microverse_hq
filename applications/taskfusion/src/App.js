@@ -1,6 +1,6 @@
 // src/App.js
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';  // Use Routes instead of Switch
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';  // Use Routes instead of Switch
 import { initKeycloak, landingUrl } from './services/keycloak';
 import { ThemeProvider } from './context/ThemeContext';
 import LandingPage from './pages/LandingPage';
@@ -15,6 +15,10 @@ import AdminPage from './pages/AdminPage';
 import ProjectHubPage from './pages/ProjectHubPage';
 import MyProfilePage from './pages/MyProfilePage';
 import InactiveUserScrim from './components/InactiveUserScrim';
+import PmOrdersPage from './pages/PmOrdersPage';
+import DeliveryTeamPage from './pages/DeliveryTeamPage';
+import AmCustomersPage from './pages/AmCustomersPage';
+import AmBillingPage from './pages/AmBillingPage';
 
 // microverse.local carries everything platform-side (landing page,
 // /dashboard, /customer, /analyst — path-based). Domain services get
@@ -142,8 +146,12 @@ const App = () => {
               }
             />
 
+            {/* 4.3 — Admin's Users/Services/Settings/Audit-log submenu
+                items all share one route + component (tab from the URL
+                segment); bare /admin lands on Users. */}
+            <Route path="/admin" element={<Navigate to="/admin/users" replace />} />
             <Route
-              path="/admin"
+              path="/admin/:tab"
               element={<PrivateRoute element={<AdminPage />} keycloak={keycloak} roles={['platform:admin']} />}
             />
 
@@ -151,9 +159,10 @@ const App = () => {
                 plus ANY service scope, not a specific one, since the page
                 itself spans whatever services this PM manages. What's
                 actually visible inside is filtered server-side (pm_accounts
-                ownership + per-task service scope) — see ARCHITECTURE.md. */}
+                ownership + per-task service scope) — see ARCHITECTURE.md.
+                Same gate reused across all of PM's 4.3 nav items below. */}
             <Route
-              path="/hub"
+              path="/pm/projects"
               element={
                 <PrivateRoute
                   element={<ProjectHubPage />}
@@ -161,6 +170,51 @@ const App = () => {
                   roles={['platform:project-manager']}
                   customCheck={hasAnyServiceScope}
                 />
+              }
+            />
+
+            <Route
+              path="/pm/orders"
+              element={
+                <PrivateRoute
+                  element={<PmOrdersPage />}
+                  keycloak={keycloak}
+                  roles={['platform:project-manager']}
+                  customCheck={hasAnyServiceScope}
+                />
+              }
+            />
+
+            <Route path="/pm/delivery-team" element={<Navigate to="/pm/delivery-team/analysts" replace />} />
+            <Route
+              path="/pm/delivery-team/:tab"
+              element={
+                <PrivateRoute
+                  element={<DeliveryTeamPage />}
+                  keycloak={keycloak}
+                  roles={['platform:project-manager']}
+                  customCheck={hasAnyServiceScope}
+                />
+              }
+            />
+
+            {/* 4.3 — new platform:account-manager role; not yet
+                provisioned in Keycloak, so these routes exist but
+                nobody can reach them until the role is granted. */}
+            <Route
+              path="/am/customers"
+              element={
+                <PrivateRoute
+                  element={<AmCustomersPage />}
+                  keycloak={keycloak}
+                  roles={['platform:account-manager']}
+                />
+              }
+            />
+            <Route
+              path="/am/billing"
+              element={
+                <PrivateRoute element={<AmBillingPage />} keycloak={keycloak} roles={['platform:account-manager']} />
               }
             />
 

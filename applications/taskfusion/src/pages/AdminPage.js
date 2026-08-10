@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import AdminUsersPage from './AdminUsersPage';
+import PlaceholderPage from '../components/PlaceholderPage';
+import Subnav from '../components/Subnav';
 import SplitView from '../components/SplitView';
 import { SERVICES } from '../data/services';
 
 const TABS = [
   { id: 'users', label: 'Users' },
   { id: 'services', label: 'Services' },
+  { id: 'settings', label: 'Settings' },
+  { id: 'audit-log', label: 'Audit log' },
 ];
 
 const STATUS_LABEL = {
@@ -15,26 +20,6 @@ const STATUS_LABEL = {
   designing: 'designing',
   planned: 'planned',
 };
-
-const Subnav = ({ active, onChange }) => (
-  <div style={{ display: 'flex', gap: 18, padding: '0 4px', marginBottom: 10 }}>
-    {TABS.map((tab) => (
-      <span
-        key={tab.id}
-        onClick={() => onChange(tab.id)}
-        style={{
-          fontSize: 13,
-          cursor: 'pointer',
-          paddingBottom: 4,
-          color: active === tab.id ? 'var(--mv-color-primary)' : 'var(--mv-text-muted)',
-          borderBottom: active === tab.id ? '2px solid var(--mv-color-primary)' : '2px solid transparent',
-        }}
-      >
-        {tab.label}
-      </span>
-    ))}
-  </div>
-);
 
 const ServiceList = ({ selectedKey, onSelect }) => (
   <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -145,9 +130,15 @@ const ServiceDetail = ({ service, onClose }) => (
 );
 
 // platform:admin-gated shell — Users (4.0.1, real data) and Services
-// (read-only stub) subnav tabs. Mockup: platform_projects_hub_and_admin.html.
+// (read-only stub) subnav tabs, plus 4.3's Settings/Audit log stubs.
+// Mockup: platform_projects_hub_and_admin.html — Admin is a plain
+// top-nav link (Navbar.js), this in-page Subnav is the actual
+// sub-level nav, not a navbar dropdown. Tab is URL-driven (route is
+// /admin/:tab) rather than local state, so each tab is a real,
+// bookmarkable route.
 const AdminPage = () => {
-  const [tab, setTab] = useState('users');
+  const { tab } = useParams();
+  const navigate = useNavigate();
   const [selectedServiceKey, setSelectedServiceKey] = useState(null);
 
   const selectedService = SERVICES.find((s) => s.key === selectedServiceKey);
@@ -155,15 +146,15 @@ const AdminPage = () => {
   return (
     <div style={{ margin: 'var(--mv-space-3)' }}>
       <Subnav
+        tabs={TABS}
         active={tab}
         onChange={(next) => {
-          setTab(next);
           setSelectedServiceKey(null);
+          navigate(`/admin/${next}`);
         }}
       />
-      {tab === 'users' ? (
-        <AdminUsersPage />
-      ) : (
+      {tab === 'users' && <AdminUsersPage />}
+      {tab === 'services' && (
         <SplitView
           open={Boolean(selectedService)}
           listPanel={<ServiceList selectedKey={selectedServiceKey} onSelect={setSelectedServiceKey} />}
@@ -172,6 +163,15 @@ const AdminPage = () => {
               <ServiceDetail service={selectedService} onClose={() => setSelectedServiceKey(null)} />
             )
           }
+        />
+      )}
+      {tab === 'settings' && (
+        <PlaceholderPage title="Settings" note="Coming soon — platform-wide admin settings." />
+      )}
+      {tab === 'audit-log' && (
+        <PlaceholderPage
+          title="Audit log"
+          note="Coming soon — built from the event-bus stream (Branch 8), not a separate write path. Also the likely fallback for Admin's cross-Account Orders/Billing visibility now that both moved out of Admin in 4.3 — see the open question in ROADMAP.md's 4.3 entry."
         />
       )}
     </div>

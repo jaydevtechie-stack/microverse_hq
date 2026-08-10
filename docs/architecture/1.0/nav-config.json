@@ -1,0 +1,112 @@
+{
+  "$schema": "microverse-nav-config-v1",
+  "description": "Role-based navigation tree for the Microverse GUI. Each role maps to an ordered list of top-level nav items. Items with a 'children' array render as an in-page Subnav tab row on that item's own page (see branding/mv-1.0/design-system/mock-ups/platform_projects_hub_and_admin.html's #subnav) — the top-level nav stays a plain link to the first child; children are NOT a navbar dropdown/popup menu.",
+  "roles": {
+    "platform:customer": {
+      "nav": [
+        { "id": "dashboard", "label": "Dashboard", "route": "/dashboard" },
+        { "id": "services", "label": "Services", "route": "/services" },
+        {
+          "id": "orders",
+          "label": "Orders",
+          "route": "/orders",
+          "notes": "Global list, filterable by service. Service detail page links here pre-filtered via ?serviceId="
+        },
+        {
+          "id": "billing",
+          "label": "Billing",
+          "route": "/billing",
+          "notes": "Global list, filterable by service. Cross-linked with Orders once an order is billed."
+        }
+      ]
+    },
+    "platform:analyst": {
+      "nav": [
+        { "id": "dashboard", "label": "Dashboard", "route": "/dashboard" },
+        {
+          "id": "analysis-queue",
+          "label": "Analysis queue",
+          "route": "/analysis-queue",
+          "notes": "Cross-service, filterable by customer. No standalone Services nav item — each queue item deep-links to /services/:id for context."
+        }
+      ]
+    },
+    "platform:reviewer": {
+      "nav": [
+        { "id": "dashboard", "label": "Dashboard", "route": "/dashboard" },
+        {
+          "id": "review-queue",
+          "label": "Review queue",
+          "route": "/review-queue",
+          "notes": "Cross-service, filterable by customer. No standalone Services nav item — each queue item deep-links to /services/:id for context."
+        }
+      ]
+    },
+    "platform:project-manager": {
+      "nav": [
+        { "id": "dashboard", "label": "Dashboard", "route": "/dashboard" },
+        {
+          "id": "projects",
+          "label": "Projects",
+          "route": "/pm/projects",
+          "notes": "The contract/delivery unit (see docs/business/1.0/overview.md — 'a Project is the contract unit'). Restored in 4.3; was dropped from an earlier draft of this config in error. Master-detail split view: list of Projects the PM owns (via pm_accounts + service scope), detail shows that Project's Orders/Tasks."
+        },
+        {
+          "id": "orders",
+          "label": "Orders",
+          "route": "/pm/orders",
+          "notes": "Moved here from platform:admin in 4.3 — PM-scoped (pm_accounts + service scope), not global. Placeholder/dummy page only for 4.3 — real order list functionality + 4.1.2's shared-pool claim (FOR UPDATE SKIP LOCKED, see docs/architecture/1.0/business-services.md's 'The task pool') are later-phase work, same 'stub now, build later' pattern as 4.0.3's Services tab. This nav item exists now so the eventual pool UI has a home already reserved under PM, not Admin."
+        },
+        {
+          "id": "delivery-team",
+          "label": "Delivery team",
+          "route": "/pm/delivery-team",
+          "children": [
+            { "id": "analysts", "label": "Analysts", "route": "/pm/delivery-team/analysts" },
+            { "id": "reviewers", "label": "Reviewers", "route": "/pm/delivery-team/reviewers" }
+          ],
+          "notes": "List of analysts/reviewers, master-detail split view. Detail shows that person's tasks assigned. No workload/performance metrics yet — deferred to Branch 8's audit-trail work; this is list+detail only for 4.3. Analysts/Reviewers render as an in-page Subnav tab row (DeliveryTeamPage.js), same shape as Admin below — not a navbar dropdown."
+        }
+      ]
+    },
+    "platform:account-manager": {
+      "nav": [
+        { "id": "dashboard", "label": "Dashboard", "route": "/dashboard" },
+        {
+          "id": "customers",
+          "label": "Customers",
+          "route": "/am/customers",
+          "notes": "Account-level view — contacts, services engaged, cross-sell/upsell visibility (see docs/business/1.0/overview.md's Account management section). Master-detail split view: list of Accounts, detail shows that Account's engagement history."
+        },
+        {
+          "id": "billing",
+          "label": "Billing",
+          "route": "/am/billing",
+          "notes": "Moved here from platform:admin in 4.3 — account-manager scoped (which Accounts they own), not global. Fits the sell/commercial-engagement remit: contract terms (docs/business/1.0/overview.md's payment_terms), invoicing status, live under the role that owns the customer relationship rather than Admin."
+        }
+      ]
+    },
+    "platform:admin": {
+      "nav": [
+        { "id": "dashboard", "label": "Dashboard", "route": "/dashboard" },
+        {
+          "id": "admin",
+          "label": "Admin",
+          "route": "/admin/users",
+          "children": [
+            {
+              "id": "users",
+              "label": "Users",
+              "route": "/admin/users",
+              "notes": "Single unscoped list, all account types (customer, analyst, reviewer, project-manager, account-manager, admin) with a role/type filter and column."
+            },
+            { "id": "services", "label": "Services", "route": "/admin/services", "notes": "Global, unscoped." },
+            { "id": "settings", "label": "Settings", "route": "/admin/settings" },
+            { "id": "audit-log", "label": "Audit log", "route": "/admin/audit-log" }
+          ],
+          "notes": "Admin as one top-level item; Users/Services/Settings/Audit-log render as an in-page Subnav tab row (AdminPage.js) below the main nav, matching branding/mv-1.0/design-system/mock-ups/platform_projects_hub_and_admin.html's #subnav — not four flat top-level items, and not a navbar dropdown. Same shape as platform:project-manager's Delivery team."
+        }
+      ]
+    }
+  }
+}
