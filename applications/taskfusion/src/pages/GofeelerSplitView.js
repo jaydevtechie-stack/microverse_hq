@@ -1,6 +1,7 @@
 // src/pages/GofeelerSplitView.js
 import React, { useRef, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import GofeelerListPanel from '../components/GofeelerListPanel';
 import TaskDetailContent from '../components/TaskDetailContent';
 import CreateOrderForm from '../components/CreateOrderForm';
@@ -20,6 +21,7 @@ const MAX_SPLIT = 60;
 // shareable and browser back/forward works — the mockup's demo used
 // local state instead, but a real app needs addressable routes.
 const GofeelerSplitView = () => {
+  const { t } = useTranslation(['common', 'orders']);
   const { pathname } = useLocation();
   const { id } = useParams();
   const isMobile = useIsMobile();
@@ -85,7 +87,7 @@ const GofeelerSplitView = () => {
       {splitOpen && (
         <div
           onMouseDown={handleResizeStart}
-          title="Drag to resize"
+          title={t('common:dragToResize')}
           style={{
             width: 6,
             flexShrink: 0,
@@ -108,7 +110,7 @@ const GofeelerSplitView = () => {
               to="/"
               style={{ color: 'var(--mv-color-primary)', fontSize: 12, textDecoration: 'none' }}
             >
-              ← Back
+              {t('common:back')}
             </Link>
 
             {panel === 'detail' && <TaskDetailContent id={id} />}
@@ -122,7 +124,7 @@ const GofeelerSplitView = () => {
                     margin: '14px 0 4px',
                   }}
                 >
-                  Gofeeler · New order
+                  {t('orders:createPage.eyebrow')}
                 </p>
                 <p
                   style={{
@@ -132,7 +134,7 @@ const GofeelerSplitView = () => {
                     margin: '0 0 18px',
                   }}
                 >
-                  Create sentiment analysis order
+                  {t('orders:createPage.heading')}
                 </p>
                 <CreateOrderForm onCreated={() => setRefreshKey((k) => k + 1)} />
               </>

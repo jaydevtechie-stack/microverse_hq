@@ -1,0 +1,11 @@
+{
+  "listPanel": {
+    "header": "Orders & tasks",
+    "newLink": "+ New",
+    "loadError": "Couldn't load tasks: {{error}}",
+    "loading": "Loading tasks…",
+    "emptyPm": "No tasks yet.",
+    "emptyCustomer": "You haven't submitted any orders yet.",
+    "emptyOther": "No tasks assigned to you right now."
+  }
+}
