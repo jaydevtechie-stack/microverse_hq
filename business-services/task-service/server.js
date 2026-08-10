@@ -6,6 +6,7 @@ const taskRoutes = require('./routes/task-routes');
 const userRoutes = require('./routes/user-routes');
 const accountRoutes = require('./routes/account-routes');
 const projectRoutes = require('./routes/project-routes');
+const serviceRoutes = require('./routes/service-routes');
 const { initPolling } = require('./cron/task-polling');
 const { ensureSchema } = require('./db');
 const { syncUser } = require('./middleware/auth');
@@ -26,6 +27,7 @@ app.use('/api', taskRoutes);
 app.use('/api', userRoutes);
 app.use('/api', accountRoutes);
 app.use('/api', projectRoutes);
+app.use('/api', serviceRoutes);
 
 // Postgres connection — creates the tasks table on first boot if it's
 // not there yet (no separate migration tool for a table this small).

@@ -229,6 +229,43 @@ async function ensureSchema() {
   await pool.query(`
     ALTER TABLE projects ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active';
   `);
+
+  // Backs the Dashboard's service grid and Admin's Services tab (see
+  // ARCHITECTURE.md's Dashboard/UI notes) — replaces the hardcoded
+  // SERVICES array that lived in the frontend's data/services.js.
+  // Icon/illustration/color theme and subdomain/required_role stay
+  // frontend-only static config (code assets and deployment concerns,
+  // not admin-editable content) — this table owns only the fields an
+  // admin actually edits via the add/edit form.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS services (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      key TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
+      tech TEXT,
+      title TEXT,
+      description TEXT,
+      status TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('online', 'basic', 'building', 'designing', 'planned')),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+  // One-time seed of the 7 known services — ON CONFLICT DO NOTHING so
+  // this is safe to run on every boot without clobbering admin edits.
+  // Copy pulled from ROADMAP.md's "Up next" one-liners (title) and the
+  // service_in_progress_landing mockup's own blurb text (description),
+  // not invented.
+  await pool.query(`
+    INSERT INTO services (key, name, tech, title, description, status) VALUES
+      ('gofeeler', 'Gofeeler', 'Go', 'AI-powered sentiment analysis', 'Understands customer feedback and surfaces sentiment, tags, and recommendations for PMs, analysts, and reviewers.', 'online'),
+      ('springpix', 'SpringPix', 'Java', 'Raster & GIS hotspot analysis', 'The basic engine is live. Advanced GIS analysis is still being built.', 'basic'),
+      ('pyreel', 'PyReel', 'Python', 'Video processing pipeline', 'The basic engine is live. Advanced video processing features are still being built.', 'basic'),
+      ('djaboard', 'Djaboard', 'Python', 'Leaderboards & gamification', 'This service is actively under construction.', 'building'),
+      ('elixtempo', 'elixtempo', 'Elixir', 'Time tracking', 'Architecture and data model are still being designed.', 'designing'),
+      ('rustledger', 'rustledger', 'Rust', 'Billing & invoices', 'Architecture and data model are still being designed.', 'designing'),
+      ('rubykudos', 'RubyKudos', 'Ruby', 'Kudos capture', 'Planned for a future phase; work has not started yet.', 'planned')
+    ON CONFLICT (key) DO NOTHING;
+  `);
 }
 
 module.exports = { pool, ensureSchema };

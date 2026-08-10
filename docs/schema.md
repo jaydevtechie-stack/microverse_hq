@@ -47,6 +47,26 @@ CREATE INDEX IF NOT EXISTS idx_tasks_tags ON tasks USING GIN (tags);
 
 **Current vs. target schema — a real, intentional gap, now partially closed.** `customer_id`/`account_id` (4.2) are live FKs — `assignee` and `owner` are still plain `TEXT` (Keycloak usernames stand in, per the "no order-service yet" note in [docs/roadmap/1.0/platform-services.md](roadmap/1.0/platform-services.md)), and `status` is still a free-text column, rather than the normalized `statuses` FK below. That's the pragmatic MVP shape for what's left — not urgent tech debt, just documented as a conscious choice. `statuses` below is the remaining target to migrate `status` toward once there's an actual reason to (wanting FK-enforced status transitions) — not before.
 
+## services — ✅ live
+
+Backs the Dashboard's service grid and Admin's Services tab (see [docs/architecture/1.0/applications.md](architecture/1.0/applications.md)'s Dashboard/UI notes) — replaces the hardcoded `SERVICES` array that used to live in TaskFusion's `data/services.js`. Only the admin-editable content fields live here: icon SVGs, line-art illustrations, dark/light color tokens, `subdomain`, and `required_role` stay static in the frontend (code assets and Keycloak/nginx-provisioning concerns, not something a form should edit), keyed by the same `key`.
+
+```sql
+CREATE TABLE IF NOT EXISTS services (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  key          TEXT UNIQUE NOT NULL,
+  name         TEXT NOT NULL,
+  tech         TEXT,
+  title        TEXT,
+  description  TEXT,
+  status       TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('online', 'basic', 'building', 'designing', 'planned')),
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+Seeded on every boot (`ON CONFLICT (key) DO NOTHING`) with the 7 known services, so admin edits are never clobbered on restart. `GET /api/services` has no role check (the public per-subdomain "coming soon" page, `ServiceInProgressPage`, needs it while logged out); `POST`/`PUT` require `platform:admin`.
+
 ## Target normalized schema (designed, not yet migrated)
 
 The direction `tasks` migrates toward once `customer`/`assignee`/`owner`/`status` need to be more than free text.

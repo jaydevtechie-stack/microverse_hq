@@ -55,4 +55,19 @@ async function syncUser(req, res, next) {
   next();
 }
 
-module.exports = { syncUser };
+// Small shared version of the inline `req.claims.realm_access.roles
+// .includes(...)` check project-routes.js already duplicates for
+// platform:account-manager/platform:customer — worth the one-function
+// extraction now that service-routes.js needs the same check a third
+// time. Still reads the same unverified req.claims syncUser sets.
+function requireRealmRole(role) {
+  return (req, res, next) => {
+    const roles = req.claims?.realm_access?.roles || [];
+    if (!roles.includes(role)) {
+      return res.status(403).json({ message: `Requires ${role}` });
+    }
+    next();
+  };
+}
+
+module.exports = { syncUser, requireRealmRole };
