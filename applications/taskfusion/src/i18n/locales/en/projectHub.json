@@ -1,0 +1,15 @@
+{
+  "tabs": {
+    "projects": "Projects",
+    "accounts": "Accounts"
+  },
+  "headerProjects": "Projects · PM",
+  "headerAccounts": "Accounts · PM",
+  "loadError": "Couldn't load {{tab}}: {{error}}",
+  "loading": "Loading…",
+  "empty": "No {{tab}} yet — you'll see Accounts here once you're set as an owning PM (see SCHEMA.md's pm_accounts).",
+  "unassignedNotLoggedIn": "Unassigned — user hasn’t logged in yet",
+  "ordersTasksLabel": "Orders / Tasks",
+  "noTasksVisible": "No tasks visible — either none exist yet, or none match a service scope you hold (see ARCHITECTURE.md's Roles and permissions).",
+  "assignedPmsLabel": "Assigned PMs"
+}

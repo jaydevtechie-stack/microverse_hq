@@ -1,58 +1,66 @@
 import React, { useEffect, useState } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 import { IconBuilding } from '@tabler/icons-react';
 import SplitView from '../components/SplitView';
 import { authHeaders } from '../services/keycloak';
 import { STATUS_STYLE } from '../components/TaskStatusBadge';
 
-const TABS = [
-  { id: 'projects', label: 'Projects' },
-  { id: 'accounts', label: 'Accounts' },
-];
+const TAB_IDS = ['projects', 'accounts'];
 
-const Subnav = ({ active, onChange }) => (
+const Subnav = ({ active, onChange }) => {
+  const { t } = useTranslation('projectHub');
+  return (
   <div style={{ display: 'flex', gap: 18, padding: '0 4px', marginBottom: 10 }}>
-    {TABS.map((tab) => (
+    {TAB_IDS.map((tabId) => (
       <span
-        key={tab.id}
-        onClick={() => onChange(tab.id)}
+        key={tabId}
+        onClick={() => onChange(tabId)}
         style={{
           fontSize: 13,
           cursor: 'pointer',
           paddingBottom: 4,
-          color: active === tab.id ? 'var(--mv-color-primary)' : 'var(--mv-text-muted)',
-          borderBottom: active === tab.id ? '2px solid var(--mv-color-primary)' : '2px solid transparent',
+          color: active === tabId ? 'var(--mv-color-primary)' : 'var(--mv-text-muted)',
+          borderBottom: active === tabId ? '2px solid var(--mv-color-primary)' : '2px solid transparent',
         }}
       >
-        {tab.label}
+        {t(`tabs.${tabId}`)}
       </span>
     ))}
   </div>
-);
+  );
+};
 
-const ItemList = ({ tab, items, error, selectedId, onSelect }) => (
+const ItemList = ({ tab, items, error, selectedId, onSelect }) => {
+  const { t } = useTranslation(['projectHub', 'accounts']);
+  return (
   <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
     <div style={{ padding: '14px 16px', borderBottom: '0.5px solid var(--mv-border)' }}>
       <span style={{ color: 'var(--mv-text)', fontSize: 13, fontWeight: 500 }}>
-        {tab === 'projects' ? 'Projects · PM' : 'Accounts · PM'}
+        {tab === 'projects' ? t('headerProjects') : t('headerAccounts')}
       </span>
     </div>
     <div style={{ overflowY: 'auto', flex: 1 }}>
       {error && (
         <p style={{ color: 'var(--mv-color-danger)', fontSize: 13, padding: '12px 16px' }}>
-          Couldn't load {tab}: {error}
+          {t('loadError', { tab, error })}
         </p>
       )}
       {!error && !items && (
-        <p style={{ color: 'var(--mv-text-muted)', fontSize: 13, padding: '12px 16px' }}>Loading…</p>
+        <p style={{ color: 'var(--mv-text-muted)', fontSize: 13, padding: '12px 16px' }}>{t('loading')}</p>
       )}
       {items?.length === 0 && (
         <p style={{ color: 'var(--mv-text-muted)', fontSize: 13, padding: '12px 16px' }}>
-          No {tab} yet — you'll see Accounts here once you're set as an owning PM (see SCHEMA.md's pm_accounts).
+          {t('empty', { tab })}
         </p>
       )}
       {items?.map((item) => {
         const isSelected = item.id === selectedId;
-        const sub = tab === 'projects' ? item.account_name : item.type === 'company' ? 'Company' : 'Individual';
+        const sub =
+          tab === 'projects'
+            ? item.account_name
+            : item.type === 'company'
+              ? t('accounts:newAccountForm.typeCompany')
+              : t('accounts:newAccountForm.typeIndividual');
         return (
           <div
             key={item.id}
@@ -92,39 +100,45 @@ const ItemList = ({ tab, items, error, selectedId, onSelect }) => (
       })}
     </div>
   </div>
-);
+  );
+};
 
 const infoBox = { background: 'var(--mv-bg)', border: '0.5px solid var(--mv-border)', borderRadius: 8, padding: '10px 12px' };
 
-const ProjectDetail = ({ project, onClose }) => (
+const ProjectDetail = ({ project, onClose }) => {
+  const { t } = useTranslation(['projectHub', 'accounts', 'common']);
+  return (
   <>
     <span onClick={onClose} style={{ color: 'var(--mv-color-primary)', fontSize: 12, cursor: 'pointer' }}>
-      ← Back
+      {t('common:back')}
     </span>
 
     <p style={{ color: 'var(--mv-text)', fontSize: 15, fontWeight: 500, margin: '14px 0 4px' }}>{project.name}</p>
     <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 18px' }}>
-      Account: <span style={{ color: 'var(--mv-color-primary)' }}>{project.account_name}</span>
+      <Trans
+        i18nKey="accounts:projectDetail.accountLabel"
+        values={{ accountName: project.account_name }}
+        components={{ 1: <span style={{ color: 'var(--mv-color-primary)' }} /> }}
+      />
     </p>
 
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
       <div style={infoBox}>
-        <p style={{ color: 'var(--mv-badge-bg)', fontSize: 11, margin: '0 0 4px' }}>Project manager</p>
+        <p style={{ color: 'var(--mv-badge-bg)', fontSize: 11, margin: '0 0 4px' }}>{t('accounts:projectDetail.projectManagerLabel')}</p>
         <p style={{ color: 'var(--mv-text)', fontSize: 13, margin: 0 }}>
-          {project.responsible_user_name || 'Unassigned — user hasn’t logged in yet'}
+          {project.responsible_user_name || t('unassignedNotLoggedIn')}
         </p>
       </div>
       <div style={infoBox}>
-        <p style={{ color: 'var(--mv-badge-bg)', fontSize: 11, margin: '0 0 4px' }}>Payment terms</p>
+        <p style={{ color: 'var(--mv-badge-bg)', fontSize: 11, margin: '0 0 4px' }}>{t('accounts:projectDetail.paymentTermsLabel')}</p>
         <p style={{ color: 'var(--mv-text)', fontSize: 13, margin: 0 }}>{project.payment_terms || '—'}</p>
       </div>
     </div>
 
-    <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>Orders / Tasks</p>
+    <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>{t('ordersTasksLabel')}</p>
     {project.tasks.length === 0 && (
       <p style={{ color: 'var(--mv-badge-bg)', fontSize: 12 }}>
-        No tasks visible — either none exist yet, or none match a service scope you hold (see
-        ARCHITECTURE.md's Roles and permissions).
+        {t('noTasksVisible')}
       </p>
     )}
     {project.tasks.map((task) => (
@@ -153,12 +167,15 @@ const ProjectDetail = ({ project, onClose }) => (
       </div>
     ))}
   </>
-);
+  );
+};
 
-const AccountDetail = ({ account, onClose }) => (
+const AccountDetail = ({ account, onClose }) => {
+  const { t } = useTranslation(['projectHub', 'accounts', 'common']);
+  return (
   <>
     <span onClick={onClose} style={{ color: 'var(--mv-color-primary)', fontSize: 12, cursor: 'pointer' }}>
-      ← Back
+      {t('common:back')}
     </span>
 
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '14px 0 18px' }}>
@@ -179,12 +196,12 @@ const AccountDetail = ({ account, onClose }) => (
       <div>
         <p style={{ color: 'var(--mv-text)', fontSize: 15, fontWeight: 500, margin: 0 }}>{account.name}</p>
         <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '2px 0 0' }}>
-          {account.type === 'company' ? 'Company' : 'Individual'}
+          {account.type === 'company' ? t('accounts:newAccountForm.typeCompany') : t('accounts:newAccountForm.typeIndividual')}
         </p>
       </div>
     </div>
 
-    <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>Assigned PMs</p>
+    <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>{t('assignedPmsLabel')}</p>
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 18 }}>
       {account.pms.map((pm) => (
         <span
@@ -202,7 +219,7 @@ const AccountDetail = ({ account, onClose }) => (
       ))}
     </div>
 
-    <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>Projects</p>
+    <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>{t('tabs.projects')}</p>
     {account.projects.map((project) => (
       <div
         key={project.id}
@@ -219,7 +236,8 @@ const AccountDetail = ({ account, onClose }) => (
       </div>
     ))}
   </>
-);
+  );
+};
 
 // PM-facing hub — Projects/Accounts tabs, both scoped server-side to
 // the caller's own pm_accounts ownership (page-level gate is broader:
