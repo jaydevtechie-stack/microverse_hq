@@ -152,6 +152,15 @@
         "attributes": {}
       },
       {
+        "id": "6e879670-4b9b-4256-83a5-6da84e903ff3",
+        "name": "service:gofeeler",
+        "description": "",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "9e9ca4e3-1cbb-4381-8356-c255387cc21c",
+        "attributes": {}
+      },
+      {
         "id": "22f933ac-0743-4d5b-8760-aba7bf1170bf",
         "name": "customer",
         "description": "",
