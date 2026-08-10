@@ -1,0 +1,47 @@
+{
+  "header": "Accounts",
+  "noProjectsYet": "No projects yet.",
+  "newProjectLink": "+ New project",
+  "newAccountLink": "+ New account",
+  "projectStatus": {
+    "active": "Active",
+    "pendingApproval": "Pending approval"
+  },
+  "projectDetail": {
+    "accountLabel": "Account: <1>{{accountName}}</1>",
+    "approving": "Approving…",
+    "approveProject": "Approve project",
+    "projectManagerLabel": "Project manager",
+    "unassigned": "Unassigned",
+    "paymentTermsLabel": "Payment terms",
+    "tasksLabel": "Tasks",
+    "noTasksYet": "No tasks under this project yet.",
+    "noDueDate": "No due date"
+  },
+  "newProjectForm": {
+    "heading": "New project",
+    "underAccount": "Under <1>{{accountName}}</1> — starts pending account-manager approval.",
+    "nameLabel": "Project name",
+    "namePlaceholder": "e.g. Holiday campaign sentiment tracking",
+    "nameRequired": "Project name is required",
+    "submitting": "Creating…",
+    "submit": "Create project"
+  },
+  "newAccountForm": {
+    "heading": "New account",
+    "nameLabel": "Account name",
+    "namePlaceholder": "e.g. Cedarline Logistics",
+    "typeLabel": "Type",
+    "typeCompany": "Company",
+    "typeIndividual": "Individual",
+    "nameRequired": "Account name is required",
+    "submitting": "Creating…",
+    "submit": "Create account"
+  },
+  "loadError": "Couldn't load accounts: {{error}}",
+  "loading": "Loading accounts…",
+  "billingPlaceholder": {
+    "title": "Billing",
+    "note": "Coming soon — account-manager-scoped billing: contract terms, invoicing status for the Accounts this AM owns."
+  }
+}

@@ -13,6 +13,7 @@ import enNavbar from './locales/en/navbar.json';
 import enDashboard from './locales/en/dashboard.json';
 import enAdmin from './locales/en/admin.json';
 import enOrders from './locales/en/orders.json';
+import enAccounts from './locales/en/accounts.json';
 
 i18n.use(initReactI18next).init({
   resources: {
@@ -23,12 +24,13 @@ i18n.use(initReactI18next).init({
       dashboard: enDashboard,
       admin: enAdmin,
       orders: enOrders,
+      accounts: enAccounts,
     },
   },
   lng: 'en',
   fallbackLng: 'en',
   defaultNS: 'common',
-  ns: ['common', 'landing', 'navbar', 'dashboard', 'admin', 'orders'],
+  ns: ['common', 'landing', 'navbar', 'dashboard', 'admin', 'orders', 'accounts'],
   interpolation: {
     escapeValue: false, // React already escapes output
   },

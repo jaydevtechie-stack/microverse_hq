@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 import { IconChevronDown, IconChevronRight } from '@tabler/icons-react';
 import { authHeaders } from '../services/keycloak';
 import SplitView from './SplitView';
 import { STATUS_STYLE } from './TaskStatusBadge';
 
 const PROJECT_STATUS_STYLE = {
-  active: { bg: 'var(--mv-color-success, #2f9e64)', label: 'Active' },
-  dormant: { bg: 'var(--mv-text-muted)', label: 'Pending approval' },
+  active: { bg: 'var(--mv-color-success, #2f9e64)', labelKey: 'projectStatus.active' },
+  dormant: { bg: 'var(--mv-text-muted)', labelKey: 'projectStatus.pendingApproval' },
 };
 
 const ProjectStatusBadge = ({ status }) => {
+  const { t } = useTranslation('accounts');
   const style = PROJECT_STATUS_STYLE[status] || PROJECT_STATUS_STYLE.dormant;
   return (
     <span
@@ -22,7 +24,7 @@ const ProjectStatusBadge = ({ status }) => {
       }}
     >
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: style.bg }} />
-      {style.label}
+      {t(style.labelKey)}
     </span>
   );
 };
@@ -31,10 +33,12 @@ const ProjectStatusBadge = ({ status }) => {
 // Account's Projects. `canCreateProject` shows a "+ New project" link
 // under each Account's project list (customer view only — projects are
 // customer-initiated, see project-routes.js's POST /projects).
-const AccountAccordion = ({ accounts, expanded, onToggle, selection, onSelectProject, onNewProject, canCreateProject }) => (
+const AccountAccordion = ({ accounts, expanded, onToggle, selection, onSelectProject, onNewProject, canCreateProject }) => {
+  const { t } = useTranslation('accounts');
+  return (
   <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
     <div style={{ padding: '14px 16px', borderBottom: '0.5px solid var(--mv-border)' }}>
-      <span style={{ color: 'var(--mv-text)', fontSize: 13, fontWeight: 500 }}>Accounts</span>
+      <span style={{ color: 'var(--mv-text)', fontSize: 13, fontWeight: 500 }}>{t('header')}</span>
     </div>
     <div style={{ overflowY: 'auto', flex: 1 }}>
       {accounts.map((account) => {
@@ -68,7 +72,7 @@ const AccountAccordion = ({ accounts, expanded, onToggle, selection, onSelectPro
               <div style={{ paddingBottom: 8 }}>
                 {account.projects.length === 0 && (
                   <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, padding: '0 16px 8px 38px' }}>
-                    No projects yet.
+                    {t('noProjectsYet')}
                   </p>
                 )}
                 {account.projects.map((project) => {
@@ -103,7 +107,7 @@ const AccountAccordion = ({ accounts, expanded, onToggle, selection, onSelectPro
                       cursor: 'pointer',
                     }}
                   >
-                    + New project
+                    {t('newProjectLink')}
                   </div>
                 )}
               </div>
@@ -113,18 +117,25 @@ const AccountAccordion = ({ accounts, expanded, onToggle, selection, onSelectPro
       })}
     </div>
   </div>
-);
+  );
+};
 
 const infoBox = { background: 'var(--mv-bg)', border: '0.5px solid var(--mv-border)', borderRadius: 8, padding: '10px 12px' };
 
-const ProjectDetail = ({ project, canApprove, onApprove, approving }) => (
+const ProjectDetail = ({ project, canApprove, onApprove, approving }) => {
+  const { t } = useTranslation('accounts');
+  return (
   <>
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 4px' }}>
       <p style={{ color: 'var(--mv-text)', fontSize: 15, fontWeight: 500, margin: 0 }}>{project.name}</p>
       <ProjectStatusBadge status={project.status} />
     </div>
     <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 18px' }}>
-      Account: <span style={{ color: 'var(--mv-color-primary)' }}>{project.account_name}</span>
+      <Trans
+        i18nKey="accounts:projectDetail.accountLabel"
+        values={{ accountName: project.account_name }}
+        components={{ 1: <span style={{ color: 'var(--mv-color-primary)' }} /> }}
+      />
     </p>
 
     {canApprove && project.status === 'dormant' && (
@@ -145,26 +156,26 @@ const ProjectDetail = ({ project, canApprove, onApprove, approving }) => (
           opacity: approving ? 0.6 : 1,
         }}
       >
-        {approving ? 'Approving…' : 'Approve project'}
+        {approving ? t('projectDetail.approving') : t('projectDetail.approveProject')}
       </button>
     )}
 
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
       <div style={infoBox}>
-        <p style={{ color: 'var(--mv-badge-bg)', fontSize: 11, margin: '0 0 4px' }}>Project manager</p>
+        <p style={{ color: 'var(--mv-badge-bg)', fontSize: 11, margin: '0 0 4px' }}>{t('projectDetail.projectManagerLabel')}</p>
         <p style={{ color: 'var(--mv-text)', fontSize: 13, margin: 0 }}>
-          {project.responsible_user_name || 'Unassigned'}
+          {project.responsible_user_name || t('projectDetail.unassigned')}
         </p>
       </div>
       <div style={infoBox}>
-        <p style={{ color: 'var(--mv-badge-bg)', fontSize: 11, margin: '0 0 4px' }}>Payment terms</p>
+        <p style={{ color: 'var(--mv-badge-bg)', fontSize: 11, margin: '0 0 4px' }}>{t('projectDetail.paymentTermsLabel')}</p>
         <p style={{ color: 'var(--mv-text)', fontSize: 13, margin: 0 }}>{project.payment_terms || '—'}</p>
       </div>
     </div>
 
-    <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>Tasks</p>
+    <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>{t('projectDetail.tasksLabel')}</p>
     {project.tasks.length === 0 && (
-      <p style={{ color: 'var(--mv-badge-bg)', fontSize: 12 }}>No tasks under this project yet.</p>
+      <p style={{ color: 'var(--mv-badge-bg)', fontSize: 12 }}>{t('projectDetail.noTasksYet')}</p>
     )}
     {project.tasks.map((task) => (
       <div
@@ -190,12 +201,13 @@ const ProjectDetail = ({ project, canApprove, onApprove, approving }) => (
           {task.title}
         </span>
         <span style={{ color: 'var(--mv-text-muted)', fontSize: 11, whiteSpace: 'nowrap' }}>
-          {task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No due date'}
+          {task.due_date ? new Date(task.due_date).toLocaleDateString() : t('projectDetail.noDueDate')}
         </span>
       </div>
     ))}
   </>
-);
+  );
+};
 
 const fieldLabelStyle = { color: 'var(--mv-text-muted)', fontSize: 12, display: 'block', marginBottom: 6 };
 const fieldInputStyle = {
@@ -212,13 +224,14 @@ const fieldInputStyle = {
 };
 
 const NewProjectForm = ({ accountName, onCreate, onCancel }) => {
+  const { t } = useTranslation(['accounts', 'common']);
   const [name, setName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
   const handleSubmit = async () => {
     if (!name.trim()) {
-      setError('Project name is required');
+      setError(t('newProjectForm.nameRequired'));
       return;
     }
     setSubmitting(true);
@@ -233,18 +246,21 @@ const NewProjectForm = ({ accountName, onCreate, onCancel }) => {
 
   return (
     <>
-      <p style={{ color: 'var(--mv-text)', fontSize: 15, fontWeight: 500, margin: '0 0 4px' }}>New project</p>
+      <p style={{ color: 'var(--mv-text)', fontSize: 15, fontWeight: 500, margin: '0 0 4px' }}>{t('newProjectForm.heading')}</p>
       <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 18px' }}>
-        Under <span style={{ color: 'var(--mv-color-primary)' }}>{accountName}</span> — starts pending
-        account-manager approval.
+        <Trans
+          i18nKey="accounts:newProjectForm.underAccount"
+          values={{ accountName }}
+          components={{ 1: <span style={{ color: 'var(--mv-color-primary)' }} /> }}
+        />
       </p>
 
-      <label style={fieldLabelStyle}>Project name</label>
+      <label style={fieldLabelStyle}>{t('newProjectForm.nameLabel')}</label>
       <input
         type="text"
         value={name}
         onChange={(e) => setName(e.target.value)}
-        placeholder="e.g. Holiday campaign sentiment tracking"
+        placeholder={t('newProjectForm.namePlaceholder')}
         style={fieldInputStyle}
       />
       {error && <p style={{ color: 'var(--mv-color-danger)', fontSize: 12, margin: '-8px 0 14px' }}>{error}</p>}
@@ -266,7 +282,7 @@ const NewProjectForm = ({ accountName, onCreate, onCancel }) => {
             opacity: submitting ? 0.6 : 1,
           }}
         >
-          {submitting ? 'Creating…' : 'Create project'}
+          {submitting ? t('newProjectForm.submitting') : t('newProjectForm.submit')}
         </button>
         <button
           type="button"
@@ -283,7 +299,7 @@ const NewProjectForm = ({ accountName, onCreate, onCancel }) => {
             cursor: submitting ? 'default' : 'pointer',
           }}
         >
-          Cancel
+          {t('common:cancel')}
         </button>
       </div>
     </>
@@ -291,6 +307,7 @@ const NewProjectForm = ({ accountName, onCreate, onCancel }) => {
 };
 
 const NewAccountForm = ({ onCreate, onCancel }) => {
+  const { t } = useTranslation(['accounts', 'common']);
   const [name, setName] = useState('');
   const [type, setType] = useState('company');
   const [submitting, setSubmitting] = useState(false);
@@ -298,7 +315,7 @@ const NewAccountForm = ({ onCreate, onCancel }) => {
 
   const handleSubmit = async () => {
     if (!name.trim()) {
-      setError('Account name is required');
+      setError(t('newAccountForm.nameRequired'));
       return;
     }
     setSubmitting(true);
@@ -313,21 +330,21 @@ const NewAccountForm = ({ onCreate, onCancel }) => {
 
   return (
     <>
-      <p style={{ color: 'var(--mv-text)', fontSize: 15, fontWeight: 500, margin: '0 0 18px' }}>New account</p>
+      <p style={{ color: 'var(--mv-text)', fontSize: 15, fontWeight: 500, margin: '0 0 18px' }}>{t('newAccountForm.heading')}</p>
 
-      <label style={fieldLabelStyle}>Account name</label>
+      <label style={fieldLabelStyle}>{t('newAccountForm.nameLabel')}</label>
       <input
         type="text"
         value={name}
         onChange={(e) => setName(e.target.value)}
-        placeholder="e.g. Cedarline Logistics"
+        placeholder={t('newAccountForm.namePlaceholder')}
         style={fieldInputStyle}
       />
 
-      <label style={fieldLabelStyle}>Type</label>
+      <label style={fieldLabelStyle}>{t('newAccountForm.typeLabel')}</label>
       <select value={type} onChange={(e) => setType(e.target.value)} style={fieldInputStyle}>
-        <option value="company">Company</option>
-        <option value="individual">Individual</option>
+        <option value="company">{t('newAccountForm.typeCompany')}</option>
+        <option value="individual">{t('newAccountForm.typeIndividual')}</option>
       </select>
       {error && <p style={{ color: 'var(--mv-color-danger)', fontSize: 12, margin: '-8px 0 14px' }}>{error}</p>}
 
@@ -348,7 +365,7 @@ const NewAccountForm = ({ onCreate, onCancel }) => {
             opacity: submitting ? 0.6 : 1,
           }}
         >
-          {submitting ? 'Creating…' : 'Create account'}
+          {submitting ? t('newAccountForm.submitting') : t('newAccountForm.submit')}
         </button>
         <button
           type="button"
@@ -365,7 +382,7 @@ const NewAccountForm = ({ onCreate, onCancel }) => {
             cursor: submitting ? 'default' : 'pointer',
           }}
         >
-          Cancel
+          {t('common:cancel')}
         </button>
       </div>
     </>
@@ -380,6 +397,7 @@ const NewAccountForm = ({ onCreate, onCancel }) => {
 // component doesn't need to know which role it's rendering for beyond
 // the capability flags passed in.
 const AccountsProjectsView = ({ canCreateProject = false, canCreateAccount = false, canApproveProject = false }) => {
+  const { t } = useTranslation('accounts');
   const [accounts, setAccounts] = useState(null);
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState(new Set());
@@ -467,10 +485,10 @@ const AccountsProjectsView = ({ canCreateProject = false, canCreateAccount = fal
   };
 
   if (error) {
-    return <p style={{ color: 'var(--mv-color-danger)', fontSize: 13, margin: 'var(--mv-space-3)' }}>Couldn't load accounts: {error}</p>;
+    return <p style={{ color: 'var(--mv-color-danger)', fontSize: 13, margin: 'var(--mv-space-3)' }}>{t('loadError', { error })}</p>;
   }
   if (!accounts) {
-    return <p style={{ color: 'var(--mv-text-muted)', fontSize: 13, margin: 'var(--mv-space-3)' }}>Loading accounts…</p>;
+    return <p style={{ color: 'var(--mv-text-muted)', fontSize: 13, margin: 'var(--mv-space-3)' }}>{t('loading')}</p>;
   }
 
   return (
@@ -491,7 +509,7 @@ const AccountsProjectsView = ({ canCreateProject = false, canCreateAccount = fal
               cursor: 'pointer',
             }}
           >
-            + New account
+            {t('newAccountLink')}
           </button>
         </div>
       )}
