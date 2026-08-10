@@ -6,6 +6,13 @@
     "online": "Online",
     "progress": "In progress"
   },
+  "status": {
+    "online": "online",
+    "basic": "basic",
+    "building": "building",
+    "designing": "designing",
+    "planned": "planned"
+  },
   "buildTracker": {
     "servicesOnline": "{{onlineCount}} of {{totalCount}} services online",
     "label": "Build tracker"
