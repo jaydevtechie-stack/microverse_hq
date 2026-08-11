@@ -19,20 +19,39 @@ RUN npm ci
 COPY applications/taskfusion/ .
 
 # Overwrite whatever's in src/assets/brand/ (gitignored, may be stale or
-# absent) with the real canonical files, mirroring mv-1.0's own layout
-# so tokens.css's relative ../logos, ../images references still resolve
+# absent) with the real canonical files, mirroring mv-1.0's own layout so
+# tokens.css's relative ./logos, ./images references still resolve —
+# logos/ and images/ are siblings of tokens.css under design-system/, not
+# one level up.
 COPY branding/mv-1.0/design-system/tokens.css src/assets/brand/design-system/tokens.css
-COPY branding/mv-1.0/logos/microverse-logo.png src/assets/brand/logos/microverse-logo.png
-COPY branding/mv-1.0/images/microverse-bg.jpg src/assets/brand/images/microverse-bg.jpg
+COPY branding/mv-1.0/design-system/logos/microverse-logo.png src/assets/brand/design-system/logos/microverse-logo.png
+COPY branding/mv-1.0/design-system/images/microverse-bg.jpg src/assets/brand/design-system/images/microverse-bg.jpg
+
+# Each theme is a self-contained bundle (css/ + its own background image
+# for Vienna/Uhuru — see branding/mv-1.0/design-system/themes/theme.config.json
+# for the canonical filenames; COPY can't read that JSON, so they're
+# repeated here literally — keep in sync if a theme's image is ever
+# renamed). Default has no image of its own — it inherits tokens.css's
+# copy above via CSS cascade, so there's nothing to COPY for it.
+COPY branding/mv-1.0/design-system/themes/default/css/light.css src/assets/brand/design-system/themes/default/css/light.css
+COPY branding/mv-1.0/design-system/themes/default/css/dark.css src/assets/brand/design-system/themes/default/css/dark.css
+COPY branding/mv-1.0/design-system/themes/vienna/css/light.css src/assets/brand/design-system/themes/vienna/css/light.css
+COPY branding/mv-1.0/design-system/themes/vienna/css/dark.css src/assets/brand/design-system/themes/vienna/css/dark.css
+COPY branding/mv-1.0/design-system/themes/vienna/images/vienna-grossglockner-bg.jpg src/assets/brand/design-system/themes/vienna/images/vienna-grossglockner-bg.jpg
+COPY branding/mv-1.0/design-system/themes/uhuru/css/light.css src/assets/brand/design-system/themes/uhuru/css/light.css
+COPY branding/mv-1.0/design-system/themes/uhuru/css/dark.css src/assets/brand/design-system/themes/uhuru/css/dark.css
+COPY branding/mv-1.0/design-system/themes/uhuru/images/uhuru-kilimanjaro-bg.jpg src/assets/brand/design-system/themes/uhuru/images/uhuru-kilimanjaro-bg.jpg
 
 # Build-time args — must be declared here to be available during `npm run build`,
 # since CRA bakes REACT_APP_* vars into the bundle at build time, not runtime
 ARG REACT_APP_KEYCLOAK_URL
 ARG REACT_APP_KEYCLOAK_REALM
 ARG REACT_APP_KEYCLOAK_CLIENT_ID
+ARG REACT_APP_BRAND_THEME
 ENV REACT_APP_KEYCLOAK_URL=$REACT_APP_KEYCLOAK_URL \
     REACT_APP_KEYCLOAK_REALM=$REACT_APP_KEYCLOAK_REALM \
-    REACT_APP_KEYCLOAK_CLIENT_ID=$REACT_APP_KEYCLOAK_CLIENT_ID
+    REACT_APP_KEYCLOAK_CLIENT_ID=$REACT_APP_KEYCLOAK_CLIENT_ID \
+    REACT_APP_BRAND_THEME=$REACT_APP_BRAND_THEME
 
 # react-scripts directly, not `npm run build` — the "build" script's
 # "prebuild" hook (sync-brand-assets.js) assumes the local repo layout

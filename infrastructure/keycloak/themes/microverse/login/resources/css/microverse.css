@@ -9,6 +9,16 @@
  * markup, dark-mode handling, and all functional login flows (errors,
  * OTP, WebAuthn, social providers, "forgot password", etc.) stay exactly
  * as keycloak.v2 implements them.
+ *
+ * --mv-color-primary below comes from the active theme's own
+ * branding/design-system/themes/<id>/css/{light,dark}.css, loaded by
+ * ../../theme.properties before this file — see that file's comment.
+ * Those files are normally scoped to [data-brand-theme="<id>"], but
+ * that's a React/JS-set attribute; Keycloak's login page has no JS
+ * runtime to set it, so ../../../Dockerfile's build step rewrites that
+ * selector to bare :root when copying them in. Only :root and
+ * @media(prefers-color-scheme:dark) end up driving color here — there's
+ * no light/dark *toggle* on this page, only the OS preference.
  */
 
 :root {
@@ -19,9 +29,19 @@
    * --keycloak-bg-logo-url are actually consumed from css/styles.css
    * (this file's directory, per tokens.css's own "override per app"
    * comment). Redeclare them here with paths relative to css/ instead.
+   *
+   * --mv-bg-image-url below ends in a marker token (not real CSS — a
+   * placeholder the Dockerfile's build step sed's out) that gets filled
+   * in with the active theme's own image path — see theme.config.json's
+   * backgroundImage per theme. --mv-logo-url doesn't need this: the logo
+   * is shared across every theme, never overridden per-theme.
+   *
+   * Marker text (kept out of the prose above so the Dockerfile's literal
+   * find-and-replace doesn't also mangle this comment): two
+   * underscores, BRAND_BG_IMAGE_PATH, two underscores.
    */
-  --mv-logo-url: url("../branding/logos/microverse-logo.png");
-  --mv-bg-image-url: url("../branding/images/microverse-bg.jpg");
+  --mv-logo-url: url("../branding/design-system/logos/microverse-logo.png");
+  --mv-bg-image-url: url("../branding/design-system/__BRAND_BG_IMAGE_PATH__");
 
   --keycloak-logo-url: var(--mv-logo-url);
   --keycloak-bg-logo-url: var(--mv-bg-image-url);

@@ -26,6 +26,8 @@ services:
       # reach branding/mv-1.0 (see Dockerfile)
       context: .
       dockerfile: infrastructure/keycloak/Dockerfile
+      args:
+        KEYCLOAK_BRAND_THEME: ${MICROVERSE_BRAND_THEME}
     container_name: microverse-keycloak
 
     command:
@@ -70,6 +72,7 @@ services:
         REACT_APP_KEYCLOAK_URL: ${TASKFUSION_KEYCLOAK_URL}
         REACT_APP_KEYCLOAK_REALM: ${TASKFUSION_KEYCLOAK_REALM}
         REACT_APP_KEYCLOAK_CLIENT_ID: ${TASKFUSION_KEYCLOAK_CLIENT_ID}
+        REACT_APP_BRAND_THEME: ${MICROVERSE_BRAND_THEME}
     container_name: microverse-taskfusion
     depends_on:
       microverse-keycloak:

@@ -4,6 +4,15 @@ const ThemeContext = createContext(undefined);
 
 const STORAGE_KEY = 'mv-theme';
 
+// Baked in at build time (see applications/taskfusion/Dockerfile and
+// MICROVERSE_BRAND_THEME in .env — shared with the keycloak image so both
+// stay in sync) — one of the ids in
+// branding/mv-1.0/design-system/themes/theme.config.json. Unset falls back
+// to 'default' here; a genuinely unrecognized value (typo) matches no
+// [data-brand-theme="..."] override file, so it silently falls through to
+// tokens.css's bare :root palette instead.
+const BRAND_THEME = process.env.REACT_APP_BRAND_THEME || 'default';
+
 function getSystemTheme() {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
@@ -19,6 +28,10 @@ export function ThemeProvider({ children }) {
       return getSystemTheme();
     }
   });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-brand-theme', BRAND_THEME);
+  }, []);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
