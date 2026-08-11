@@ -5,8 +5,14 @@
  * ../../../tokens.css's --mv-* color tokens, scoped to
  * [data-brand-theme="vienna"]. Companion file: ./dark.css, which only
  * overrides the tokens that actually change in dark mode — the
- * mode-invariant ones below (secondary/success/danger/avatar/bg-image)
- * live here and simply carry through.
+ * mode-invariant ones below (secondary/success/danger/avatar) live here
+ * and simply carry through.
+ *
+ * No --mv-bg-image-url override here: each consumer's own build step
+ * (not this file) copies ../images/vienna-grossglockner-bg.jpg over the
+ * canonical images/microverse-bg.jpg that --mv-bg-image-url always
+ * points at — see applications/taskfusion/Dockerfile or
+ * infrastructure/keycloak/Dockerfile for the actual mechanism.
  *
  * Values match ../../../mock-ups/vienna-design-system.html. Story behind
  * the palette: ../../VIENNA-DESIGN.md (gitignored, local reference only).
@@ -20,7 +26,6 @@
   --mv-color-danger: #b8493a;
   --mv-avatar-bg: #1f6e4a;
   --mv-avatar-text: #ffffff;
-  --mv-bg-image-url: url("../images/vienna-grossglockner-bg.jpg");
 
   /* light ("Day") values — also the fallback before data-theme is set */
   --mv-color-primary: #1f6e4a; /* pine */

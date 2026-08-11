@@ -15,51 +15,46 @@ FROM quay.io/keycloak/keycloak:latest
 # built from one docker compose build stay in sync).
 ARG KEYCLOAK_BRAND_THEME=default
 
-# --chown so theme.properties and microverse.css (both edited by the sed
-# step below) are writable by the uid-1000 user that step runs as.
+# --chown so the RUN step below (which writes into resources/branding/,
+# as the base image's uid-1000 runtime user) can create files there —
+# without it, COPY's default root ownership blocks that.
 COPY --chown=1000:0 infrastructure/keycloak/themes/microverse /opt/keycloak/themes/microverse
 
-# Copy the whole design-system tree wholesale (all three themes) rather
-# than a curated file list — mirrors mv-1.0's own layout under
-# resources/branding/ so tokens.css's and every theme's relative ./logos,
-# ./images references resolve unmodified, the same files a bind-mount
-# used to provide, now baked in at build time instead. Copying all three
-# is a handful of small CSS files plus two photos either way; simpler to
-# keep in sync than naming each theme's files individually here.
-# --chown matches the base image's runtime user (uid 1000, gid 0 — see
-# `docker run ... id`) — without it these land root-owned and the sed
-# step below (which runs as that same uid 1000) can't write to them.
-COPY --chown=1000:0 branding/mv-1.0/design-system /opt/keycloak/themes/microverse/login/resources/branding/design-system
+COPY --chown=1000:0 branding/mv-1.0/design-system/tokens.css /opt/keycloak/themes/microverse/login/resources/branding/design-system/tokens.css
+COPY --chown=1000:0 branding/mv-1.0/design-system/logos/microverse-logo.png /opt/keycloak/themes/microverse/login/resources/branding/design-system/logos/microverse-logo.png
+COPY --chown=1000:0 branding/mv-1.0/design-system/images/microverse-bg.jpg /opt/keycloak/themes/microverse/login/resources/branding/design-system/images/microverse-bg.jpg
 
-# Wires the build ARG above into the two static files that can't read an
-# env var themselves (theme.properties has no variable syntax; CSS has
-# no build step here the way CRA gives taskfusion process.env.*):
-#
-# 1. theme.properties' styles= line gets its __BRAND_THEME_CSS__
-#    placeholder replaced with the selected theme's own css/light.css +
-#    css/dark.css — see that file's comment for why this is what actually
-#    makes Keycloak's login page pick up the theme's --mv-color-primary
-#    etc.
-# 2. Those two CSS files are normally scoped to
-#    [data-brand-theme="<id>"], a React/JS-set attribute — meaningless on
-#    Keycloak's login page, which has no JS runtime to set it. Rewriting
-#    that selector to bare :root (in place) makes their rules apply
-#    unconditionally instead of never matching anything.
-# 3. microverse.css's __BRAND_BG_IMAGE_PATH__ placeholder gets replaced
-#    with the selected theme's own background image path (Default has
-#    none of its own — see theme.config.json — so it keeps pointing at
-#    tokens.css's shared images/microverse-bg.jpg).
+# Keycloak's login page only ever sees ONE theme, at a fixed,
+# theme-agnostic path — theme.properties and microverse.css both
+# reference branding/design-system/theme/{light,dark}.css and
+# images/microverse-bg.jpg unconditionally, with no idea Vienna or Uhuru
+# exist. This copy of the full theme catalog is scratch space for the
+# RUN step below to pick KEYCLOAK_BRAND_THEME's own dir out of — removed
+# again at the end so the shipped image doesn't carry the other two
+# themes' source files. --chown (uid 1000, matching the RUN step's user)
+# so that final `rm -rf` can actually delete it — /tmp's sticky bit
+# blocks a non-owner from removing a root-owned dir even with write
+# access to /tmp itself.
+COPY --chown=1000:0 branding/mv-1.0/design-system/themes /tmp/themes-catalog
+
+# 1. Copy the selected theme's css/{light,dark}.css to the fixed
+#    resources/branding/design-system/theme/ path, rewriting
+#    [data-brand-theme="<id>"] to bare :root — that selector exists so
+#    the *source* catalog can hold all three themes at once; Keycloak
+#    has no JS runtime to set that attribute, so a build that only ever
+#    ships one theme needs the rule to apply unconditionally instead.
+# 2. If (and only if) that theme has its own images/ folder, overwrite
+#    the canonical images/microverse-bg.jpg copied above with whatever
+#    single file is in there — Default has no images/ folder, so it
+#    silently keeps the canonical image, no special-casing needed.
 RUN set -eu; \
-    LOGIN=/opt/keycloak/themes/microverse/login; \
-    THEME_CSS_DIR="$LOGIN/resources/branding/design-system/themes/${KEYCLOAK_BRAND_THEME}/css"; \
-    sed -i "s/\[data-brand-theme=\"${KEYCLOAK_BRAND_THEME}\"\]/:root/g" \
-      "$THEME_CSS_DIR/light.css" "$THEME_CSS_DIR/dark.css"; \
-    sed -i "s#__BRAND_THEME_CSS__#branding/design-system/themes/${KEYCLOAK_BRAND_THEME}/css/light.css branding/design-system/themes/${KEYCLOAK_BRAND_THEME}/css/dark.css#" \
-      "$LOGIN/theme.properties"; \
-    case "$KEYCLOAK_BRAND_THEME" in \
-      vienna) BG_IMAGE="themes/vienna/images/vienna-grossglockner-bg.jpg" ;; \
-      uhuru)  BG_IMAGE="themes/uhuru/images/uhuru-kilimanjaro-bg.jpg" ;; \
-      *)      BG_IMAGE="images/microverse-bg.jpg" ;; \
-    esac; \
-    sed -i "s#__BRAND_BG_IMAGE_PATH__#${BG_IMAGE}#" \
-      "$LOGIN/resources/css/microverse.css"
+    BRANDING=/opt/keycloak/themes/microverse/login/resources/branding/design-system; \
+    THEME_DIR="/tmp/themes-catalog/${KEYCLOAK_BRAND_THEME}"; \
+    mkdir -p "$BRANDING/theme"; \
+    sed "s/\[data-brand-theme=\"${KEYCLOAK_BRAND_THEME}\"\]/:root/g" "$THEME_DIR/css/light.css" > "$BRANDING/theme/light.css"; \
+    sed "s/\[data-brand-theme=\"${KEYCLOAK_BRAND_THEME}\"\]/:root/g" "$THEME_DIR/css/dark.css" > "$BRANDING/theme/dark.css"; \
+    if [ -d "$THEME_DIR/images" ]; then \
+      IMG=$(find "$THEME_DIR/images" -maxdepth 1 -type f ! -name '.*' | head -n1); \
+      if [ -n "$IMG" ]; then cp "$IMG" "$BRANDING/images/microverse-bg.jpg"; fi; \
+    fi; \
+    rm -rf /tmp/themes-catalog

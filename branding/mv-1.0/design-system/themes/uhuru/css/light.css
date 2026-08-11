@@ -5,8 +5,14 @@
  * ../../../tokens.css's --mv-* color tokens, scoped to
  * [data-brand-theme="uhuru"]. Companion file: ./dark.css, which only
  * overrides the tokens that actually change in dark mode — the
- * mode-invariant ones below (secondary/success/danger/avatar/bg-image)
- * live here and simply carry through.
+ * mode-invariant ones below (secondary/success/danger/avatar) live here
+ * and simply carry through.
+ *
+ * No --mv-bg-image-url override here: each consumer's own build step
+ * (not this file) copies ../images/uhuru-kilimanjaro-bg.jpg over the
+ * canonical images/microverse-bg.jpg that --mv-bg-image-url always
+ * points at — see applications/taskfusion/Dockerfile or
+ * infrastructure/keycloak/Dockerfile for the actual mechanism.
  *
  * Values match ../../../mock-ups/uhuru-design-system.html. Story behind
  * the palette: ../../UHURU-DESIGN.md (gitignored, local reference only).
@@ -21,7 +27,6 @@
   --mv-color-danger: #a83a2e; /* rust, distinct from ember on purpose */
   --mv-avatar-bg: #c1272d;
   --mv-avatar-text: #ffffff;
-  --mv-bg-image-url: url("../images/uhuru-kilimanjaro-bg.jpg");
 
   /* light ("Dawn") values — also the fallback before data-theme is set */
   --mv-color-primary: #c1272d; /* ember */

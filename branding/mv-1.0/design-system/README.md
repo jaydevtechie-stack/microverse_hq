@@ -14,14 +14,15 @@ only supplies different *values* for the color tokens, never new names —
 so no consumer of `tokens.css` needs to change when a theme is added or
 switched.
 
-Each theme is a self-contained bundle under `themes/<id>/`. `images/` only
-appears for themes that have their own unique artwork (Vienna, Uhuru) —
-Default doesn't, so it has no `images/` folder and no `fonts/`/`logos/`
-either, since nothing uses a theme-specific font or logo today (same
-reasoning that removed the old top-level `favicons/`/`fonts/` scaffolding
-— see [Assets](#assets)). Default's legacy Bootswatch builds (see
-[Palette](#palette-default-theme)) live under its own `bootswatch/`
-subfolder, historical reference only:
+Each theme is a self-contained bundle under `themes/<id>/`, always shaped
+the same way **by convention**, not by anything reading `theme.config.json`
+at build time: `css/light.css` + `css/dark.css` (required), and an
+`images/` folder holding exactly one file — the theme's own background
+photo — for themes that have unique artwork (Vienna, Uhuru). Default
+doesn't have one, so it simply has no `images/` folder; nothing
+special-cases that, it just falls through (see below). Default's legacy
+Bootswatch builds (see [Palette](#palette-default-theme)) live under its
+own `bootswatch/` subfolder, historical reference only:
 
 ```
 themes/
@@ -43,60 +44,63 @@ themes/
 | Vienna    | Day / Night   | Pine     |
 | Uhuru     | Dawn / Dusk   | Ember    |
 
-[`themes/theme.config.json`](./themes/theme.config.json) is the catalog of
-available themes (id, dir, css/backgroundImage paths, per-mode labels) —
-but it does **not** decide which one is active. That's
-`MICROVERSE_BRAND_THEME` in the root `.env` (one of `default` / `vienna` /
-`uhuru`) — one variable, baked into **both** images so they can't drift
-apart:
+[`themes/theme.config.json`](./themes/theme.config.json) is reference
+documentation only (id, label, per-mode labels, description) — nothing
+reads it at build time, and it does **not** decide which theme is active.
+That's `MICROVERSE_BRAND_THEME` in the root `.env`, set to a theme's dir
+name (`default` / `vienna` / `uhuru`) — one variable, baked into **both**
+images at build time so they can't drift apart. **Neither app's source
+code, nor Keycloak's static theme files, ever reference a theme id or
+know the other themes exist** — both Dockerfiles (and taskfusion's local-
+dev `scripts/sync-brand-assets.js`) do all the deciding, by copying only
+the selected theme's files into fixed, theme-agnostic destination paths:
 
-- **taskfusion** — `docker-compose.yml` passes it as a
-  `REACT_APP_BRAND_THEME` build arg to `applications/taskfusion/Dockerfile`.
-  `src/index.js` `require()`s only `themes/<id>/css/{light,dark}.css`
-  (CRA inlines `process.env.REACT_APP_BRAND_THEME` to a literal string
-  before webpack resolves the path, so exactly one theme's CSS ends up in
-  the bundle, not all three), and `src/context/ThemeContext.js` sets
-  `data-brand-theme` on `<html>` once at startup so the bundled CSS's
-  `[data-brand-theme="<id>"]` selectors actually match. Mode (light/dark)
-  is the separate, runtime-toggleable `data-theme` attribute the same
-  context already managed.
-- **Keycloak** — `docker-compose.yml` passes it as a `KEYCLOAK_BRAND_THEME`
-  build arg to `infrastructure/keycloak/Dockerfile`. Keycloak's login page
-  has no JS runtime to set `data-brand-theme` the way taskfusion does, so
-  the Dockerfile takes a different approach: it `sed`s the selected
-  theme's `css/light.css`/`css/dark.css` in place, rewriting
-  `[data-brand-theme="<id>"]` to bare `:root` (making the rules apply
-  unconditionally instead of never matching), then fills in two
-  placeholder tokens — one in `theme.properties`' `styles=` line (to
-  actually load those two files) and one in `resources/css/microverse.css`
-  (to point `--mv-bg-image-url` at the theme's own image, since Default
-  has no image of its own — see its own comments for the full mechanism).
+- `design-system/theme/light.css` and `.../dark.css` — the selected
+  theme's own CSS, with its `[data-brand-theme="<id>"]` selector rewritten
+  to bare `:root` in the copy (that selector exists so the *source*
+  catalog above can hold all three themes color-scoped at once; once only
+  one theme's file is ever present, the gate is pointless — worse, for
+  Keycloak, which has no JS runtime to set `data-brand-theme` at all, it
+  would mean the rules never match anything).
+- `design-system/images/microverse-bg.jpg` — the shared canonical
+  background image, always present (Default's own). If the selected
+  theme has its own `images/` folder, its one file **overwrites** this
+  canonical one; if not (Default), it's simply left alone — the fallback
+  is "do nothing," not a second code path.
+
+taskfusion's `src/index.js` imports those two fixed CSS paths directly
+(plain `import`, no template literals or `require()` needed — the
+decision already happened at build time), and neither
+`src/context/ThemeContext.js` nor any other app code references
+`MICROVERSE_BRAND_THEME` or `data-brand-theme` at all anymore; that
+context only ever handles light/dark mode. Keycloak's
+`theme.properties`/`microverse.css` are equally static, always pointing
+at the same fixed paths.
 
 Because both are build-time bakes, changing the theme means rebuilding
 *both* images, not just restarting the containers.
-`theme.config.json`'s `defaultTheme` is only the fallback used when the
-env var is unset — keep every consumer in agreement if you ever change it.
+`theme.config.json`'s `defaultTheme` is only the fallback both
+Dockerfiles use if the env var is unset.
 
-Mechanically, each `css/light.css` / `css/dark.css` pair scopes its
-overrides under `[data-brand-theme="<id>"]`, combined with `tokens.css`'s
-existing `[data-theme="light"|"dark"]` attribute for mode — the same
-cascade pattern `tokens.css` already uses for `prefers-color-scheme` vs.
-an explicit user choice. Tokens that don't change between modes
-(secondary/success/danger/avatar/primary-contrast/background-image) live
-in `light.css` only and simply carry through; `dark.css` overrides just
-the tokens that actually change. With no `data-brand-theme` attribute set
-anywhere, `tokens.css`'s bare `:root` block continues to apply unchanged
-(today's Default palette), so this is backwards compatible with every
-existing consumer.
+Mechanically, each *source* `css/light.css` / `css/dark.css` pair (under
+`themes/<id>/`, before either build step touches it) scopes its overrides
+under `[data-brand-theme="<id>"]`, combined with `tokens.css`'s existing
+`[data-theme="light"|"dark"]` attribute for mode — the same cascade
+pattern `tokens.css` already uses for `prefers-color-scheme` vs. an
+explicit user choice. Tokens that don't change between modes
+(secondary/success/danger/avatar/primary-contrast) live in `light.css`
+only and simply carry through; `dark.css` overrides just the tokens that
+actually change. With no `data-brand-theme` attribute set anywhere,
+`tokens.css`'s bare `:root` block continues to apply unchanged (today's
+Default palette), so this is backwards compatible with every existing
+consumer.
 
-Each theme's `--mv-bg-image-url` points at its own photo: Vienna at
-Grossglockner (Austria's highest peak, in the Alps the Schönbrunn/Belvedere
-story draws from), Uhuru at Kilimanjaro (Tanzania, home to *Uhuru na
-Umoja*, the motto the theme's name and hero line come from). Filenames are
-listed in each theme's `backgroundImage` entry in `theme.config.json`, not
-a shared `bg.jpg` — the Dockerfile's `COPY` lines and
-`scripts/sync-brand-assets.js` reference them by that entry, so a renamed
-image needs updating in `theme.config.json` and the Dockerfile.
+Vienna's photo is Grossglockner (Austria's highest peak, in the Alps the
+Schönbrunn/Belvedere story draws from); Uhuru's is Kilimanjaro (Tanzania,
+home to *Uhuru na Umoja*, the motto the theme's name and hero line come
+from). Adding a theme's own image is just dropping one file into its
+`images/` folder — no code, config, or Dockerfile change needed to pick
+it up.
 
 Full palette rationale and mockups for each theme live in
 [`mock-ups/`](./mock-ups/) (`default-design-system.html`,
@@ -167,15 +171,15 @@ Nothing consumes a hand-maintained copy of these files — every consumer
 either reads them live or has its build pull them in automatically. There
 should never be a second place to edit when the palette or logo changes.
 
-**Keycloak theme** — `infrastructure/keycloak/Dockerfile` `COPY`s the
-whole `design-system/` directory into the image at build time (all three
-themes — a handful of small files, simpler than curating a per-file list
-and keeping it in sync), mirroring its layout under `resources/branding/`
-so every relative `./logos/...`, `./images/...` reference still resolves.
-A build step then bakes in `KEYCLOAK_BRAND_THEME` (see
-[Themes](#themes) for the exact mechanism — `sed`-rewriting the selected
-theme's CSS and filling in two placeholder tokens, since Keycloak has no
-JS runtime to react to an env var the way taskfusion does).
+**Keycloak theme** — `infrastructure/keycloak/Dockerfile` `COPY`s
+`tokens.css`, `logos/microverse-logo.png` and `images/microverse-bg.jpg`
+into the image at build time, mirroring `design-system/`'s layout under
+`resources/branding/` so every relative `./logos/...`, `./images/...`
+reference still resolves. The full `themes/` catalog is also copied in,
+but only to a scratch path (`/tmp/themes-catalog`) a `RUN` step reads from
+to populate the fixed `resources/branding/design-system/theme/` path —
+see [Themes](#themes) for the exact mechanism — then deletes; the shipped
+image never carries the other two themes' source files.
 `docker-compose.yml` doesn't bind-mount `branding/` anywhere, so any
 palette, asset, or theme change needs an image rebuild
 (`docker compose build microverse-keycloak`), not just a container
@@ -185,21 +189,26 @@ restart.
 (`ModuleScopePlugin`) refuses to import anything outside `src/`, and it
 compiles to a static bundle anyway, so a live mount doesn't help the way
 it does for Keycloak. Instead, each app's build pulls the canonical files
-in automatically:
-- **Docker build**: the Dockerfile `COPY`s `branding/mv-1.0/...` straight
-  into `src/assets/brand/` as a build step (see
-  `applications/taskfusion/Dockerfile`) — this is why that image's build
-  context is the repo root, not just the app's own folder.
+in automatically, doing the same "copy only the selected theme" work
+Keycloak's Dockerfile does — see [Themes](#themes):
+- **Docker build**: `applications/taskfusion/Dockerfile` `COPY`s
+  `tokens.css`/`logos/`/`images/` in directly, then the full `themes/`
+  catalog to a scratch path a `RUN` step reads from and discards — this
+  is why that image's build context is the repo root, not just the app's
+  own folder.
 - **Local dev** (`npm start` outside Docker): a `prestart`/`prebuild` npm
-  script (`scripts/sync-brand-assets.js`) does the same copy from the
-  local filesystem.
+  script (`scripts/sync-brand-assets.js`) does the equivalent in Node
+  instead of shell (`fs.readFileSync`/`.replace()`/`fs.writeFileSync`
+  rather than `sed`), reading `REACT_APP_BRAND_THEME` from the local
+  shell environment the same way CRA's dev server would.
 
   Either way, `src/assets/brand/` is gitignored (see root `.gitignore`)
   — it's always generated, never authored in the app's own repo tree.
-  The copy mirrors `mv-1.0`'s own folder layout exactly (`design-system/`
-  and everything under it — `tokens.css`, `logos/`, `images/`, `themes/`)
-  so `tokens.css`'s relative `./logos/...`, `./images/...` references
-  resolve unmodified — no path rewriting in the sync step.
+  `tokens.css`, `logos/`, and `images/` mirror `mv-1.0/design-system/`'s
+  own layout exactly so its relative `./logos/...`, `./images/...`
+  references resolve unmodified, but `design-system/theme/` has no
+  equivalent under `mv-1.0/` — it only exists inside each consumer's own
+  copy, holding whichever theme was selected.
 
   Separately, Bootstrap's Sass source uses its `$variables` at *compile*
   time (its color functions like `darken()` need real Sass values, not

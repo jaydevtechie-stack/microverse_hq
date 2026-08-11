@@ -10,15 +10,12 @@
  * OTP, WebAuthn, social providers, "forgot password", etc.) stay exactly
  * as keycloak.v2 implements them.
  *
- * --mv-color-primary below comes from the active theme's own
- * branding/design-system/themes/<id>/css/{light,dark}.css, loaded by
- * ../../theme.properties before this file — see that file's comment.
- * Those files are normally scoped to [data-brand-theme="<id>"], but
- * that's a React/JS-set attribute; Keycloak's login page has no JS
- * runtime to set it, so ../../../Dockerfile's build step rewrites that
- * selector to bare :root when copying them in. Only :root and
- * @media(prefers-color-scheme:dark) end up driving color here — there's
- * no light/dark *toggle* on this page, only the OS preference.
+ * --mv-color-primary below comes from the active theme's
+ * branding/design-system/theme/{light,dark}.css, loaded by
+ * ../../theme.properties before this file — see that file's comment for
+ * how the Dockerfile fills that fixed path with whichever theme was
+ * selected. This file, like theme.properties, has no idea which theme
+ * that was, or that Vienna/Uhuru even exist.
  */
 
 :root {
@@ -30,18 +27,13 @@
    * (this file's directory, per tokens.css's own "override per app"
    * comment). Redeclare them here with paths relative to css/ instead.
    *
-   * --mv-bg-image-url below ends in a marker token (not real CSS — a
-   * placeholder the Dockerfile's build step sed's out) that gets filled
-   * in with the active theme's own image path — see theme.config.json's
-   * backgroundImage per theme. --mv-logo-url doesn't need this: the logo
-   * is shared across every theme, never overridden per-theme.
-   *
-   * Marker text (kept out of the prose above so the Dockerfile's literal
-   * find-and-replace doesn't also mangle this comment): two
-   * underscores, BRAND_BG_IMAGE_PATH, two underscores.
+   * Both point at the canonical, theme-agnostic filenames — the
+   * Dockerfile overwrites images/microverse-bg.jpg with the active
+   * theme's own photo when it has one (Vienna, Uhuru); the logo is
+   * shared across every theme and never overridden.
    */
   --mv-logo-url: url("../branding/design-system/logos/microverse-logo.png");
-  --mv-bg-image-url: url("../branding/design-system/__BRAND_BG_IMAGE_PATH__");
+  --mv-bg-image-url: url("../branding/design-system/images/microverse-bg.jpg");
 
   --keycloak-logo-url: var(--mv-logo-url);
   --keycloak-bg-logo-url: var(--mv-bg-image-url);
