@@ -1,0 +1,50 @@
+/*
+ * Microverse theme: Uhuru — Light ("Dawn")
+ *
+ * Mode-invariant identity tokens plus the light-mode values for
+ * ../../../tokens.css's --mv-* color tokens, scoped to
+ * [data-brand-theme="uhuru"]. Companion file: ./dark.css, which only
+ * overrides the tokens that actually change in dark mode — the
+ * mode-invariant ones below (secondary/success/danger/avatar/bg-image)
+ * live here and simply carry through.
+ *
+ * Values match ../../../mock-ups/uhuru-design-system.html. Story behind
+ * the palette: ../../UHURU-DESIGN.md (gitignored, local reference only).
+ * Danger uses "rust", deliberately distinct from the ember primary.
+ */
+
+[data-brand-theme="uhuru"] {
+  /* mode-invariant */
+  --mv-color-primary-contrast: #ffffff;
+  --mv-color-secondary: #a99a85; /* dust */
+  --mv-color-success: #1c8c4b; /* savanna — live/active status accent */
+  --mv-color-danger: #a83a2e; /* rust, distinct from ember on purpose */
+  --mv-avatar-bg: #c1272d;
+  --mv-avatar-text: #ffffff;
+  --mv-bg-image-url: url("../images/uhuru-kilimanjaro-bg.jpg");
+
+  /* light ("Dawn") values — also the fallback before data-theme is set */
+  --mv-color-primary: #c1272d; /* ember */
+  --mv-bg: #f7f3ec;
+  --mv-bg-elevated: #ffffff;
+  --mv-text: #14100d;
+  --mv-text-muted: #4a3e33;
+  --mv-border: #dccfb8;
+  --mv-badge-bg: #241a14; /* swapped with dark.css's value — too close to bg-elevated otherwise */
+  --mv-badge-text: #a99a85;
+  --mv-shadow-sm: 0 1px 2px rgba(20, 16, 13, 0.08);
+  --mv-shadow: 0 8px 24px rgba(20, 16, 13, 0.16);
+}
+
+[data-brand-theme="uhuru"][data-theme="light"] {
+  --mv-color-primary: #c1272d;
+  --mv-bg: #f7f3ec;
+  --mv-bg-elevated: #ffffff;
+  --mv-text: #14100d;
+  --mv-text-muted: #4a3e33;
+  --mv-border: #dccfb8;
+  --mv-badge-bg: #241a14;
+  --mv-badge-text: #a99a85;
+  --mv-shadow-sm: 0 1px 2px rgba(20, 16, 13, 0.08);
+  --mv-shadow: 0 8px 24px rgba(20, 16, 13, 0.16);
+}

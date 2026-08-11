@@ -35,6 +35,9 @@ coverage/
 # generated, not authored here
 applications/*/src/assets/brand/
 
+# Theme anecdotes — local reference only
+branding/mv-1.0/design-system/themes/*/*-DESIGN.md
+
 # Python
 __pycache__/
 *.py[cod]

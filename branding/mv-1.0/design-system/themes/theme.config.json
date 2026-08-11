@@ -1,0 +1,35 @@
+{
+  "$comment": "Catalog of available Microverse brand themes. Each theme is a self-contained bundle under its own dir (at minimum css/light.css + css/dark.css; Vienna/Uhuru also carry their own images/backgroundImage since they have unique artwork, Default doesn't and has no backgroundImage field here — it inherits tokens.css's own --mv-bg-image-url). This file does NOT decide which theme is active; that's MICROVERSE_BRAND_THEME (see root .env / .env.example), baked at build time into both applications/taskfusion (as REACT_APP_BRAND_THEME, read by src/context/ThemeContext.js) and infrastructure/keycloak (as KEYCLOAK_BRAND_THEME, consumed by the Dockerfile — Keycloak has no JS runtime, so it can't read [data-brand-theme] the way taskfusion does; see that Dockerfile's own comments). defaultTheme below is only the fallback used when the env var is unset.",
+  "attribute": "data-brand-theme",
+  "modeAttribute": "data-theme",
+  "modeValues": ["light", "dark"],
+  "defaultTheme": "default",
+  "themes": [
+    {
+      "id": "default",
+      "label": "Default",
+      "dir": "default",
+      "css": { "light": "css/light.css", "dark": "css/dark.css" },
+      "modeLabels": { "light": "Light", "dark": "Dark" },
+      "description": "Base Microverse theme, blue primary. No cultural narrative by design — every other theme starts here and swaps the palette."
+    },
+    {
+      "id": "vienna",
+      "label": "Vienna",
+      "dir": "vienna",
+      "css": { "light": "css/light.css", "dark": "css/dark.css" },
+      "backgroundImage": "images/vienna-grossglockner-bg.jpg",
+      "modeLabels": { "light": "Day", "dark": "Night" },
+      "description": "Schönbrunn/Belvedere palette — pine hedge-green primary, spring-green live-status accent, Schönbrunn ochre as the single warm accent."
+    },
+    {
+      "id": "uhuru",
+      "label": "Uhuru",
+      "dir": "uhuru",
+      "css": { "light": "css/light.css", "dark": "css/dark.css" },
+      "backgroundImage": "images/uhuru-kilimanjaro-bg.jpg",
+      "modeLabels": { "light": "Dawn", "dark": "Dusk" },
+      "description": "Pan-African red/gold/green/black palette — ember-red primary, savanna-green live-status accent, dawn gold as the single warm accent."
+    }
+  ]
+}
