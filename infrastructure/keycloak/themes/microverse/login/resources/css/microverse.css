@@ -9,6 +9,13 @@
  * markup, dark-mode handling, and all functional login flows (errors,
  * OTP, WebAuthn, social providers, "forgot password", etc.) stay exactly
  * as keycloak.v2 implements them.
+ *
+ * --mv-color-primary below comes from the active theme's
+ * branding/design-system/theme/{light,dark}.css, loaded by
+ * ../../theme.properties before this file — see that file's comment for
+ * how the Dockerfile fills that fixed path with whichever theme was
+ * selected. This file, like theme.properties, has no idea which theme
+ * that was, or that Vienna/Uhuru even exist.
  */
 
 :root {
@@ -19,9 +26,14 @@
    * --keycloak-bg-logo-url are actually consumed from css/styles.css
    * (this file's directory, per tokens.css's own "override per app"
    * comment). Redeclare them here with paths relative to css/ instead.
+   *
+   * Both point at the canonical, theme-agnostic filenames — the
+   * Dockerfile overwrites images/microverse-bg.jpg with the active
+   * theme's own photo when it has one (Vienna, Uhuru); the logo is
+   * shared across every theme and never overridden.
    */
-  --mv-logo-url: url("../branding/logos/microverse-logo.png");
-  --mv-bg-image-url: url("../branding/images/microverse-bg.jpg");
+  --mv-logo-url: url("../branding/design-system/logos/microverse-logo.png");
+  --mv-bg-image-url: url("../branding/design-system/images/microverse-bg.jpg");
 
   --keycloak-logo-url: var(--mv-logo-url);
   --keycloak-bg-logo-url: var(--mv-bg-image-url);

@@ -6,7 +6,7 @@ import { initKeycloak, landingUrl } from './services/keycloak';
 import { ThemeProvider } from './context/ThemeContext';
 import { SERVICE_THEME } from './data/services';
 import { setFavicon } from './utils/favicon';
-import microverseLogo from './assets/brand/logos/microverse-logo.png';
+import microverseLogo from './assets/brand/design-system/logos/microverse-logo.png';
 import LandingPage from './pages/LandingPage';
 import Navbar from './components/Navbar';
 import Dashboard from './pages/Dashboard';  // Example protected page

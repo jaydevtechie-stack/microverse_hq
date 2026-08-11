@@ -4,6 +4,11 @@ const ThemeContext = createContext(undefined);
 
 const STORAGE_KEY = 'mv-theme';
 
+// Which brand theme (Default/Vienna/Uhuru) is active was already decided
+// at build time — see applications/taskfusion/Dockerfile — so there's
+// nothing for this app to read or react to here. This context only ever
+// handles light/dark mode.
+
 function getSystemTheme() {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }

@@ -1,0 +1,24 @@
+{
+  "$comment": "Catalog of available Microverse brand themes — reference/documentation, not read by the build. Each theme is a dir under this one, always shaped the same way by convention: css/light.css + css/dark.css (required), images/<anything> (optional, exactly one file — the theme's own background photo; themes with none, like Default, just don't have an images/ folder). Selecting a theme means setting MICROVERSE_BRAND_THEME to its dir name (see root .env / .env.example) — applications/taskfusion/Dockerfile and infrastructure/keycloak/Dockerfile both copy only that one theme's files into fixed, theme-agnostic destination paths at build time (rewriting [data-brand-theme=\"<id>\"] to bare :root, and overwriting the canonical images/microverse-bg.jpg only if that theme has its own image) — see either Dockerfile's comments for the exact mechanism. Neither app's own source code (nor Keycloak's static theme files) ever reference a theme id directly.",
+  "defaultTheme": "default",
+  "themes": [
+    {
+      "id": "default",
+      "label": "Default",
+      "modeLabels": { "light": "Light", "dark": "Dark" },
+      "description": "Base Microverse theme, blue primary. No cultural narrative by design — every other theme starts here and swaps the palette."
+    },
+    {
+      "id": "vienna",
+      "label": "Vienna",
+      "modeLabels": { "light": "Day", "dark": "Night" },
+      "description": "Schönbrunn/Belvedere palette — pine hedge-green primary, spring-green live-status accent, Schönbrunn ochre as the single warm accent."
+    },
+    {
+      "id": "uhuru",
+      "label": "Uhuru",
+      "modeLabels": { "light": "Dawn", "dark": "Dusk" },
+      "description": "Pan-African red/gold/green/black palette — ember-red primary, savanna-green live-status accent, dawn gold as the single warm accent."
+    }
+  ]
+}

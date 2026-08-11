@@ -1,0 +1,39 @@
+/*
+ * Microverse theme: Default — Dark
+ *
+ * Dark-mode values for ../../../tokens.css's --mv-* color tokens, scoped
+ * to [data-brand-theme="default"]. Mode-invariant tokens (secondary/
+ * success/danger/avatar/primary-contrast/bg-image) live in ./light.css
+ * since they don't change here — this file only overrides what dark
+ * mode actually changes.
+ *
+ * Values match ../../../mock-ups/default-design-system.html.
+ */
+
+@media (prefers-color-scheme: dark) {
+  [data-brand-theme="default"] {
+    --mv-color-primary: #6c99ef;
+    --mv-bg: #0a1119;
+    --mv-bg-elevated: #111c29;
+    --mv-text: #edf1f5;
+    --mv-text-muted: #b7c2cc;
+    --mv-border: #25384b;
+    --mv-badge-bg: #eceff3; /* swapped with light.css's value — too close to bg-elevated otherwise */
+    --mv-badge-text: #7a8a97;
+    --mv-shadow-sm: 0 1px 2px rgba(14, 22, 33, 0.5);
+    --mv-shadow: 0 8px 24px rgba(14, 22, 33, 0.6);
+  }
+}
+
+[data-brand-theme="default"][data-theme="dark"] {
+  --mv-color-primary: #6c99ef;
+  --mv-bg: #0a1119;
+  --mv-bg-elevated: #111c29;
+  --mv-text: #edf1f5;
+  --mv-text-muted: #b7c2cc;
+  --mv-border: #25384b;
+  --mv-badge-bg: #eceff3;
+  --mv-badge-text: #7a8a97;
+  --mv-shadow-sm: 0 1px 2px rgba(14, 22, 33, 0.5);
+  --mv-shadow: 0 8px 24px rgba(14, 22, 33, 0.6);
+}

@@ -1,0 +1,52 @@
+/*
+ * Microverse theme: Default — Light
+ *
+ * Mode-invariant identity tokens plus the light-mode values for
+ * ../../../tokens.css's --mv-* color tokens, scoped to
+ * [data-brand-theme="default"]. Companion file: ./dark.css, which only
+ * overrides the tokens that actually change in dark mode — the
+ * mode-invariant ones below (secondary/success/danger/avatar) live here
+ * and simply carry through.
+ *
+ * No --mv-bg-image-url override here on purpose: Default has no image of
+ * its own (unlike Vienna/Uhuru), so it just inherits ../../../tokens.css's
+ * bare :root value (design-system/images/microverse-bg.jpg) — nothing
+ * in this file redeclares that property, so the cascade falls through.
+ *
+ * Values match ../../../mock-ups/default-design-system.html.
+ */
+
+[data-brand-theme="default"] {
+  /* mode-invariant */
+  --mv-color-primary-contrast: #ffffff;
+  --mv-color-secondary: #9aa7b2; /* mist */
+  --mv-color-success: #4fb8e8; /* sky — live/active status accent */
+  --mv-color-danger: #b8493a;
+  --mv-avatar-bg: #2b5fd9;
+  --mv-avatar-text: #ffffff;
+
+  /* light values — also the fallback before data-theme is set */
+  --mv-color-primary: #2b5fd9; /* blue */
+  --mv-bg: #f5f7fa;
+  --mv-bg-elevated: #ffffff;
+  --mv-text: #0e1621;
+  --mv-text-muted: #33404d;
+  --mv-border: #dce3ea;
+  --mv-badge-bg: #182534; /* swapped with dark.css's value — too close to bg-elevated otherwise */
+  --mv-badge-text: #9aa7b2;
+  --mv-shadow-sm: 0 1px 2px rgba(14, 22, 33, 0.08);
+  --mv-shadow: 0 8px 24px rgba(14, 22, 33, 0.12);
+}
+
+[data-brand-theme="default"][data-theme="light"] {
+  --mv-color-primary: #2b5fd9;
+  --mv-bg: #f5f7fa;
+  --mv-bg-elevated: #ffffff;
+  --mv-text: #0e1621;
+  --mv-text-muted: #33404d;
+  --mv-border: #dce3ea;
+  --mv-badge-bg: #182534;
+  --mv-badge-text: #9aa7b2;
+  --mv-shadow-sm: 0 1px 2px rgba(14, 22, 33, 0.08);
+  --mv-shadow: 0 8px 24px rgba(14, 22, 33, 0.12);
+}

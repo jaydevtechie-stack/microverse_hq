@@ -10,8 +10,8 @@
  * Palette below (navy/cyan) matches the dashboard mockups in this same
  * folder (microverse_navbar_light_dark.html,
  * microverse_dashboard_full_page*.html) — those are the source of truth
- * for the values, not the Bootswatch builds in ../themes/, which predate
- * this palette and are now just historical reference.
+ * for the values, not the Bootswatch builds in themes/default/bootswatch/,
+ * which predate this palette and are now just historical reference.
  *
  * Dark mode: prefers-color-scheme is the default signal; [data-theme]
  * overrides it in either direction so an app-level theme toggle always wins.
@@ -64,9 +64,11 @@
   --mv-shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
   --mv-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
 
-  /* Brand assets (paths relative to each consumer; override per app) */
-  --mv-logo-url: url("../logos/microverse-logo.png");
-  --mv-bg-image-url: url("../images/microverse-bg.jpg");
+  /* Brand assets (paths relative to each consumer; override per app).
+     logos/ and images/ are siblings of this file (design-system/logos,
+     design-system/images), not one level up. */
+  --mv-logo-url: url("./logos/microverse-logo.png");
+  --mv-bg-image-url: url("./images/microverse-bg.jpg");
 }
 
 @media (prefers-color-scheme: dark) {

@@ -1,0 +1,39 @@
+/*
+ * Microverse theme: Uhuru — Dark ("Dusk")
+ *
+ * Dark-mode values for ../../../tokens.css's --mv-* color tokens, scoped
+ * to [data-brand-theme="uhuru"]. Mode-invariant tokens (secondary/
+ * success/danger/avatar/primary-contrast/bg-image) live in ./light.css
+ * since they don't change here — this file only overrides what dark
+ * mode actually changes.
+ *
+ * Values match ../../../mock-ups/uhuru-design-system.html.
+ */
+
+@media (prefers-color-scheme: dark) {
+  [data-brand-theme="uhuru"] {
+    --mv-color-primary: #e2483f;
+    --mv-bg: #140c08;
+    --mv-bg-elevated: #1e1410;
+    --mv-text: #f2e6d3;
+    --mv-text-muted: #c9b8a0;
+    --mv-border: #382a1f;
+    --mv-badge-bg: #ede5d6; /* swapped with light.css's value — too close to bg-elevated otherwise */
+    --mv-badge-text: #7a6a57;
+    --mv-shadow-sm: 0 1px 2px rgba(20, 16, 13, 0.5);
+    --mv-shadow: 0 8px 24px rgba(20, 16, 13, 0.6);
+  }
+}
+
+[data-brand-theme="uhuru"][data-theme="dark"] {
+  --mv-color-primary: #e2483f;
+  --mv-bg: #140c08;
+  --mv-bg-elevated: #1e1410;
+  --mv-text: #f2e6d3;
+  --mv-text-muted: #c9b8a0;
+  --mv-border: #382a1f;
+  --mv-badge-bg: #ede5d6;
+  --mv-badge-text: #7a6a57;
+  --mv-shadow-sm: 0 1px 2px rgba(20, 16, 13, 0.5);
+  --mv-shadow: 0 8px 24px rgba(20, 16, 13, 0.6);
+}

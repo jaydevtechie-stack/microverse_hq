@@ -19,11 +19,44 @@ RUN npm ci
 COPY applications/taskfusion/ .
 
 # Overwrite whatever's in src/assets/brand/ (gitignored, may be stale or
-# absent) with the real canonical files, mirroring mv-1.0's own layout
-# so tokens.css's relative ../logos, ../images references still resolve
+# absent) with the real canonical files, mirroring mv-1.0's own layout so
+# tokens.css's relative ./logos, ./images references still resolve —
+# logos/ and images/ are siblings of tokens.css under design-system/, not
+# one level up.
 COPY branding/mv-1.0/design-system/tokens.css src/assets/brand/design-system/tokens.css
-COPY branding/mv-1.0/logos/microverse-logo.png src/assets/brand/logos/microverse-logo.png
-COPY branding/mv-1.0/images/microverse-bg.jpg src/assets/brand/images/microverse-bg.jpg
+COPY branding/mv-1.0/design-system/logos/microverse-logo.png src/assets/brand/design-system/logos/microverse-logo.png
+COPY branding/mv-1.0/design-system/images/microverse-bg.jpg src/assets/brand/design-system/images/microverse-bg.jpg
+
+ARG REACT_APP_BRAND_THEME=default
+
+# The app only ever sees ONE theme, at a fixed, theme-agnostic path — it
+# has no idea Vienna or Uhuru exist. This stage-only copy of the full
+# theme catalog (discarded when this build stage is; see the nginx stage
+# below) lets the RUN step below pick just REACT_APP_BRAND_THEME's own
+# dir out of it.
+COPY branding/mv-1.0/design-system/themes /tmp/themes-catalog
+
+# 1. Copy the selected theme's css/{light,dark}.css to a fixed
+#    src/assets/brand/design-system/theme/ path, rewriting
+#    [data-brand-theme="<id>"] to bare :root — that selector exists so
+#    the *source* catalog can hold all three themes at once; a build
+#    that only ever ships one theme doesn't need it, and stripping it
+#    means the app never has to set data-brand-theme on anything.
+# 2. If (and only if) that theme has its own images/ folder, overwrite
+#    the canonical images/microverse-bg.jpg copied above with whatever
+#    single file is in there — Default has no images/ folder, so it
+#    silently keeps the canonical image, no special-casing needed.
+RUN set -eu; \
+    THEME_DIR="/tmp/themes-catalog/${REACT_APP_BRAND_THEME}"; \
+    DEST=src/assets/brand/design-system/theme; \
+    mkdir -p "$DEST"; \
+    sed "s/\[data-brand-theme=\"${REACT_APP_BRAND_THEME}\"\]/:root/g" "$THEME_DIR/css/light.css" > "$DEST/light.css"; \
+    sed "s/\[data-brand-theme=\"${REACT_APP_BRAND_THEME}\"\]/:root/g" "$THEME_DIR/css/dark.css" > "$DEST/dark.css"; \
+    if [ -d "$THEME_DIR/images" ]; then \
+      IMG=$(find "$THEME_DIR/images" -maxdepth 1 -type f ! -name '.*' | head -n1); \
+      if [ -n "$IMG" ]; then cp "$IMG" src/assets/brand/design-system/images/microverse-bg.jpg; fi; \
+    fi; \
+    rm -rf /tmp/themes-catalog
 
 # Build-time args — must be declared here to be available during `npm run build`,
 # since CRA bakes REACT_APP_* vars into the bundle at build time, not runtime
