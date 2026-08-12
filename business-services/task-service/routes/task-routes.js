@@ -7,6 +7,7 @@ const { listForTask, findLatestByCommentId, createComment } = require('../models
 const { getUser, ensureAccountForCustomer } = require('../models/user');
 const { recommendAnalysts } = require('../models/scout');
 const { listPmsForAccount } = require('../models/account');
+const { requireRealmRole } = require('../middleware/auth');
 
 // The PM(s) a customer should reach out to about this order — ownership
 // (pm_accounts, which Accounts a PM can see at all) narrowed to service
@@ -180,7 +181,10 @@ router.put('/tasks/:id', async (req, res) => {
 // most of task-service's still-unenforced routes, since a bad
 // assignment here corrupts task-service's own status/role invariants
 // (see ARCHITECTURE.md's Task workflow table), not just a display bug.
-router.patch('/tasks/:id', async (req, res) => {
+// requireRealmRole('platform:project-manager') closes the OWASP A01
+// finding (docs/security.md) that this route validated the assignee's
+// roles but never the caller's, despite being PM-only by design.
+router.patch('/tasks/:id', requireRealmRole('platform:project-manager'), async (req, res) => {
   const { assigneeId } = req.body;
   if (!assigneeId) {
     return res.status(400).json({ message: 'Missing required "assigneeId"' });

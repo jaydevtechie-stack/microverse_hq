@@ -1,4 +1,5 @@
 mod api;
+mod auth;
 mod billing;
 mod db;
 mod kafka_consumer;
