@@ -20,10 +20,16 @@ const detailRowStyle = {
   fontSize: 13,
 };
 
-// Statuses during which a customer can still edit their own order (title/
-// context/tags/files) — must match task-service's/asset-service's own
-// EDITABLE_STATUSES/EDIT_WINDOW_STATUSES.
+// Statuses during which a customer can still edit their own order's
+// title/context/tags — must match task-service's own EDITABLE_STATUSES.
 const EDITABLE_STATUSES = ['unassigned', 'analyst'];
+
+// Files are a narrower window than the rest of the form (5.7.2): a fresh
+// 'unassigned' order was just composed with whatever files the customer
+// meant to attach, so file re-upload only reopens once an analyst is
+// actually assigned and asks for something specific — never during plain
+// pre-triage editing. Must match asset-service's own EDIT_WINDOW_STATUSES.
+const FILE_EDITABLE_STATUSES = ['analyst'];
 
 // Which action panel (if any) to show is (viewer's platform role, task's
 // current state) — see ARCHITECTURE.md's "UI pattern" note. A PM gets
@@ -137,13 +143,16 @@ const TaskDetailContent = ({ id }) => {
     ? actionPanelFor({ task, isPM, isAnalyst, isReviewer, isCustomer, username, userId, onTaskUpdated: setTask })
     : null;
 
-  // Same window as TaskFilesList's add/remove — own submitted order,
-  // still unassigned or (5.7.1) reopened while an analyst is working it,
-  // so they can ask the customer for more content. Both this and
-  // asset-service's file edit gate are enforced server-side too
-  // (task-service's PUT /api/tasks/:id, asset-service's own status
-  // check) — this just decides whether the edit affordance shows up.
-  const canEdit = Boolean(task) && isCustomer && task.customer_id === userId && EDITABLE_STATUSES.includes(task.status);
+  // canEdit gates the whole edit-mode affordance (pencil icon, title/
+  // context/tags form) — still unassigned or (5.7.1) reopened while an
+  // analyst is working it. canEditFiles is narrower (5.7.2, see
+  // FILE_EDITABLE_STATUSES) and only controls TaskFilesList's add/remove
+  // UI within that same edit mode. Both server-side too (task-service's
+  // PUT /api/tasks/:id, asset-service's own status check) — these just
+  // decide whether the affordances show up.
+  const isOwnOrder = Boolean(task) && isCustomer && task.customer_id === userId;
+  const canEdit = isOwnOrder && EDITABLE_STATUSES.includes(task.status);
+  const canEditFiles = isOwnOrder && FILE_EDITABLE_STATUSES.includes(task.status);
 
   if (error) {
     return (
@@ -232,7 +241,7 @@ const TaskDetailContent = ({ id }) => {
         <div style={{ marginBottom: 18 }}>
           <EditOrderForm
             task={task}
-            filesSlot={<TaskFilesList taskId={task.id} service={task.service} editable />}
+            filesSlot={<TaskFilesList taskId={task.id} service={task.service} editable={canEditFiles} />}
             onSaved={(updated) => {
               setTask(updated);
               setEditing(false);

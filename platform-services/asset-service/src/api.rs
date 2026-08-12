@@ -22,13 +22,18 @@ use crate::{minio, task_client};
 //    since `company_id` (here: username) sits before `order_id` in
 //    the key and there's no way to know a customer's username from
 //    the order_id alone without a real order-service to ask.
-// Statuses during which the customer's own edit window (title/context/tags
-// via task-service's PUT, files via upload-url/DELETE here) stays open.
-// `analyst` was added in 5.7.1 so an analyst short on content can ask the
-// customer to add a file after a PM has already assigned the order — same
-// window, no separate analyst-facing action. Must match task-service's
-// own EDITABLE_STATUSES (task-routes.js).
-const EDIT_WINDOW_STATUSES: [&str; 2] = ["unassigned", "analyst"];
+// Statuses during which the customer can add/remove files here. Narrower
+// than task-service's own title/context/tags edit window (EDITABLE_STATUSES
+// in task-routes.js, `unassigned` + `analyst`): a freshly submitted
+// `unassigned` order already has whatever files the customer meant to
+// attach at compose time (that's the separate pre-submit path — see
+// upload_url's None-status branch below), so file re-upload only reopens
+// once an analyst is actually assigned and asks for something specific
+// (5.7.1's whole reason for existing). 5.7.2 dropped `unassigned` from
+// this set after 5.7.1 shipped it alongside task-service's broader window
+// by mistake — title/context/tags and files are deliberately different
+// windows now, not copies of the same list.
+const EDIT_WINDOW_STATUSES: [&str; 1] = ["analyst"];
 
 pub fn router() -> Router {
     Router::new()
@@ -72,9 +77,11 @@ struct UploadUrlResponse {
 // pass. What does need checking is status: this same endpoint serves
 // two phases — pre-submit compose (task row doesn't exist yet, files
 // upload before CreateOrderForm's POST /api/tasks) and post-submit
-// editing (task row exists). fetch_status's None case is exactly the
-// former; Some(status) outside EDIT_WINDOW_STATUSES means the order's
-// moved past both compose and the 5.7.1-widened edit window.
+// re-upload once an analyst asks for more (task row exists, EDIT_WINDOW_
+// STATUSES). fetch_status's None case is exactly the former, always
+// allowed; Some("unassigned") is neither phase — the order's been
+// submitted but nobody's asked for anything yet — so it 403s same as
+// any other status outside EDIT_WINDOW_STATUSES.
 async fn upload_url(
     headers: HeaderMap,
     Json(body): Json<UploadUrlRequest>,

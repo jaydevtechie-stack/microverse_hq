@@ -33,10 +33,15 @@ const fieldErrorStyle = {
 // are TaskFilesList's own add/remove UI — not duplicated here, but
 // `filesSlot` lets the caller render it between the fields and the
 // Save/Cancel row so Save stays the last thing on the page rather than
-// sitting above the files list. Only ever rendered while the order is
-// `unassigned` or `analyst` (TaskDetailContent's EDITABLE_STATUSES call
-// site gates on that + customer ownership); task-service's
-// PUT /api/tasks/:id enforces the same window server-side regardless.
+// sitting above the files list. This form itself is only ever rendered
+// while the order is `unassigned` or `analyst` (TaskDetailContent's
+// EDITABLE_STATUSES call site gates on that + customer ownership); the
+// files slot it's handed is narrower still (5.7.2's `canEditFiles` /
+// FILE_EDITABLE_STATUSES — `analyst` only, not `unassigned`), so the
+// add/remove controls inside filesSlot can be absent even while the
+// rest of this form is open. task-service's PUT /api/tasks/:id and
+// asset-service's own status check enforce both windows server-side
+// regardless.
 const EditOrderForm = ({ task, onSaved, onCancel, filesSlot }) => {
   const { t } = useTranslation(['orders', 'common']);
   const [title, setTitle] = useState(task.title);
