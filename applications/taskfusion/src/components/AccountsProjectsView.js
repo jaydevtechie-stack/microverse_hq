@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import { IconChevronDown, IconChevronRight } from '@tabler/icons-react';
 import { authHeaders } from '../services/keycloak';
 import SplitView from './SplitView';
+import TaskDetailContent from './TaskDetailContent';
 import { STATUS_STYLE } from './TaskStatusBadge';
 
 const PROJECT_STATUS_STYLE = {
@@ -124,19 +124,20 @@ const AccountAccordion = ({ accounts, expanded, onToggle, selection, onSelectPro
 
 const infoBox = { background: 'var(--mv-bg)', border: '0.5px solid var(--mv-border)', borderRadius: 8, padding: '10px 12px' };
 
-// Task rows navigate to /task/:id (TaskDetailPage off the gofeeler
-// microsite — same TaskDetailContent GofeelerSplitView renders inline
-// as a panel there) — 4.6, closing the gap where a customer could see
-// their own Accounts/Projects but never click through to a Task.
-// `canManageProject` (4.7, account-manager only) adds the PM-assign
-// picker and Deactivate action. PM candidates are fetched per-project
-// rather than reusing account.pms from the accordion — they're the
-// same set (the Account's own pm_accounts), but this component only
-// has the flat accounts list in scope, not a per-account PM lookup, so
-// a small dedicated fetch is simpler than threading that through.
-const ProjectDetail = ({ project, canApprove, onApprove, approving, canManageProject, onAssignPm, onDeactivate }) => {
+// Task rows select a Task in place of this Project within the same
+// split view (`onSelectTask`, 4.6/follow-up) — same TaskDetailContent
+// GofeelerSplitView renders inline as a panel, but staying inside this
+// view's own detail pane rather than navigating to the standalone
+// /task/:id page, so "back" returns to the Project, not to a whole
+// different route. `canManageProject` (4.7, account-manager only) adds
+// the PM-assign picker and Deactivate action. PM candidates are
+// fetched per-project rather than reusing account.pms from the
+// accordion — they're the same set (the Account's own pm_accounts),
+// but this component only has the flat accounts list in scope, not a
+// per-account PM lookup, so a small dedicated fetch is simpler than
+// threading that through.
+const ProjectDetail = ({ project, canApprove, onApprove, approving, canManageProject, onAssignPm, onDeactivate, onSelectTask }) => {
   const { t } = useTranslation('accounts');
-  const navigate = useNavigate();
   const [pmCandidates, setPmCandidates] = useState(null);
   const [pmCandidatesError, setPmCandidatesError] = useState(null);
   const [pmPicked, setPmPicked] = useState('');
@@ -315,7 +316,7 @@ const ProjectDetail = ({ project, canApprove, onApprove, approving, canManagePro
     {project.tasks.map((task) => (
       <div
         key={task.id}
-        onClick={() => navigate(`/task/${task.id}`)}
+        onClick={() => onSelectTask(task.id)}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -343,6 +344,24 @@ const ProjectDetail = ({ project, canApprove, onApprove, approving, canManagePro
       </div>
     ))}
   </>
+  );
+};
+
+// Wraps the shared TaskDetailContent with a back-to-Project link, same
+// shell GofeelerSplitView/TaskDetailPage each add around it in their
+// own way — this one returns to the Project selection rather than a
+// list or a browser-history pop.
+const TaskDetail = ({ taskId, onBack }) => {
+  const { t } = useTranslation('common');
+  return (
+    <>
+      <span onClick={onBack} style={{ color: 'var(--mv-color-primary)', fontSize: 12, cursor: 'pointer' }}>
+        {t('back')}
+      </span>
+      <div style={{ marginTop: 14 }}>
+        <TaskDetailContent id={taskId} />
+      </div>
+    </>
   );
 };
 
@@ -543,7 +562,7 @@ const AccountsProjectsView = ({
   const [accounts, setAccounts] = useState(null);
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState(new Set());
-  const [selection, setSelection] = useState(null); // { type: 'project', id } | { type: 'newProject', accountId } | { type: 'newAccount' }
+  const [selection, setSelection] = useState(null); // { type: 'project', id } | { type: 'task', id, projectId } | { type: 'newProject', accountId } | { type: 'newAccount' }
   const [detail, setDetail] = useState(null);
   const [approving, setApproving] = useState(false);
 
@@ -726,8 +745,17 @@ const AccountsProjectsView = ({
                   canManageProject={canManageProject}
                   onAssignPm={handleAssignPm}
                   onDeactivate={handleDeactivate}
+                  onSelectTask={(taskId) => setSelection({ type: 'task', id: taskId, projectId: selection.id })}
                 />
               )
+            );
+          }
+          if (selection.type === 'task') {
+            return (
+              <TaskDetail
+                taskId={selection.id}
+                onBack={() => setSelection({ type: 'project', id: selection.projectId })}
+              />
             );
           }
           return null;
