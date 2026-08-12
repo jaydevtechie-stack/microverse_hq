@@ -290,7 +290,7 @@ const TaskDetailContent = ({ id }) => {
         </div>
       )}
 
-      {isCustomer && task.owner === username && (
+      {isCustomer && task.customer_id === userId && (
         <div style={{ marginTop: 18 }}>
           <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>{t('taskDetail.notesLabel')}</p>
           <div
