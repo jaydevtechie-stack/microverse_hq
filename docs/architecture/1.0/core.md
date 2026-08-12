@@ -90,7 +90,7 @@ unassigned → analyst → reviewer → done → paid → closed
 
   | State | Assignee | Owner |
   |---|---|---|
-  | unassigned | — | — |
+  | unassigned | — | the customer |
   | analyst | the analyst | the analyst |
   | reviewer | the reviewer | the reviewer |
   | done | — | PM |
@@ -99,6 +99,7 @@ unassigned → analyst → reviewer → done → paid → closed
 
 - Reaching **paid** unlocks the results for the customer to download.
 - The assignee must always match the current state's required role — a transition shouldn't be allowed to complete without a valid assignee holding the right role for the new state.
+- **Owner starts as the customer, not blank** — `task-service`'s `create()` (`business-services/task-service/models/task.js`) sets `owner` to the creating customer's email at insert time; `assignAnalyst` overwrites it once a PM assigns someone. Deliberate, not an oversight: before assignment the order is exclusively the customer's to act on (edit/cancel), and customer-facing views keyed on `owner === <their identity>` need that to resolve correctly for their own fresh order, not just once it reaches `paid`. Prefer `customer_id` over `owner` for "is this my task" checks that need to hold across every state, though — `owner` still moves on once assigned, so anything customer-facing that needs to survive past `unassigned` (e.g. their own comment thread, order-progress view) should never key off it.
 
 See [business-services.md](business-services.md) for where the task pool itself lives.
 
