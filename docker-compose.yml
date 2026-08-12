@@ -271,9 +271,14 @@ services:
       # (basic-only) if this is unset.
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       GOFEELER_LLM_MODEL: ${GOFEELER_LLM_MODEL}
+      # 5.8: pulling uploaded file content into /analyze — internal
+      # container-to-container URL, not the public storage.microverse.local
+      # host (see asset-service's own S3_ENDPOINT comment above for why).
+      ASSET_SERVICE_URL: http://microverse-asset-service:8080
     depends_on:
       - microverse-mongodb
       - microverse-postgis
+      - microverse-asset-service
     networks:
       - microverse-network
 

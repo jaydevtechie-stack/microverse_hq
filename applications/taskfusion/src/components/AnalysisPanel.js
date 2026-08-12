@@ -21,9 +21,11 @@ const SENTIMENT_COLOR = {
 // disables template choice, not the basic-engine path. Leaving
 // templateId empty lets the backend resolve its own system default
 // (store.Templates.Resolve) rather than the frontend hardcoding which
-// template that is. task.context is still the only analyzable text
-// available (see 5.2.1's note on uploaded-file content being out of
-// scope). "Move to review" (4.5) calls the real PATCH /api/tasks/:id/
+// template that is. task.context and any uploaded files are both
+// analyzable now (5.8 — gofeeler fetches file content server-side from
+// asset-service, this panel just needs to know whether any exist so the
+// button isn't disabled on an order with files but no typed context).
+// "Move to review" (4.5) calls the real PATCH /api/tasks/:id/
 // move-to-review — no local success text needed, once onTaskUpdated
 // fires task.status flips to 'reviewer' and TaskDetailContent's
 // actionPanelFor unmounts this panel entirely, same pattern
@@ -42,6 +44,7 @@ const AnalysisPanel = ({ task, onTaskUpdated }) => {
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [hasFiles, setHasFiles] = useState(false);
 
   useEffect(() => {
     fetch('/api/gofeeler/templates', { headers: authHeaders() })
@@ -53,7 +56,15 @@ const AnalysisPanel = ({ task, onTaskUpdated }) => {
       .catch((err) => setTemplatesError(err.message));
   }, []);
 
-  const hasContent = Boolean(task?.context?.trim());
+  useEffect(() => {
+    if (!task?.id || !task?.service) return;
+    fetch(`/api/assets/${task.id}?service=${task.service}`, { headers: authHeaders() })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((files) => setHasFiles(Array.isArray(files) && files.length > 0))
+      .catch(() => setHasFiles(false));
+  }, [task?.id, task?.service]);
+
+  const hasContent = Boolean(task?.context?.trim()) || hasFiles;
   const resultTemplate = result?.template_id
     ? templates?.find((tpl) => tpl.id === result.template_id)
     : null;

@@ -6,25 +6,33 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
 
+	"gofeeler/assetclient"
 	"gofeeler/engine"
 )
 
 type fakeEngine struct {
-	result engine.Result
-	err    error
+	result  engine.Result
+	err     error
+	gotText string
 }
 
-func (f *fakeEngine) Analyze(_ context.Context, _ string, _ engine.Options) (engine.Result, error) {
+func (f *fakeEngine) Analyze(_ context.Context, text string, _ engine.Options) (engine.Result, error) {
+	f.gotText = text
 	return f.result, f.err
 }
 
 func newTestRouter(engines map[string]engine.SentimentEngine) *gin.Engine {
+	return newTestRouterWithAssets(engines, nil)
+}
+
+func newTestRouterWithAssets(engines map[string]engine.SentimentEngine, assets *assetclient.Client) *gin.Engine {
 	gin.SetMode(gin.TestMode)
-	h := NewSentimentHandler(engines, nil)
+	h := NewSentimentHandler(engines, nil, assets)
 	r := gin.New()
 	r.POST("/analyze", h.AnalyzeSentiment)
 	return r
@@ -117,5 +125,49 @@ func TestAnalyzeSentiment_EngineError(t *testing.T) {
 	w := doAnalyze(t, r, `{"text":"hello"}`)
 	if w.Code != http.StatusBadGateway {
 		t.Fatalf("status = %d, want %d", w.Code, http.StatusBadGateway)
+	}
+}
+
+// 5.8: a taskId-bearing request folds the order's uploaded file content
+// into the text handed to the engine, even with no typed "text" at all —
+// an order can now be analyzable purely from an uploaded file.
+func TestAnalyzeSentiment_FoldsInFileContentForTaskID(t *testing.T) {
+	assetServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/content") {
+			w.Write([]byte("uploaded chat export content"))
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`[{"filename":"export.txt","size":10}]`))
+	}))
+	defer assetServer.Close()
+
+	fe := &fakeEngine{result: engine.Result{Sentiment: "neutral", Confidence: 0.5, EngineUsed: "basic"}}
+	engines := map[string]engine.SentimentEngine{"basic": fe}
+	r := newTestRouterWithAssets(engines, assetclient.New(assetServer.URL))
+
+	w := doAnalyze(t, r, `{"taskId":"task-1"}`)
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d, body=%s", w.Code, http.StatusOK, w.Body.String())
+	}
+	if !strings.Contains(fe.gotText, "uploaded chat export content") {
+		t.Errorf("engine received text %q, want it to include fetched file content", fe.gotText)
+	}
+}
+
+// A fetch failure (asset-service unreachable here) must not fail the
+// whole request — file content is a supplement to task.context, not a
+// hard requirement, so analysis proceeds on whatever text was sent.
+func TestAnalyzeSentiment_FileContentFetchFailureIsNonFatal(t *testing.T) {
+	fe := &fakeEngine{result: engine.Result{Sentiment: "neutral", Confidence: 0.5, EngineUsed: "basic"}}
+	engines := map[string]engine.SentimentEngine{"basic": fe}
+	r := newTestRouterWithAssets(engines, assetclient.New("http://127.0.0.1:0"))
+
+	w := doAnalyze(t, r, `{"text":"hello","taskId":"task-1"}`)
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d, body=%s", w.Code, http.StatusOK, w.Body.String())
+	}
+	if fe.gotText != "hello" {
+		t.Errorf("engine received text %q, want unchanged %q", fe.gotText, "hello")
 	}
 }
