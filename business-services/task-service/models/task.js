@@ -14,12 +14,22 @@ async function findByService(service) {
 // rather than as a separate lookup since every caller of findById
 // already wants the enriched row (extra columns are harmless to the
 // handful of callers that only read assignee/status/etc off it).
+// assignee_name/owner_name (follow-up) — assignee/owner are stored as
+// emails, not user ids (assignAnalyst/moveToReview/etc. all write the
+// target's email — see their own comments for why), so this joins by
+// email rather than id, unlike the customer/project joins above. Both
+// can come back null for an email that isn't (or is no longer) a
+// synced user — callers fall back to the raw email in that case, same
+// pattern project.responsible_user_name already uses.
 async function findById(id) {
   const { rows } = await pool.query(
-    `SELECT t.*, c.name AS customer_name, p.name AS project_name
+    `SELECT t.*, c.name AS customer_name, p.name AS project_name,
+            au.name AS assignee_name, ou.name AS owner_name
      FROM tasks t
      LEFT JOIN users c ON c.id = t.customer_id
      LEFT JOIN projects p ON p.id = t.project_id
+     LEFT JOIN users au ON au.email = t.assignee
+     LEFT JOIN users ou ON ou.email = t.owner
      WHERE t.id = $1`,
     [id]
   );

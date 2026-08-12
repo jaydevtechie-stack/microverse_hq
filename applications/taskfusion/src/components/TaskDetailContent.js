@@ -176,8 +176,13 @@ const TaskDetailContent = ({ id }) => {
     // or one never attached to a Project), same '—' fallback as the
     // other optional fields below.
     [t('taskDetail.meta.customer'), task.customer_name || '—'],
-    [t('taskDetail.meta.assignee'), task.assignee || t('taskDetail.meta.unassigned')],
-    [t('taskDetail.meta.owner'), task.owner || '—'],
+    // assignee_name/owner_name (follow-up) — assignee/owner are emails
+    // on the raw task row; findById now joins the matching user's name
+    // by email, falling back to the raw email itself if that lookup
+    // comes back empty (an email that isn't a synced user), same as
+    // the pre-existing 'unassigned'/'—' fallbacks for a null value.
+    [t('taskDetail.meta.assignee'), task.assignee_name || task.assignee || t('taskDetail.meta.unassigned')],
+    [t('taskDetail.meta.owner'), task.owner_name || task.owner || '—'],
     ...(projectManagerNames ? [[t('taskDetail.meta.projectManager'), projectManagerNames]] : []),
     ...(task.project_name ? [[t('taskDetail.meta.project'), task.project_name]] : []),
     [t('taskDetail.meta.due'), task.due_date ? new Date(task.due_date).toLocaleDateString() : '—'],
