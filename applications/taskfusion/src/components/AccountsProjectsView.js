@@ -3,8 +3,9 @@ import { Trans, useTranslation } from 'react-i18next';
 import { IconChevronDown, IconChevronRight } from '@tabler/icons-react';
 import { authHeaders } from '../services/keycloak';
 import SplitView from './SplitView';
-import TaskDetailContent from './TaskDetailContent';
-import { STATUS_STYLE } from './TaskStatusBadge';
+import InlineTaskDetail from './InlineTaskDetail';
+import { ActionButtonRow, OutlineDangerButton } from './ActionButtons';
+import TaskStatusBadge from './TaskStatusBadge';
 
 const PROJECT_STATUS_STYLE = {
   active: { bg: 'var(--mv-color-success, #2f9e64)', labelKey: 'projectStatus.active' },
@@ -245,26 +246,30 @@ const ProjectDetail = ({ project, canApprove, onApprove, approving, canManagePro
           <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>{t('projectDetail.loadingPmCandidates')}</p>
         )}
         {pmCandidates && (
-          <>
-            <select value={pmPicked} onChange={(e) => setPmPicked(e.target.value)} style={fieldInputStyle}>
-              <option value="">{t('projectDetail.choosePm')}</option>
-              {pmCandidates.map((pm) => (
-                <option key={pm.id} value={pm.id}>
-                  {pm.name}
-                </option>
-              ))}
-            </select>
+          <select value={pmPicked} onChange={(e) => setPmPicked(e.target.value)} style={fieldInputStyle}>
+            <option value="">{t('projectDetail.choosePm')}</option>
+            {pmCandidates.map((pm) => (
+              <option key={pm.id} value={pm.id}>
+                {pm.name}
+              </option>
+            ))}
+          </select>
+        )}
+
+        {/* Side by side, 50/50, same row shape as ReviewerPanel's Approve/Reject */}
+        <ActionButtonRow>
+          {pmCandidates && (
             <button
               type="button"
               onClick={handleAssignPm}
               disabled={!pmPicked || assigningPm}
               style={{
-                padding: '8px 14px',
-                marginBottom: 10,
+                flex: 1,
+                padding: '10px 0',
                 background: pmPicked && !assigningPm ? 'var(--mv-color-primary)' : 'var(--mv-badge-bg)',
                 color: pmPicked && !assigningPm ? 'var(--mv-color-primary-contrast)' : 'var(--mv-badge-text)',
                 fontWeight: 500,
-                fontSize: 12,
+                fontSize: 13,
                 border: 'none',
                 borderRadius: 8,
                 cursor: pmPicked && !assigningPm ? 'pointer' : 'not-allowed',
@@ -272,34 +277,19 @@ const ProjectDetail = ({ project, canApprove, onApprove, approving, canManagePro
             >
               {assigningPm ? t('projectDetail.assigningPm') : t('projectDetail.assignPm')}
             </button>
-            {assignPmError && (
-              <p style={{ color: 'var(--mv-color-danger)', fontSize: 12, margin: '-4px 0 10px' }}>
-                {t('projectDetail.assignPmError', { error: assignPmError })}
-              </p>
-            )}
-          </>
-        )}
+          )}
 
-        {project.status !== 'inactive' && (
-          <button
-            type="button"
-            onClick={handleDeactivate}
-            disabled={deactivating}
-            style={{
-              marginBottom: 18,
-              padding: '8px 14px',
-              background: 'transparent',
-              border: '0.5px solid var(--mv-color-danger)',
-              color: 'var(--mv-color-danger)',
-              fontWeight: 500,
-              fontSize: 12,
-              borderRadius: 8,
-              cursor: deactivating ? 'default' : 'pointer',
-              opacity: deactivating ? 0.6 : 1,
-            }}
-          >
-            {deactivating ? t('projectDetail.deactivating') : t('projectDetail.deactivateProject')}
-          </button>
+          {project.status !== 'inactive' && (
+            <OutlineDangerButton onClick={handleDeactivate} disabled={deactivating}>
+              {deactivating ? t('projectDetail.deactivating') : t('projectDetail.deactivateProject')}
+            </OutlineDangerButton>
+          )}
+        </ActionButtonRow>
+
+        {assignPmError && (
+          <p style={{ color: 'var(--mv-color-danger)', fontSize: 12, margin: '-14px 0 18px' }}>
+            {t('projectDetail.assignPmError', { error: assignPmError })}
+          </p>
         )}
         {deactivateError && (
           <p style={{ color: 'var(--mv-color-danger)', fontSize: 12, margin: '-14px 0 18px' }}>
@@ -326,15 +316,9 @@ const ProjectDetail = ({ project, canApprove, onApprove, approving, canManagePro
           cursor: 'pointer',
         }}
       >
-        <span
-          style={{
-            width: 7,
-            height: 7,
-            borderRadius: '50%',
-            background: (STATUS_STYLE[task.status] || STATUS_STYLE.unassigned).bg,
-            flexShrink: 0,
-          }}
-        />
+        <span style={{ flexShrink: 0 }}>
+          <TaskStatusBadge status={task.status} />
+        </span>
         <span style={{ color: 'var(--mv-text)', fontSize: 12, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {task.title}
         </span>
@@ -344,24 +328,6 @@ const ProjectDetail = ({ project, canApprove, onApprove, approving, canManagePro
       </div>
     ))}
   </>
-  );
-};
-
-// Wraps the shared TaskDetailContent with a back-to-Project link, same
-// shell GofeelerSplitView/TaskDetailPage each add around it in their
-// own way — this one returns to the Project selection rather than a
-// list or a browser-history pop.
-const TaskDetail = ({ taskId, onBack }) => {
-  const { t } = useTranslation('common');
-  return (
-    <>
-      <span onClick={onBack} style={{ color: 'var(--mv-color-primary)', fontSize: 12, cursor: 'pointer' }}>
-        {t('back')}
-      </span>
-      <div style={{ marginTop: 14 }}>
-        <TaskDetailContent id={taskId} />
-      </div>
-    </>
   );
 };
 
@@ -752,7 +718,7 @@ const AccountsProjectsView = ({
           }
           if (selection.type === 'task') {
             return (
-              <TaskDetail
+              <InlineTaskDetail
                 taskId={selection.id}
                 onBack={() => setSelection({ type: 'project', id: selection.projectId })}
               />

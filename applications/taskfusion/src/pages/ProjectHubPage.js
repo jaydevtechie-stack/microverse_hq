@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { IconBuilding } from '@tabler/icons-react';
 import SplitView from '../components/SplitView';
+import InlineTaskDetail from '../components/InlineTaskDetail';
 import { authHeaders } from '../services/keycloak';
-import { STATUS_STYLE } from '../components/TaskStatusBadge';
+import TaskStatusBadge from '../components/TaskStatusBadge';
 import usePageMeta from '../hooks/usePageMeta';
 
 const TAB_IDS = ['projects', 'accounts'];
@@ -106,7 +107,7 @@ const ItemList = ({ tab, items, error, selectedId, onSelect }) => {
 
 const infoBox = { background: 'var(--mv-bg)', border: '0.5px solid var(--mv-border)', borderRadius: 8, padding: '10px 12px' };
 
-const ProjectDetail = ({ project, onClose }) => {
+const ProjectDetail = ({ project, onClose, onSelectTask }) => {
   const { t } = useTranslation(['projectHub', 'accounts', 'common']);
   return (
   <>
@@ -145,26 +146,20 @@ const ProjectDetail = ({ project, onClose }) => {
     {project.tasks.map((task) => (
       <div
         key={task.id}
+        onClick={() => onSelectTask(task.id)}
         style={{
           display: 'flex',
           alignItems: 'center',
           gap: 10,
           padding: '8px 4px',
           borderBottom: '0.5px solid var(--mv-border)',
+          cursor: 'pointer',
         }}
       >
-        <span
-          style={{
-            width: 7,
-            height: 7,
-            borderRadius: '50%',
-            background: (STATUS_STYLE[task.status] || STATUS_STYLE.unassigned).bg,
-            flexShrink: 0,
-          }}
-        />
-        <span style={{ color: 'var(--mv-text)', fontSize: 12 }}>
-          #{task.id.slice(0, 8)} · {task.title}
+        <span style={{ flexShrink: 0 }}>
+          <TaskStatusBadge status={task.status} />
         </span>
+        <span style={{ color: 'var(--mv-text)', fontSize: 12 }}>{task.title}</span>
       </div>
     ))}
   </>
@@ -251,12 +246,18 @@ const ProjectHubPage = () => {
   const [error, setError] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [detail, setDetail] = useState(null);
+  // Set when a Project's task row is clicked (Projects tab only) — swaps
+  // the detail panel to InlineTaskDetail in place of ProjectDetail,
+  // rather than navigating to the standalone /task/:id page. Reset
+  // alongside selectedId/detail whenever the tab or selection changes.
+  const [taskId, setTaskId] = useState(null);
 
   useEffect(() => {
     setItems(null);
     setError(null);
     setSelectedId(null);
     setDetail(null);
+    setTaskId(null);
     fetch(`/api/${tab}`, { headers: authHeaders() })
       .then((res) => {
         if (!res.ok) throw new Error(`task-service returned ${res.status}`);
@@ -269,6 +270,7 @@ const ProjectHubPage = () => {
   useEffect(() => {
     if (!selectedId) return;
     setDetail(null);
+    setTaskId(null);
     fetch(`/api/${tab}/${selectedId}`, { headers: authHeaders() })
       .then((res) => {
         if (!res.ok) throw new Error(`task-service returned ${res.status}`);
@@ -290,8 +292,10 @@ const ProjectHubPage = () => {
         listPanel={<ItemList tab={tab} items={items} error={error} selectedId={selectedId} onSelect={setSelectedId} />}
         detailPanel={
           detail &&
-          (tab === 'projects' ? (
-            <ProjectDetail project={detail} onClose={() => setSelectedId(null)} />
+          (taskId ? (
+            <InlineTaskDetail taskId={taskId} onBack={() => setTaskId(null)} />
+          ) : tab === 'projects' ? (
+            <ProjectDetail project={detail} onClose={() => setSelectedId(null)} onSelectTask={setTaskId} />
           ) : (
             <AccountDetail account={detail} onClose={() => setSelectedId(null)} />
           ))

@@ -94,7 +94,7 @@ const TaskComments = ({ taskId, visibility }) => {
 
       {comments.map((comment) => (
         <div key={comment.comment_id}>
-          <CommentRow author={comment.author} createdAt={comment.created_at} content={comment.content} />
+          <CommentRow author={comment.author_name || comment.author} createdAt={comment.created_at} content={comment.content} />
           {comment.replies.map((reply) => (
             <div
               key={reply.comment_id}
@@ -105,7 +105,7 @@ const TaskComments = ({ taskId, visibility }) => {
                 borderLeft: '0.5px solid var(--mv-border)',
               }}
             >
-              <CommentRow author={reply.author} createdAt={reply.created_at} content={reply.content} />
+              <CommentRow author={reply.author_name || reply.author} createdAt={reply.created_at} content={reply.content} />
             </div>
           ))}
           {/* One level of replies only (SCHEMA.md) — a comment that's
