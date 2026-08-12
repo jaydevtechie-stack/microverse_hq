@@ -1,13 +1,30 @@
 use axum::extract::{Path, Query, State};
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Json};
 use axum::routing::get;
 use axum::Router;
 use serde::Deserialize;
 use sqlx::PgPool;
 
+use crate::auth::claims_from_headers;
 use crate::billing::RateCard;
 use crate::models::{AnalystTotal, LineItem};
+
+// Full ledger visibility (any analyst's line items/totals) is billing
+// data with no access-control design yet — Branch 9 in ROADMAP.md
+// leaves "who can see whose billing" an open question. platform:admin
+// is a conservative interim gate to close the OWASP A01 finding
+// (docs/security.md: rustledger had zero auth, unlike every other
+// service) without guessing at that unbuilt design; revisit once
+// Branch 9's payout-visibility model actually exists.
+fn require_admin(headers: &HeaderMap) -> Result<(), (StatusCode, String)> {
+    let claims = claims_from_headers(headers)
+        .ok_or((StatusCode::UNAUTHORIZED, "missing or malformed token".into()))?;
+    if !claims.has_role("platform:admin") {
+        return Err((StatusCode::FORBIDDEN, "requires platform:admin".into()));
+    }
+    Ok(())
+}
 
 #[derive(Clone)]
 pub struct AppState {
@@ -33,8 +50,11 @@ struct LineItemsQuery {
 
 async fn list_line_items(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Query(query): Query<LineItemsQuery>,
 ) -> Result<Json<Vec<LineItem>>, (StatusCode, String)> {
+    require_admin(&headers)?;
+
     let rows = match query.analyst_id {
         Some(analyst_id) => sqlx::query_as::<_, LineItem>(
             "SELECT id, session_id, analyst_id, quest_id, elapsed_seconds, \
@@ -59,8 +79,11 @@ async fn list_line_items(
 
 async fn analyst_total(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Path(analyst_id): Path<String>,
 ) -> Result<Json<AnalystTotal>, (StatusCode, String)> {
+    require_admin(&headers)?;
+
     let rate_card = RateCard::from_env();
 
     // Postgres SUM(bigint) returns numeric, not bigint — cast explicitly so
