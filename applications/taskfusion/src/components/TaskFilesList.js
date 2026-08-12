@@ -15,12 +15,14 @@ const formatSize = (bytes) => {
 // the Rust side's own list_assets handler.
 //
 // `editable` gates add/remove — only true for the owning customer while
-// the order is `analyst` (5.7.1 reopened this for analyst-requests-more-
-// content; 5.7.2 then narrowed it to *just* `analyst`, not `unassigned`
-// — a fresh order already has whatever files the customer meant to
-// attach, so re-upload only makes sense once an analyst actually asks
-// for something). asset-service enforces the same window server-side;
-// this is just so the buttons don't appear when they'd 403 anyway.
+// the order is `unassigned` or `analyst` (5.7.1 reopened the latter so
+// an analyst short on content can ask the customer for more; 5.7.2
+// briefly narrowed this to `analyst`-only, but that broke the ordinary
+// case of a customer fixing/adding a file to their own still-unassigned
+// order, so both statuses are open again — same window
+// title/context/tags editing already uses). asset-service enforces the
+// same window server-side; this is just so the buttons don't appear
+// when they'd 403 anyway.
 // Read-only otherwise, same as before.
 const TaskFilesList = ({ taskId, service, editable = false }) => {
   const { t } = useTranslation(['gofeeler', 'common']);
