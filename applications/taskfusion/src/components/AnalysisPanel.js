@@ -198,28 +198,32 @@ const AnalysisPanel = ({ task }) => {
         }}
       />
 
-      <button
-        type="button"
-        onClick={() => setMovedToReview(true)}
-        style={{
-          width: '100%',
-          padding: '10px 0',
-          background: 'var(--mv-bg)',
-          border: '0.5px solid var(--mv-border)',
-          color: 'var(--mv-text)',
-          fontWeight: 500,
-          fontSize: 13,
-          borderRadius: 8,
-          cursor: 'pointer',
-        }}
-      >
-        {t('panels.analyst.moveToReview')}
-      </button>
+      {result && (
+        <>
+          <button
+            type="button"
+            onClick={() => setMovedToReview(true)}
+            style={{
+              width: '100%',
+              padding: '10px 0',
+              background: 'var(--mv-bg)',
+              border: '0.5px solid var(--mv-border)',
+              color: 'var(--mv-text)',
+              fontWeight: 500,
+              fontSize: 13,
+              borderRadius: 8,
+              cursor: 'pointer',
+            }}
+          >
+            {t('panels.analyst.moveToReview')}
+          </button>
 
-      {movedToReview && (
-        <p style={{ color: 'var(--mv-color-primary)', fontSize: 12, margin: '10px 0 0' }}>
-          {t('panels.analyst.sentToReview')}
-        </p>
+          {movedToReview && (
+            <p style={{ color: 'var(--mv-color-primary)', fontSize: 12, margin: '10px 0 0' }}>
+              {t('panels.analyst.sentToReview')}
+            </p>
+          )}
+        </>
       )}
     </div>
   );
