@@ -76,17 +76,27 @@
       "addNote": "Add a note",
       "notePlaceholder": "Add a note...",
       "moveToReview": "Move to review",
-      "sentToReview": "Sent to review — order will move to \"reviewer\" status"
+      "movingToReview": "Moving to review…",
+      "moveToReviewError": "Couldn't move to review: {{error}}"
     },
     "reviewer": {
       "analystResults": "Analyst's results",
       "reassignReviewer": "Reassign reviewer",
-      "defaultOption": "You (default — project manager)",
-      "namedOption": "John (dedicated reviewer)",
+      "loadingCandidates": "Loading reviewer candidates…",
+      "candidatesLoadError": "Couldn't load reviewer candidates: {{error}}",
+      "chooseReviewer": "Choose a reviewer...",
+      "defaultReviewerSuffix": " (default — project manager)",
+      "reassign": "Reassign",
+      "reassigning": "Reassigning…",
+      "reassignError": "Couldn't reassign: {{error}}",
       "approve": "Approve",
+      "approving": "Approving…",
+      "approveError": "Couldn't approve: {{error}}",
       "reject": "Reject",
-      "approved": "Approved — order will move to \"done\" status",
-      "rejected": "Rejected — order will move back to \"analyst\" status"
+      "rejecting": "Rejecting…",
+      "rejectPickerDescription": "Pick who this order goes back to.",
+      "confirmReject": "Reject & reassign to {{name}}",
+      "backToDecision": "← Back to approve/reject"
     },
     "pmAssign": {
       "backToAssignment": "← Back to assignment",
@@ -97,7 +107,6 @@
       "currentTasks": "Current tasks",
       "noActiveTasks": "No active tasks.",
       "assigning": "Assigning…",
-      "assignName": "Assign {{name}}",
       "scoutTitle": "Scout",
       "recommendationAgent": "Recommendation agent",
       "scoutDescription": "Scans the pool for the best-fit analyst, weighing current availability.",

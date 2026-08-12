@@ -2,12 +2,22 @@
 
 const express = require('express');
 const router = express.Router();
-const { findByService, findById, create, assignAnalyst, updateOrderDetails } = require('../models/task');
+const {
+  findByService,
+  findById,
+  create,
+  assignAnalyst,
+  updateOrderDetails,
+  moveToReview,
+  reassignReviewer,
+  approveTask,
+  rejectTask,
+} = require('../models/task');
 const { listForTask, findLatestByCommentId, createComment } = require('../models/comment');
-const { getUser, ensureAccountForCustomer } = require('../models/user');
+const { getUser, listUsers, ensureAccountForCustomer } = require('../models/user');
 const { recommendAnalysts } = require('../models/scout');
 const { listPmsForAccount } = require('../models/account');
-const { requireRealmRole } = require('../middleware/auth');
+const { requireRealmRole, requireAnyRealmRole } = require('../middleware/auth');
 
 // The PM(s) a customer should reach out to about this order — ownership
 // (pm_accounts, which Accounts a PM can see at all) narrowed to service
@@ -225,6 +235,10 @@ router.patch('/tasks/:id', requireRealmRole('platform:project-manager'), async (
 // Scout's picks (4.1.1) for this task's service — ordered by the
 // availability signal in models/scout.js, enriched per candidate with
 // tasks_done/active_tasks/reason for 4.1.1.1's profile detail view.
+// Reused as-is (4.5) for the reviewer's reject flow — rejecting sends
+// the task back to a newly-picked analyst from this same pool, not
+// necessarily the one who did the original work (ARCHITECTURE.md's
+// open question, resolved: reviewer picks from the pool).
 router.get('/tasks/:id/recommended-analysts', async (req, res) => {
   try {
     const task = await findById(req.params.id);
@@ -236,6 +250,225 @@ router.get('/tasks/:id/recommended-analysts', async (req, res) => {
     res.status(500).json({ message: 'Error fetching recommendations', error: err.message });
   }
 });
+
+// Who's eligible to review this task (4.5) — the account's PM(s)
+// (isDefault: true, same reuse of projectManagersFor the enrichment
+// field already uses) plus any dedicated platform:reviewer holder for
+// this service. Not exposed as GET /users?platformRole=&service=
+// (that route is platform:admin-gated per docs/security.md's OWASP fix)
+// — listUsers is called directly here instead, same pattern
+// recommendAnalysts already uses for its own role-filtered query.
+router.get('/tasks/:id/reviewer-candidates', async (req, res) => {
+  try {
+    const task = await findById(req.params.id);
+    if (!task) return res.status(404).json({ message: 'Task not found' });
+
+    const pms = await projectManagersFor(task);
+    const reviewers = await listUsers({ platformRole: 'platform:reviewer', service: task.service });
+    const pmIds = new Set(pms.map((pm) => pm.id));
+    const candidates = [
+      ...pms.map((pm) => ({ id: pm.id, name: pm.name, email: pm.email, isDefault: true })),
+      ...reviewers.filter((r) => !pmIds.has(r.id)).map((r) => ({ id: r.id, name: r.name, email: r.email, isDefault: false })),
+    ];
+    res.status(200).json(candidates);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching reviewer candidates', error: err.message });
+  }
+});
+
+// Analyst's own "Move to review" action (4.5) — analyst -> reviewer.
+// Defaults the reviewer to the account's PM (docs/roadmap/2.0/
+// intelligence.md's reviewer-identity model: "the PM, or a dedicated
+// service:X + platform:reviewer holder"); reassigning to a dedicated
+// reviewer is a separate action (PATCH /tasks/:id/reviewer) available
+// once this transition has happened. requireRealmRole plus the
+// assignee self-check mirrors PATCH /tasks/:id's own caller-role +
+// target-eligibility double-check (docs/security.md's OWASP fix for
+// that route) — a self-check alone isn't enough on its own.
+router.patch('/tasks/:id/move-to-review', requireRealmRole('platform:analyst'), async (req, res) => {
+  const analystEmail = req.claims?.email;
+  if (!analystEmail) {
+    return res.status(401).json({ message: 'Missing or unparseable Authorization token' });
+  }
+
+  try {
+    const task = await findById(req.params.id);
+    if (!task) return res.status(404).json({ message: 'Task not found' });
+    if (task.status !== 'analyst') {
+      return res.status(409).json({ message: `Task is "${task.status}", not analyst` });
+    }
+    if (task.assignee !== analystEmail) {
+      return res.status(403).json({ message: "Not this task's current analyst" });
+    }
+
+    const pms = await projectManagersFor(task);
+    if (pms.length === 0) {
+      return res.status(400).json({ message: 'No project manager available to review this order' });
+    }
+
+    const updated = await moveToReview(task.id, analystEmail, pms[0].email);
+    if (!updated) {
+      return res.status(409).json({ message: 'Task status changed just now' });
+    }
+    res.status(200).json({ ...updated, project_managers: await projectManagersFor(updated) });
+  } catch (err) {
+    res.status(500).json({ message: 'Error moving task to review', error: err.message });
+  }
+});
+
+// Current reviewer hands the task to someone else (4.5) — the PM
+// (default) to a dedicated reviewer, or back. Only the task's current
+// reviewer can do this (self-check), same "current holder acts on their
+// own task" posture as the analyst-side panels.
+router.patch(
+  '/tasks/:id/reviewer',
+  requireAnyRealmRole('platform:project-manager', 'platform:reviewer'),
+  async (req, res) => {
+    const callerEmail = req.claims?.email;
+    const { reviewerId } = req.body;
+    if (!callerEmail) {
+      return res.status(401).json({ message: 'Missing or unparseable Authorization token' });
+    }
+    if (!reviewerId) {
+      return res.status(400).json({ message: 'Missing required "reviewerId"' });
+    }
+
+    try {
+      const task = await findById(req.params.id);
+      if (!task) return res.status(404).json({ message: 'Task not found' });
+      if (task.status !== 'reviewer') {
+        return res.status(409).json({ message: `Task is "${task.status}", not reviewer` });
+      }
+      if (task.assignee !== callerEmail) {
+        return res.status(403).json({ message: "Not this task's current reviewer" });
+      }
+
+      const reviewer = await getUser(reviewerId);
+      if (!reviewer || !reviewer.active) {
+        return res.status(400).json({ message: 'Reviewer must be an active, synced user' });
+      }
+      const pms = await projectManagersFor(task);
+      const isPmCandidate = pms.some((pm) => pm.id === reviewer.id);
+      const isDedicatedReviewer =
+        reviewer.roles?.includes('platform:reviewer') && reviewer.roles?.includes(`service:${task.service}`);
+      if (!isPmCandidate && !isDedicatedReviewer) {
+        return res.status(400).json({
+          message: `Reviewer must be the account's project manager or hold platform:reviewer and service:${task.service}`,
+        });
+      }
+
+      const updated = await reassignReviewer(task.id, callerEmail, reviewer.email);
+      if (!updated) {
+        return res.status(409).json({ message: 'Task was reassigned by someone else just now' });
+      }
+      res.status(200).json({ ...updated, project_managers: await projectManagersFor(updated) });
+    } catch (err) {
+      res.status(500).json({ message: 'Error reassigning reviewer', error: err.message });
+    }
+  }
+);
+
+// Reviewer approves the analyst's work (4.5) — reviewer -> done. Owner
+// resolution follows SCHEMA.md's Assignee/Owner table (done -> PM): the
+// approving PM's own email if they hold platform:project-manager
+// (unambiguous), otherwise the account's PM via projectManagersFor —
+// this inherits ARCHITECTURE.md's still-open "one dedicated PM per
+// company or a pool" question rather than resolving it, same as the
+// existing project_managers enrichment field already does.
+router.patch(
+  '/tasks/:id/approve',
+  requireAnyRealmRole('platform:project-manager', 'platform:reviewer'),
+  async (req, res) => {
+    const callerEmail = req.claims?.email;
+    if (!callerEmail) {
+      return res.status(401).json({ message: 'Missing or unparseable Authorization token' });
+    }
+
+    try {
+      const task = await findById(req.params.id);
+      if (!task) return res.status(404).json({ message: 'Task not found' });
+      if (task.status !== 'reviewer') {
+        return res.status(409).json({ message: `Task is "${task.status}", not reviewer` });
+      }
+      if (task.assignee !== callerEmail) {
+        return res.status(403).json({ message: "Not this task's current reviewer" });
+      }
+
+      const callerRoles = req.claims?.realm_access?.roles || [];
+      let ownerEmail;
+      if (callerRoles.includes('platform:project-manager')) {
+        ownerEmail = callerEmail;
+      } else {
+        const pms = await projectManagersFor(task);
+        if (pms.length === 0) {
+          return res.status(400).json({ message: 'No project manager available to take ownership' });
+        }
+        ownerEmail = pms[0].email;
+      }
+
+      const updated = await approveTask(task.id, callerEmail, ownerEmail);
+      if (!updated) {
+        return res.status(409).json({ message: 'Task status changed just now' });
+      }
+      res.status(200).json({ ...updated, project_managers: await projectManagersFor(updated) });
+    } catch (err) {
+      res.status(500).json({ message: 'Error approving task', error: err.message });
+    }
+  }
+);
+
+// Reviewer rejects the analyst's work (4.5) — reviewer -> analyst.
+// ARCHITECTURE.md: "rejection requires an assignee — the transition
+// isn't complete until a new analyst is picked, so a Task never sits
+// unassigned mid-rejection" — and the open question on same-analyst-vs-
+// pool is resolved as pool, so this always carries a validated
+// assigneeId, same target-eligibility check PATCH /tasks/:id (PM
+// assign) already does for the same platform:analyst + service:{x}
+// requirement.
+router.patch(
+  '/tasks/:id/reject',
+  requireAnyRealmRole('platform:project-manager', 'platform:reviewer'),
+  async (req, res) => {
+    const callerEmail = req.claims?.email;
+    const { assigneeId } = req.body;
+    if (!callerEmail) {
+      return res.status(401).json({ message: 'Missing or unparseable Authorization token' });
+    }
+    if (!assigneeId) {
+      return res.status(400).json({ message: 'Missing required "assigneeId"' });
+    }
+
+    try {
+      const task = await findById(req.params.id);
+      if (!task) return res.status(404).json({ message: 'Task not found' });
+      if (task.status !== 'reviewer') {
+        return res.status(409).json({ message: `Task is "${task.status}", not reviewer` });
+      }
+      if (task.assignee !== callerEmail) {
+        return res.status(403).json({ message: "Not this task's current reviewer" });
+      }
+
+      const analyst = await getUser(assigneeId);
+      if (!analyst || !analyst.active) {
+        return res.status(400).json({ message: 'Assignee must be an active, synced user' });
+      }
+      const requiredRoles = ['platform:analyst', `service:${task.service}`];
+      if (!requiredRoles.every((role) => analyst.roles.includes(role))) {
+        return res
+          .status(400)
+          .json({ message: `Assignee must hold platform:analyst and service:${task.service}` });
+      }
+
+      const updated = await rejectTask(task.id, callerEmail, analyst.email);
+      if (!updated) {
+        return res.status(409).json({ message: 'Task status changed just now' });
+      }
+      res.status(200).json({ ...updated, project_managers: await projectManagersFor(updated) });
+    } catch (err) {
+      res.status(500).json({ message: 'Error rejecting task', error: err.message });
+    }
+  }
+);
 
 // Nested one level deep — top-level comments with their (at most one
 // level of) replies attached. ?visibility=internal|customer scopes to

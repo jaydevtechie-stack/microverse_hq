@@ -106,7 +106,6 @@ See [business-services.md](business-services.md) for where the task pool itself 
 ## Open questions
 
 - Is a PM assigned per-Order, or one shared pool of PMs within a company? *(Partially resolved — a PM is assigned to a company and handles that company's orders; still open whether it's one dedicated PM per company or a pool.)*
-- On rejection, does a Task return to the *same* analyst, or back into the pool for anyone with that role?
 - ~~`intelligence/` folder taxonomy~~ — **resolved, see [docs/architecture/2.0/intelligence.md](../2.0/intelligence.md).** Runnable services: `agents/*`, `ai-tools` (one shared service), `mcp`. Config/data layers: `knowledge` (Elasticsearch), `memory` (Redis), `models`, `prompts`, `workflows`.
 - Agent task-recommendation feature (recommend tasks to an analyst based on performance + cost) — todo, not yet designed.
 - Customers page and Analysts page — basic light/dark versions built (profile header, orders/invoices list, metric cards + current tasks); still missing graphs and message-history sections.
@@ -119,3 +118,4 @@ See [business-services.md](business-services.md) for where the task pool itself 
 - **Customer entity** — can be a company or an individual; 1:n, a company can have multiple customer users.
 - **PM-to-company assignment** — a PM is assigned to a specific company and works that company's orders.
 - **Rejection assignee** — rejection requires picking a new assignee immediately; a Task never sits unassigned mid-rejection.
+- **Rejection target** — the reviewer picks from the pool (a Scout-ranked candidate list, same mechanism the PM's initial assignment uses), not automatically the same analyst who did the original work. Reviewer identity itself is the account's PM by default (set when the analyst moves a Task to review), reassignable to a dedicated `platform:reviewer` holder — see [domain-services.md](../../roadmap/1.0/domain-services.md)'s 4.5.

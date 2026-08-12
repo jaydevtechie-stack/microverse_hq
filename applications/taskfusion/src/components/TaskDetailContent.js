@@ -40,10 +40,15 @@ function actionPanelFor({ task, isPM, isAnalyst, isReviewer, isCustomer, usernam
     return <PmBillPanel />;
   }
   if (isAnalyst && task.status === 'analyst' && task.assignee === username) {
-    return <AnalysisPanel task={task} />;
+    return <AnalysisPanel task={task} onTaskUpdated={onTaskUpdated} />;
   }
-  if (isReviewer && task.status === 'reviewer' && task.assignee === username) {
-    return <ReviewerPanel />;
+  // isPM included (4.5) — PM is the default reviewer for every task
+  // (task-routes.js's PATCH /tasks/:id/move-to-review resolves the
+  // account's PM as the initial assignee) unless handed off to a
+  // dedicated platform:reviewer holder, so the PM needs to see this
+  // panel too even without holding platform:reviewer themselves.
+  if ((isReviewer || isPM) && task.status === 'reviewer' && task.assignee === username) {
+    return <ReviewerPanel task={task} onTaskUpdated={onTaskUpdated} />;
   }
   // customer_id, not owner — owner only reliably equals the customer
   // during 'unassigned' (set at creation, models/task.js's create())
