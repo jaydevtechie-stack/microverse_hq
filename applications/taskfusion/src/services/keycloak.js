@@ -4,7 +4,7 @@ import { SERVICE_THEME } from '../data/services';
 let keycloak;
 
 // microverse.local carries everything platform-side (landing page,
-// /dashboard, /customer, /analyst — path-based, not subdomain-based).
+// /dashboard, /customer — path-based, not subdomain-based).
 // Domain services get their own "microsite" subdomain instead (e.g.
 // gofeeler.microverse.local). Derived from SERVICE_THEME rather than a
 // second hand-maintained list, so a new service's subdomain only needs

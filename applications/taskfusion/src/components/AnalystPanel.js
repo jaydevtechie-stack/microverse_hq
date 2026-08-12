@@ -1,22 +1,66 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import SentimentBar from './SentimentBar';
+import { authHeaders } from '../services/keycloak';
 
-// Dummy result — GoFeeler's real /analyze endpoint exists but isn't
-// wired to tasks yet (no stored content to feed it; that's Branch 3.1
-// MinIO + Branch 5 LLM integration). "Analyse" and "Move to review"
-// are stubs — no PATCH /api/tasks/:id yet either (Branch 4). Comments
-// and customer-facing notes live in TaskDetailContent now, not here —
-// visible to any staff role regardless of the active action panel.
-const AnalystPanel = () => {
+// Sentiment → bar color; anything the engine returns outside these three
+// (shouldn't happen — basic/advanced both only emit positive/negative/
+// neutral) falls back to the neutral color rather than throwing.
+const SENTIMENT_COLOR = {
+  positive: 'var(--mv-color-success)',
+  negative: 'var(--mv-color-danger)',
+  neutral: 'var(--mv-color-warning)',
+};
+
+// 5.2.1 — real POST /analyze wiring, basic engine only (engine field
+// omitted, same as every pre-Branch-5 caller). No engine/template
+// picker yet — that's 5.2.2, once there's an advanced engine +
+// PATCH /templates/:id to actually pick from. task.context is the only
+// analyzable text available today; uploaded-file content isn't fed in
+// yet (would need a MinIO fetch, out of this scope). taskId is passed
+// through so 5.3's fire-and-forget Mongo persistence gets exercised
+// for real from the UI, not just via curl. "Move to review" stays a
+// stub — no PATCH /api/tasks/:id status transition exists yet (Branch
+// 4's task workflow state machine). Comments and customer-facing notes
+// live in TaskDetailContent now, not here — visible to any staff role
+// regardless of the active action panel.
+const AnalystPanel = ({ task }) => {
   const { t } = useTranslation('gofeeler');
   const [note, setNote] = useState('');
   const [movedToReview, setMovedToReview] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+
+  const hasContent = Boolean(task?.context?.trim());
+
+  const handleAnalyse = async () => {
+    setAnalyzing(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/gofeeler/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ text: task.context, taskId: task.id }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `gofeeler returned ${res.status}`);
+      }
+      setResult(await res.json());
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setAnalyzing(false);
+    }
+  };
 
   return (
     <div>
       <button
         type="button"
+        onClick={handleAnalyse}
+        disabled={analyzing || !hasContent}
         style={{
           padding: '8px 18px',
           background: 'var(--mv-color-primary)',
@@ -26,16 +70,36 @@ const AnalystPanel = () => {
           border: 'none',
           borderRadius: 8,
           marginBottom: 18,
-          cursor: 'pointer',
+          cursor: analyzing || !hasContent ? 'default' : 'pointer',
+          opacity: analyzing || !hasContent ? 0.6 : 1,
         }}
       >
-        {t('panels.analyst.analyse')}
+        {analyzing ? t('panels.analyst.analysing') : t('panels.analyst.analyse')}
       </button>
 
-      <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>{t('panels.analyst.results')}</p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
-        <SentimentBar label={t('panels.sentimentNegative')} percent={71} />
-      </div>
+      {!hasContent && (
+        <p style={{ color: 'var(--mv-text-muted)', fontSize: 11, margin: '-10px 0 18px' }}>
+          {t('panels.analyst.noContent')}
+        </p>
+      )}
+      {error && (
+        <p style={{ color: 'var(--mv-color-danger)', fontSize: 11, margin: '-10px 0 18px' }}>
+          {t('panels.analyst.analyseError', { error })}
+        </p>
+      )}
+
+      {result && (
+        <>
+          <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>{t('panels.analyst.results')}</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
+            <SentimentBar
+              label={t(`panels.sentiment.${result.sentiment}`)}
+              percent={Math.round(result.confidence * 100)}
+              color={SENTIMENT_COLOR[result.sentiment] || SENTIMENT_COLOR.neutral}
+            />
+          </div>
+        </>
+      )}
 
       <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>{t('panels.analyst.addNote')}</p>
       <input

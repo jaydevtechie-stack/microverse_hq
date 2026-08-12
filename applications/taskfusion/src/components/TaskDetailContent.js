@@ -35,7 +35,7 @@ function actionPanelFor({ task, isPM, isAnalyst, isReviewer, isCustomer, usernam
     return <PmBillPanel />;
   }
   if (isAnalyst && task.status === 'analyst' && task.assignee === username) {
-    return <AnalystPanel />;
+    return <AnalystPanel task={task} />;
   }
   if (isReviewer && task.status === 'reviewer' && task.assignee === username) {
     return <ReviewerPanel />;
@@ -226,7 +226,7 @@ const TaskDetailContent = ({ id }) => {
                   key={tag}
                   style={{
                     background: 'var(--mv-badge-bg)',
-                    color: 'var(--mv-text)',
+                    color: 'var(--mv-badge-text)',
                     fontSize: 11,
                     padding: '2px 8px',
                     borderRadius: 999,
