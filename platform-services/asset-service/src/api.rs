@@ -22,18 +22,17 @@ use crate::{minio, task_client};
 //    since `company_id` (here: username) sits before `order_id` in
 //    the key and there's no way to know a customer's username from
 //    the order_id alone without a real order-service to ask.
-// Statuses during which the customer can add/remove files here. Narrower
-// than task-service's own title/context/tags edit window (EDITABLE_STATUSES
-// in task-routes.js, `unassigned` + `analyst`): a freshly submitted
-// `unassigned` order already has whatever files the customer meant to
-// attach at compose time (that's the separate pre-submit path — see
-// upload_url's None-status branch below), so file re-upload only reopens
-// once an analyst is actually assigned and asks for something specific
-// (5.7.1's whole reason for existing). 5.7.2 dropped `unassigned` from
-// this set after 5.7.1 shipped it alongside task-service's broader window
-// by mistake — title/context/tags and files are deliberately different
-// windows now, not copies of the same list.
-const EDIT_WINDOW_STATUSES: [&str; 1] = ["analyst"];
+// Statuses during which the customer can add/remove files here — same
+// window as task-service's own title/context/tags edit window
+// (EDITABLE_STATUSES in task-routes.js). 5.7.2 briefly narrowed this to
+// `analyst`-only, on the theory that a freshly submitted `unassigned`
+// order already has whatever files the customer meant to attach at
+// compose time (the separate pre-submit path — see upload_url's
+// None-status branch below) — in practice that broke the ordinary case
+// of a customer fixing/adding a file to their own still-unassigned
+// order, the same thing they can already do to title/context, so both
+// statuses are open again.
+const EDIT_WINDOW_STATUSES: [&str; 2] = ["unassigned", "analyst"];
 
 pub fn router() -> Router {
     Router::new()
