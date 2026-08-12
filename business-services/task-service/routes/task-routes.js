@@ -123,13 +123,17 @@ router.post('/tasks', async (req, res) => {
   }
 });
 
-// Customer edits their own still-unassigned order — same fields Create
-// Order accepts (title/context/tags). Files are a separate asset-service
-// concern with its own identical unassigned-only window (TaskFilesList's
-// add/remove) — no shared transaction between the two services, so each
-// enforces the edit window independently against its own record. Locked
-// the instant a PM assigns an analyst, same boundary as everywhere else
-// customer edit rights end (see ARCHITECTURE.md's Role x Action matrix).
+// Customer edits their own order — same fields Create Order accepts
+// (title/context/tags). Files are a separate asset-service concern with
+// its own identical edit window (TaskFilesList's add/remove) — no shared
+// transaction between the two services, so each enforces the edit window
+// independently against its own record. Open while `unassigned`, and
+// reopened during `analyst` (5.7.1) so an analyst short on content can
+// ask the customer to add more without a PM having to unassign first;
+// locked everywhere else, same boundary as elsewhere customer edit
+// rights end (see ARCHITECTURE.md's Role x Action matrix).
+const EDITABLE_STATUSES = ['unassigned', 'analyst'];
+
 router.put('/tasks/:id', async (req, res) => {
   const customerId = req.claims?.sub;
   if (!customerId) {
@@ -152,7 +156,7 @@ router.put('/tasks/:id', async (req, res) => {
     if (task.customer_id !== customerId) {
       return res.status(403).json({ message: "Not this customer's order" });
     }
-    if (task.status !== 'unassigned') {
+    if (!EDITABLE_STATUSES.includes(task.status)) {
       return res.status(409).json({ message: `Task is already "${task.status}", no longer editable` });
     }
 
