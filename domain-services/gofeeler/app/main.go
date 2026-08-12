@@ -56,6 +56,7 @@ func main() {
 	router.POST("/analyze", sentimentHandler.AnalyzeSentiment)
 	router.GET("/templates", templatesHandler.ListTemplates)
 	router.POST("/templates", templatesHandler.CreateTemplate)
+	router.PATCH("/templates/:id", templatesHandler.UpdateTemplate)
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 

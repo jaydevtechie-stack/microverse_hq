@@ -278,7 +278,7 @@ gofeeler.sentiment_prompt_templates:
 id, name, prompt_body, created_by (REFERENCES public.users(id)), is_system_default BOOLEAN, created_at
 ```
 
-Shared pool, visible to every analyst; any analyst can create (self-service — blast radius is contained to their own analyses, no gating), reachable via `GET`/`POST /templates`. **Edit is not yet built** — the original design covered create/edit, only create shipped in Branch 5; `PATCH /templates/:id` is a deferred fast-follow. System ships a small preconfigured set with `is_system_default = true`, seeded idempotently on service boot. Distinct from `intelligence/prompts` ([docs/architecture/2.0/intelligence.md](architecture/2.0/intelligence.md)), which is version-controlled, dev-curated text for agent reasoning prompts — same word, different mechanism and audience.
+Shared pool, visible to every analyst; any analyst can create or edit (self-service — blast radius is contained to their own analyses, no gating), reachable via `GET`/`POST /templates` and `PATCH /templates/:id`. Edit is a partial update (only `name`/`promptBody` fields present in the request change) and applies to `is_system_default` rows too, same trust posture as create. System ships a small preconfigured set with `is_system_default = true`, seeded idempotently on service boot. Distinct from `intelligence/prompts` ([docs/architecture/2.0/intelligence.md](architecture/2.0/intelligence.md)), which is version-controlled, dev-curated text for agent reasoning prompts — same word, different mechanism and audience.
 
 ---
 
