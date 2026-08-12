@@ -43,6 +43,9 @@ request/response contract rather than internals:
 5. `GET /templates` → the 3 system-default templates seeded on boot are present.
 6. `POST /templates` with a valid body → `201`, `isSystemDefault: false`.
 7. `POST /templates` missing `promptBody` → `400`.
+8. `PATCH /templates/:id` with `{"name": ...}` → `200`, name changes, `promptBody` untouched (partial update).
+9. `PATCH /templates/:id` with an empty body → `400`.
+10. `PATCH /templates/:id` for an unknown id → `404`.
 
 ## Manual — end-to-end through the running stack
 

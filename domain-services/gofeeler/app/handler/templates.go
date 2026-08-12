@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 
 	"gofeeler/model"
@@ -70,6 +71,38 @@ func (h *TemplatesHandler) CreateTemplate(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, tpl)
+}
+
+// @Summary Update a sentiment prompt template
+// @Description Partial update (create's self-service, no-gating posture applies here too) — at least one of name/promptBody required
+// @Tags templates
+// @Accept json
+// @Produce json
+// @Param id path string true "Template ID"
+// @Param request body model.UpdateTemplateRequest true "Fields to update"
+// @Success 200 {object} model.Template
+// @Router /templates/{id} [patch]
+func (h *TemplatesHandler) UpdateTemplate(c *gin.Context) {
+	var req model.UpdateTemplateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if req.Name == nil && req.PromptBody == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": `at least one of "name" or "promptBody" is required`})
+		return
+	}
+
+	tpl, err := h.templates.Update(c.Request.Context(), c.Param("id"), req)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "template not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, tpl)
 }
 
 // subFromAuthHeader is unverified claim extraction — no signature check
