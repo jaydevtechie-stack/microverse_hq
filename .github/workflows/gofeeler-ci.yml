@@ -194,6 +194,28 @@ jobs:
             -d '{"name":"no body"}')
           [ "$status" = "400" ]
 
+          echo "-- templates: partial update (5.2), reusing the id from the create above --"
+          tpl_id=$(echo "$resp" | jq -r .id)
+
+          echo "-- templates: update name only, promptBody unchanged --"
+          resp=$(curl -sf -X PATCH "http://localhost:8082/templates/$tpl_id" \
+            -H 'Content-Type: application/json' \
+            -d '{"name":"CI test template, renamed"}')
+          [ "$(echo "$resp" | jq -r .name)" = "CI test template, renamed" ]
+          [ "$(echo "$resp" | jq -r .promptBody)" = "Classify this." ]
+
+          echo "-- templates: update with no fields -> 400 --"
+          status=$(curl -s -o /dev/null -w '%{http_code}' -X PATCH "http://localhost:8082/templates/$tpl_id" \
+            -H 'Content-Type: application/json' \
+            -d '{}')
+          [ "$status" = "400" ]
+
+          echo "-- templates: update unknown id -> 404 --"
+          status=$(curl -s -o /dev/null -w '%{http_code}' -X PATCH http://localhost:8082/templates/00000000-0000-0000-0000-000000000000 \
+            -H 'Content-Type: application/json' \
+            -d '{"name":"does not exist"}')
+          [ "$status" = "404" ]
+
       - name: Stop service
         if: always()
         run: kill "$(cat gofeeler.pid)" 2>/dev/null || true
