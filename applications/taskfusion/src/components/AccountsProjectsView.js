@@ -4,6 +4,7 @@ import { IconChevronDown, IconChevronRight } from '@tabler/icons-react';
 import { authHeaders } from '../services/keycloak';
 import SplitView from './SplitView';
 import TaskDetailContent from './TaskDetailContent';
+import { ActionButtonRow, OutlineDangerButton } from './ActionButtons';
 import { STATUS_STYLE } from './TaskStatusBadge';
 
 const PROJECT_STATUS_STYLE = {
@@ -245,26 +246,30 @@ const ProjectDetail = ({ project, canApprove, onApprove, approving, canManagePro
           <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>{t('projectDetail.loadingPmCandidates')}</p>
         )}
         {pmCandidates && (
-          <>
-            <select value={pmPicked} onChange={(e) => setPmPicked(e.target.value)} style={fieldInputStyle}>
-              <option value="">{t('projectDetail.choosePm')}</option>
-              {pmCandidates.map((pm) => (
-                <option key={pm.id} value={pm.id}>
-                  {pm.name}
-                </option>
-              ))}
-            </select>
+          <select value={pmPicked} onChange={(e) => setPmPicked(e.target.value)} style={fieldInputStyle}>
+            <option value="">{t('projectDetail.choosePm')}</option>
+            {pmCandidates.map((pm) => (
+              <option key={pm.id} value={pm.id}>
+                {pm.name}
+              </option>
+            ))}
+          </select>
+        )}
+
+        {/* Side by side, 50/50, same row shape as ReviewerPanel's Approve/Reject */}
+        <ActionButtonRow>
+          {pmCandidates && (
             <button
               type="button"
               onClick={handleAssignPm}
               disabled={!pmPicked || assigningPm}
               style={{
-                padding: '8px 14px',
-                marginBottom: 10,
+                flex: 1,
+                padding: '10px 0',
                 background: pmPicked && !assigningPm ? 'var(--mv-color-primary)' : 'var(--mv-badge-bg)',
                 color: pmPicked && !assigningPm ? 'var(--mv-color-primary-contrast)' : 'var(--mv-badge-text)',
                 fontWeight: 500,
-                fontSize: 12,
+                fontSize: 13,
                 border: 'none',
                 borderRadius: 8,
                 cursor: pmPicked && !assigningPm ? 'pointer' : 'not-allowed',
@@ -272,34 +277,19 @@ const ProjectDetail = ({ project, canApprove, onApprove, approving, canManagePro
             >
               {assigningPm ? t('projectDetail.assigningPm') : t('projectDetail.assignPm')}
             </button>
-            {assignPmError && (
-              <p style={{ color: 'var(--mv-color-danger)', fontSize: 12, margin: '-4px 0 10px' }}>
-                {t('projectDetail.assignPmError', { error: assignPmError })}
-              </p>
-            )}
-          </>
-        )}
+          )}
 
-        {project.status !== 'inactive' && (
-          <button
-            type="button"
-            onClick={handleDeactivate}
-            disabled={deactivating}
-            style={{
-              marginBottom: 18,
-              padding: '8px 14px',
-              background: 'transparent',
-              border: '0.5px solid var(--mv-color-danger)',
-              color: 'var(--mv-color-danger)',
-              fontWeight: 500,
-              fontSize: 12,
-              borderRadius: 8,
-              cursor: deactivating ? 'default' : 'pointer',
-              opacity: deactivating ? 0.6 : 1,
-            }}
-          >
-            {deactivating ? t('projectDetail.deactivating') : t('projectDetail.deactivateProject')}
-          </button>
+          {project.status !== 'inactive' && (
+            <OutlineDangerButton onClick={handleDeactivate} disabled={deactivating}>
+              {deactivating ? t('projectDetail.deactivating') : t('projectDetail.deactivateProject')}
+            </OutlineDangerButton>
+          )}
+        </ActionButtonRow>
+
+        {assignPmError && (
+          <p style={{ color: 'var(--mv-color-danger)', fontSize: 12, margin: '-14px 0 18px' }}>
+            {t('projectDetail.assignPmError', { error: assignPmError })}
+          </p>
         )}
         {deactivateError && (
           <p style={{ color: 'var(--mv-color-danger)', fontSize: 12, margin: '-14px 0 18px' }}>

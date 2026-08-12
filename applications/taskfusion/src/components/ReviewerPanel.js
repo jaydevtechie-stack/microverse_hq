@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import SentimentBar from './SentimentBar';
 import AnalystPicker from './AnalystPicker';
+import { ActionButtonRow, OutlineDangerButton } from './ActionButtons';
 import { authHeaders } from '../services/keycloak';
 
 const selectStyle = {
@@ -182,7 +183,7 @@ const ReviewerPanel = ({ task, onTaskUpdated }) => {
         </>
       )}
 
-      <div style={{ display: 'flex', gap: 10 }}>
+      <ActionButtonRow>
         <button
           type="button"
           onClick={handleApprove}
@@ -202,26 +203,10 @@ const ReviewerPanel = ({ task, onTaskUpdated }) => {
         >
           {approving ? t('panels.reviewer.approving') : t('panels.reviewer.approve')}
         </button>
-        <button
-          type="button"
-          onClick={() => setShowRejectPicker(true)}
-          disabled={busy}
-          style={{
-            flex: 1,
-            padding: '10px 0',
-            background: 'transparent',
-            border: '0.5px solid var(--mv-color-danger)',
-            color: 'var(--mv-color-danger)',
-            fontWeight: 500,
-            fontSize: 13,
-            borderRadius: 8,
-            cursor: busy ? 'default' : 'pointer',
-            opacity: busy ? 0.6 : 1,
-          }}
-        >
+        <OutlineDangerButton onClick={() => setShowRejectPicker(true)} disabled={busy}>
           {t('panels.reviewer.reject')}
-        </button>
-      </div>
+        </OutlineDangerButton>
+      </ActionButtonRow>
 
       {approveError && (
         <p style={{ color: 'var(--mv-color-danger)', fontSize: 12, margin: '10px 0 0' }}>
