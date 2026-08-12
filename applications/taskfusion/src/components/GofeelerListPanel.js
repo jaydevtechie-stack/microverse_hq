@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getKeycloak, authHeaders } from '../services/keycloak';
-import { STATUS_STYLE } from './TaskStatusBadge';
+import TaskStatusBadge from './TaskStatusBadge';
 
 // The master list — shared by the old full-page Gofeeler landing (now
 // retired in favor of GofeelerSplitView) and the split view's list
@@ -115,15 +115,9 @@ const GofeelerListPanel = ({ selectedId, refreshKey }) => {
                 whiteSpace: 'nowrap',
               }}
             >
-              <span
-                style={{
-                  width: 7,
-                  height: 7,
-                  borderRadius: '50%',
-                  background: (STATUS_STYLE[task.status] || STATUS_STYLE.unassigned).bg,
-                  flexShrink: 0,
-                }}
-              />
+              <span style={{ flexShrink: 0 }}>
+                <TaskStatusBadge status={task.status} />
+              </span>
               <span
                 style={{
                   color: isSelected ? 'var(--mv-text)' : 'var(--mv-text-muted)',
@@ -132,7 +126,7 @@ const GofeelerListPanel = ({ selectedId, refreshKey }) => {
                   textOverflow: 'ellipsis',
                 }}
               >
-                #{task.id.slice(0, 8)} · {task.title}
+                {task.title}
               </span>
             </Link>
           );

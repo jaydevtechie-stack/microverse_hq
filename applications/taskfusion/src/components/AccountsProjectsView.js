@@ -5,7 +5,7 @@ import { authHeaders } from '../services/keycloak';
 import SplitView from './SplitView';
 import InlineTaskDetail from './InlineTaskDetail';
 import { ActionButtonRow, OutlineDangerButton } from './ActionButtons';
-import { STATUS_STYLE } from './TaskStatusBadge';
+import TaskStatusBadge from './TaskStatusBadge';
 
 const PROJECT_STATUS_STYLE = {
   active: { bg: 'var(--mv-color-success, #2f9e64)', labelKey: 'projectStatus.active' },
@@ -316,15 +316,9 @@ const ProjectDetail = ({ project, canApprove, onApprove, approving, canManagePro
           cursor: 'pointer',
         }}
       >
-        <span
-          style={{
-            width: 7,
-            height: 7,
-            borderRadius: '50%',
-            background: (STATUS_STYLE[task.status] || STATUS_STYLE.unassigned).bg,
-            flexShrink: 0,
-          }}
-        />
+        <span style={{ flexShrink: 0 }}>
+          <TaskStatusBadge status={task.status} />
+        </span>
         <span style={{ color: 'var(--mv-text)', fontSize: 12, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {task.title}
         </span>

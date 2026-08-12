@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { IconBinoculars, IconInfoCircle } from '@tabler/icons-react';
 import { authHeaders } from '../services/keycloak';
-import { STATUS_STYLE } from './TaskStatusBadge';
+import TaskStatusBadge from './TaskStatusBadge';
 
 const WORD_SIZES = [20, 16, 14, 13, 12];
 
@@ -106,15 +106,9 @@ const CandidateProfile = ({ candidate, onBack, onConfirm, confirming, confirming
           textDecoration: 'none',
         }}
       >
-        <span
-          style={{
-            width: 7,
-            height: 7,
-            borderRadius: '50%',
-            background: (STATUS_STYLE[task.status] || STATUS_STYLE.unassigned).bg,
-            flexShrink: 0,
-          }}
-        />
+        <span style={{ flexShrink: 0 }}>
+          <TaskStatusBadge status={task.status} />
+        </span>
         <span style={{ color: 'var(--mv-text)', fontSize: 12, flex: 1 }}>{task.title}</span>
         <span style={{ color: 'var(--mv-text-muted)', fontSize: 11 }}>
           {task.due_date ? new Date(task.due_date).toLocaleDateString() : '—'}

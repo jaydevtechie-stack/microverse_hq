@@ -4,7 +4,7 @@ import { IconBuilding } from '@tabler/icons-react';
 import SplitView from '../components/SplitView';
 import InlineTaskDetail from '../components/InlineTaskDetail';
 import { authHeaders } from '../services/keycloak';
-import { STATUS_STYLE } from '../components/TaskStatusBadge';
+import TaskStatusBadge from '../components/TaskStatusBadge';
 import usePageMeta from '../hooks/usePageMeta';
 
 const TAB_IDS = ['projects', 'accounts'];
@@ -156,18 +156,10 @@ const ProjectDetail = ({ project, onClose, onSelectTask }) => {
           cursor: 'pointer',
         }}
       >
-        <span
-          style={{
-            width: 7,
-            height: 7,
-            borderRadius: '50%',
-            background: (STATUS_STYLE[task.status] || STATUS_STYLE.unassigned).bg,
-            flexShrink: 0,
-          }}
-        />
-        <span style={{ color: 'var(--mv-text)', fontSize: 12 }}>
-          #{task.id.slice(0, 8)} · {task.title}
+        <span style={{ flexShrink: 0 }}>
+          <TaskStatusBadge status={task.status} />
         </span>
+        <span style={{ color: 'var(--mv-text)', fontSize: 12 }}>{task.title}</span>
       </div>
     ))}
   </>
