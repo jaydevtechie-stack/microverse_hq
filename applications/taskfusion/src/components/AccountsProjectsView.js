@@ -3,7 +3,7 @@ import { Trans, useTranslation } from 'react-i18next';
 import { IconChevronDown, IconChevronRight } from '@tabler/icons-react';
 import { authHeaders } from '../services/keycloak';
 import SplitView from './SplitView';
-import TaskDetailContent from './TaskDetailContent';
+import InlineTaskDetail from './InlineTaskDetail';
 import { ActionButtonRow, OutlineDangerButton } from './ActionButtons';
 import { STATUS_STYLE } from './TaskStatusBadge';
 
@@ -334,24 +334,6 @@ const ProjectDetail = ({ project, canApprove, onApprove, approving, canManagePro
       </div>
     ))}
   </>
-  );
-};
-
-// Wraps the shared TaskDetailContent with a back-to-Project link, same
-// shell GofeelerSplitView/TaskDetailPage each add around it in their
-// own way — this one returns to the Project selection rather than a
-// list or a browser-history pop.
-const TaskDetail = ({ taskId, onBack }) => {
-  const { t } = useTranslation('common');
-  return (
-    <>
-      <span onClick={onBack} style={{ color: 'var(--mv-color-primary)', fontSize: 12, cursor: 'pointer' }}>
-        {t('back')}
-      </span>
-      <div style={{ marginTop: 14 }}>
-        <TaskDetailContent id={taskId} />
-      </div>
-    </>
   );
 };
 
@@ -742,7 +724,7 @@ const AccountsProjectsView = ({
           }
           if (selection.type === 'task') {
             return (
-              <TaskDetail
+              <InlineTaskDetail
                 taskId={selection.id}
                 onBack={() => setSelection({ type: 'project', id: selection.projectId })}
               />

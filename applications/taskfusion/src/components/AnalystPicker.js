@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { IconBinoculars, IconInfoCircle } from '@tabler/icons-react';
 import { authHeaders } from '../services/keycloak';
 import { STATUS_STYLE } from './TaskStatusBadge';
@@ -88,14 +89,21 @@ const CandidateProfile = ({ candidate, onBack, onConfirm, confirming, confirming
       <p style={{ color: 'var(--mv-badge-bg)', fontSize: 12 }}>{t('panels.pmAssign.noActiveTasks')}</p>
     )}
     {candidate.active_tasks.map((task) => (
-      <div
+      // Full navigation, not an in-place swap — unlike AccountsProjectsView/
+      // ProjectHubPage's own task rows, this panel isn't a split view (it's
+      // embedded in the current Task's own detail view), so there's no
+      // "detail panel" here to swap in place; this just leaves for that
+      // other Task's own page, same as GofeelerListPanel's rows already do.
+      <Link
         key={task.id}
+        to={`/task/${task.id}`}
         style={{
           display: 'flex',
           alignItems: 'center',
           gap: 10,
           padding: '7px 0',
           borderBottom: '0.5px solid var(--mv-border)',
+          textDecoration: 'none',
         }}
       >
         <span
@@ -111,7 +119,7 @@ const CandidateProfile = ({ candidate, onBack, onConfirm, confirming, confirming
         <span style={{ color: 'var(--mv-text-muted)', fontSize: 11 }}>
           {task.due_date ? new Date(task.due_date).toLocaleDateString() : '—'}
         </span>
-      </div>
+      </Link>
     ))}
 
     <button
