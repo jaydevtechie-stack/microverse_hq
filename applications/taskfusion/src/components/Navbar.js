@@ -59,12 +59,9 @@ const Navbar = ({ keycloak }) => {
 
   // 4.3 supersedes 4.0.2's nav for platform:project-manager entirely —
   // PM's own section below (Projects/Orders/Delivery team) replaces
-  // these, so PM no longer also picks up platform:customer's/
-  // platform:analyst's links the way it did pre-4.3 (that produced a
-  // real collision: two differently-scoped "Analysts" links with the
-  // same label, one being Delivery team's roster).
+  // these, so PM no longer also picks up platform:customer's link the
+  // way it did pre-4.3.
   const isCustomer = keycloak.hasRealmRole('platform:customer');
-  const isAnalyst = keycloak.hasRealmRole('platform:analyst');
   // Project Hub's page-level gate (see ARCHITECTURE.md's Roles and
   // permissions) — platform:project-manager plus *any* service scope,
   // not a specific one, since the page itself spans whatever services
@@ -87,12 +84,6 @@ const Navbar = ({ keycloak }) => {
       {isCustomer && (
         <PlatformNavLink to="/customer" active={pathname === '/customer'}>
           {t('accounts')}
-        </PlatformNavLink>
-      )}
-
-      {isAnalyst && (
-        <PlatformNavLink to="/analyst" active={pathname === '/analyst'}>
-          {t('analysts')}
         </PlatformNavLink>
       )}
 

@@ -1,12 +1,11 @@
 import React from 'react';
 import { avatarColorsForRoleType } from '../utils/avatarColors';
 
-// Shared by CustomerPage and AnalystPage — same avatar+name+subtitle
-// layout, just a different avatar shape (customer: rounded square,
-// analyst: circle) and subtitle content. `roleType` colors the avatar
-// (e.g. "customer", "analyst") — these pages show someone else's
-// profile, not the viewer's own, so the color comes from a prop rather
-// than the viewer's keycloak roles.
+// Used by CustomerPage — avatar+name+subtitle layout, avatar shape and
+// subtitle content passed in. `roleType` colors the avatar (e.g.
+// "customer") — this shows someone else's profile, not the viewer's
+// own, so the color comes from a prop rather than the viewer's keycloak
+// roles.
 const ProfileHeader = ({ initials, name, subtitle, avatarShape = 'circle', roleType }) => {
   const { bg, fg } = avatarColorsForRoleType(roleType);
 

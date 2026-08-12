@@ -34,9 +34,9 @@ export function avatarColorsForKeycloak(keycloak) {
 }
 
 // For an avatar representing someone else's profile (e.g. CustomerPage
-// always shows a customer, AnalystPage always shows an analyst) —
-// pass the role type directly rather than deriving it from a keycloak
-// instance that belongs to the viewer, not the profile being shown.
+// always shows a customer) — pass the role type directly rather than
+// deriving it from a keycloak instance that belongs to the viewer, not
+// the profile being shown.
 export function avatarColorsForRoleType(roleType) {
   return ROLE_COLORS[`platform:${roleType}`] || DEFAULT_COLORS;
 }

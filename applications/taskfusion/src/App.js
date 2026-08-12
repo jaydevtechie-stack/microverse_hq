@@ -11,7 +11,6 @@ import LandingPage from './pages/LandingPage';
 import Navbar from './components/Navbar';
 import Dashboard from './pages/Dashboard';  // Example protected page
 import CustomerPage from './pages/CustomerPage';
-import AnalystPage from './pages/AnalystPage';
 import GofeelerSplitView from './pages/GofeelerSplitView';
 import CreateOrderPage from './pages/CreateOrderPage';
 import TaskDetailPage from './pages/TaskDetailPage';
@@ -26,7 +25,7 @@ import AmCustomersPage from './pages/AmCustomersPage';
 import AmBillingPage from './pages/AmBillingPage';
 
 // microverse.local carries everything platform-side (landing page,
-// /dashboard, /customer, /analyst — path-based). Domain services get
+// /dashboard, /customer — path-based). Domain services get
 // their own microsite subdomain instead — same app/build, just a
 // different root route. `id` (not `key`/`name`) is what routing logic
 // compares against — see data/services.js's SERVICE_THEME comment.
@@ -254,17 +253,6 @@ const App = () => {
               path="/am/billing"
               element={
                 <PrivateRoute element={<AmBillingPage />} keycloak={keycloak} roles={['platform:account-manager']} />
-              }
-            />
-
-            <Route
-              path="/analyst"
-              element={
-                <PrivateRoute
-                  element={<AnalystPage />}
-                  keycloak={keycloak}
-                  roles={['platform:analyst', 'platform:project-manager']}
-                />
               }
             />
 
