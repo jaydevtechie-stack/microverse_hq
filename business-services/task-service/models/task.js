@@ -75,6 +75,65 @@ async function updateOrderDetails(id, { title, context, tags, dueDate }) {
   return rows[0] || null;
 }
 
+// analyst -> reviewer (4.5) — the analyst's own "Move to review" action.
+// reviewerEmail is resolved by the route handler (defaults to the
+// account's PM via projectManagersFor) before this runs; the WHERE
+// clause guards both status and that the caller is still the task's
+// actual assignee, same double-guard shape recommendAnalysts'
+// assignAnalyst uses for the unassigned -> analyst transition.
+async function moveToReview(id, analystEmail, reviewerEmail) {
+  const { rows } = await pool.query(
+    `UPDATE tasks SET status = 'reviewer', assignee = $3, owner = $3, assigned_at = now()
+     WHERE id = $1 AND status = 'analyst' AND assignee = $2
+     RETURNING *`,
+    [id, analystEmail, reviewerEmail]
+  );
+  return rows[0] || null;
+}
+
+// reviewer -> reviewer, a handoff between the default PM reviewer and a
+// dedicated platform:reviewer (or back) — status doesn't change, only
+// who's currently holding it. Guarded on the caller still being the
+// current reviewer, so a stale reassign (already handed off by someone
+// else) is a no-op, not a silent overwrite.
+async function reassignReviewer(id, currentReviewerEmail, newReviewerEmail) {
+  const { rows } = await pool.query(
+    `UPDATE tasks SET assignee = $3, owner = $3, assigned_at = now()
+     WHERE id = $1 AND status = 'reviewer' AND assignee = $2
+     RETURNING *`,
+    [id, currentReviewerEmail, newReviewerEmail]
+  );
+  return rows[0] || null;
+}
+
+// reviewer -> done. assignee cleared (see SCHEMA.md's Assignee vs Owner
+// table — 'done' has no active assignee), owner resolved by the route
+// handler (the approving PM's own email, or the account's PM if a
+// dedicated reviewer approved).
+async function approveTask(id, reviewerEmail, ownerEmail) {
+  const { rows } = await pool.query(
+    `UPDATE tasks SET status = 'done', assignee = NULL, owner = $3
+     WHERE id = $1 AND status = 'reviewer' AND assignee = $2
+     RETURNING *`,
+    [id, reviewerEmail, ownerEmail]
+  );
+  return rows[0] || null;
+}
+
+// reviewer -> analyst. Rejection requires picking a new assignee
+// immediately (ARCHITECTURE.md's Task workflow note) — never sits
+// unassigned mid-rejection, so this always carries a validated
+// newAnalystEmail rather than clearing assignee first.
+async function rejectTask(id, reviewerEmail, newAnalystEmail) {
+  const { rows } = await pool.query(
+    `UPDATE tasks SET status = 'analyst', assignee = $3, owner = $3, assigned_at = now()
+     WHERE id = $1 AND status = 'reviewer' AND assignee = $2
+     RETURNING *`,
+    [id, reviewerEmail, newAnalystEmail]
+  );
+  return rows[0] || null;
+}
+
 async function pollingCounts() {
   const { rows } = await pool.query(`
     SELECT
@@ -95,5 +154,9 @@ module.exports = {
   create,
   assignAnalyst,
   updateOrderDetails,
+  moveToReview,
+  reassignReviewer,
+  approveTask,
+  rejectTask,
   pollingCounts,
 };

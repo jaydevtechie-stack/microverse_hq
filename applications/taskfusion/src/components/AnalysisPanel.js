@@ -23,15 +23,18 @@ const SENTIMENT_COLOR = {
 // (store.Templates.Resolve) rather than the frontend hardcoding which
 // template that is. task.context is still the only analyzable text
 // available (see 5.2.1's note on uploaded-file content being out of
-// scope). "Move to review" stays a stub — no PATCH /api/tasks/:id
-// status transition exists yet (Branch 4's task workflow state
-// machine). Comments and customer-facing notes live in
-// TaskDetailContent now, not here — visible to any staff role
-// regardless of the active action panel.
-const AnalysisPanel = ({ task }) => {
+// scope). "Move to review" (4.5) calls the real PATCH /api/tasks/:id/
+// move-to-review — no local success text needed, once onTaskUpdated
+// fires task.status flips to 'reviewer' and TaskDetailContent's
+// actionPanelFor unmounts this panel entirely, same pattern
+// PmAssignPanel's onAssigned already relies on. Comments and
+// customer-facing notes live in TaskDetailContent now, not here —
+// visible to any staff role regardless of the active action panel.
+const AnalysisPanel = ({ task, onTaskUpdated }) => {
   const { t } = useTranslation('gofeeler');
   const [note, setNote] = useState('');
-  const [movedToReview, setMovedToReview] = useState(false);
+  const [moving, setMoving] = useState(false);
+  const [moveError, setMoveError] = useState(null);
   const [engine, setEngine] = useState('basic');
   const [templates, setTemplates] = useState(null);
   const [templatesError, setTemplatesError] = useState(null);
@@ -78,6 +81,24 @@ const AnalysisPanel = ({ task }) => {
       setError(err.message);
     } finally {
       setAnalyzing(false);
+    }
+  };
+
+  const handleMoveToReview = async () => {
+    setMoving(true);
+    setMoveError(null);
+    try {
+      const res = await fetch(`/api/tasks/${task.id}/move-to-review`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.message || `task-service returned ${res.status}`);
+      onTaskUpdated?.(body);
+    } catch (err) {
+      setMoveError(err.message);
+    } finally {
+      setMoving(false);
     }
   };
 
@@ -202,7 +223,8 @@ const AnalysisPanel = ({ task }) => {
         <>
           <button
             type="button"
-            onClick={() => setMovedToReview(true)}
+            onClick={handleMoveToReview}
+            disabled={moving}
             style={{
               width: '100%',
               padding: '10px 0',
@@ -212,15 +234,16 @@ const AnalysisPanel = ({ task }) => {
               fontWeight: 500,
               fontSize: 13,
               borderRadius: 8,
-              cursor: 'pointer',
+              cursor: moving ? 'default' : 'pointer',
+              opacity: moving ? 0.6 : 1,
             }}
           >
-            {t('panels.analyst.moveToReview')}
+            {moving ? t('panels.analyst.movingToReview') : t('panels.analyst.moveToReview')}
           </button>
 
-          {movedToReview && (
-            <p style={{ color: 'var(--mv-color-primary)', fontSize: 12, margin: '10px 0 0' }}>
-              {t('panels.analyst.sentToReview')}
+          {moveError && (
+            <p style={{ color: 'var(--mv-color-danger)', fontSize: 12, margin: '10px 0 0' }}>
+              {t('panels.analyst.moveToReviewError', { error: moveError })}
             </p>
           )}
         </>

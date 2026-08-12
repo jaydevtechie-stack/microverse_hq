@@ -70,4 +70,19 @@ function requireRealmRole(role) {
   };
 }
 
-module.exports = { syncUser, requireRealmRole };
+// Same idea as requireRealmRole, but for routes a caller can satisfy with
+// any one of several roles — the reviewer-workflow routes (reassign/
+// approve/reject) are usable by either platform:project-manager (the
+// default reviewer) or platform:reviewer (a dedicated one), and neither
+// alone is "the" required role the way requireRealmRole assumes.
+function requireAnyRealmRole(...roles) {
+  return (req, res, next) => {
+    const userRoles = req.claims?.realm_access?.roles || [];
+    if (!roles.some((role) => userRoles.includes(role))) {
+      return res.status(403).json({ message: `Requires one of: ${roles.join(', ')}` });
+    }
+    next();
+  };
+}
+
+module.exports = { syncUser, requireRealmRole, requireAnyRealmRole };
