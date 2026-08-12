@@ -5,7 +5,7 @@ import { getKeycloak, authHeaders } from '../services/keycloak';
 import TaskStatusBadge from './TaskStatusBadge';
 import PmAssignPanel from './PmAssignPanel';
 import PmBillPanel from './PmBillPanel';
-import AnalystPanel from './AnalystPanel';
+import AnalysisPanel from './AnalysisPanel';
 import ReviewerPanel from './ReviewerPanel';
 import CustomerProgressPanel from './CustomerProgressPanel';
 import TaskComments from './TaskComments';
@@ -27,7 +27,7 @@ const detailRowStyle = {
 // analyst/reviewer only get their action while the task is actively
 // assigned to them; a customer only gets the progress/invoice view
 // once there's something to show.
-function actionPanelFor({ task, isPM, isAnalyst, isReviewer, isCustomer, username, onTaskUpdated }) {
+function actionPanelFor({ task, isPM, isAnalyst, isReviewer, isCustomer, username, userId, onTaskUpdated }) {
   if (isPM && task.status === 'unassigned') {
     return <PmAssignPanel task={task} onAssigned={onTaskUpdated} />;
   }
@@ -35,12 +35,18 @@ function actionPanelFor({ task, isPM, isAnalyst, isReviewer, isCustomer, usernam
     return <PmBillPanel />;
   }
   if (isAnalyst && task.status === 'analyst' && task.assignee === username) {
-    return <AnalystPanel task={task} />;
+    return <AnalysisPanel task={task} />;
   }
   if (isReviewer && task.status === 'reviewer' && task.assignee === username) {
     return <ReviewerPanel />;
   }
-  if (isCustomer && task.owner === username && ['done', 'paid', 'closed'].includes(task.status)) {
+  // customer_id, not owner — owner only reliably equals the customer
+  // during 'unassigned' (set at creation, models/task.js's create())
+  // and 'paid' (docs/architecture/1.0/core.md's Task workflow table);
+  // it's the PM during 'done' and blank during 'closed', which used to
+  // hide this panel from the customer in exactly the states where they
+  // most need to see it (results ready, waiting on payment).
+  if (isCustomer && task.customer_id === userId && ['done', 'paid', 'closed'].includes(task.status)) {
     return <CustomerProgressPanel task={task} />;
   }
   return null;
@@ -118,7 +124,7 @@ const TaskDetailContent = ({ id }) => {
   }, [id]);
 
   const actionPanel = task
-    ? actionPanelFor({ task, isPM, isAnalyst, isReviewer, isCustomer, username, onTaskUpdated: setTask })
+    ? actionPanelFor({ task, isPM, isAnalyst, isReviewer, isCustomer, username, userId, onTaskUpdated: setTask })
     : null;
 
   // Same window as TaskFilesList's add/remove — own submitted order,
@@ -290,7 +296,7 @@ const TaskDetailContent = ({ id }) => {
         </div>
       )}
 
-      {isCustomer && task.owner === username && (
+      {isCustomer && task.customer_id === userId && (
         <div style={{ marginTop: 18 }}>
           <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>{t('taskDetail.notesLabel')}</p>
           <div
