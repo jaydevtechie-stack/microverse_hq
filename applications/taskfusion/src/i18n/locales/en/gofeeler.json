@@ -48,6 +48,7 @@
   },
   "files": {
     "loading": "Loading files…",
+    "loadError": "Couldn't load files: {{error}}",
     "empty": "No files attached.",
     "removeAriaLabel": "Remove {{filename}}",
     "working": "Working…",

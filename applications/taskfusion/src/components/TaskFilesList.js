@@ -105,6 +105,13 @@ const TaskFilesList = ({ taskId, service, editable = false }) => {
     }
   };
 
+  // Order matters — a failed fetch sets `error` but leaves `files` null
+  // (nothing to set it to), so checking `!files` first would show
+  // "Loading files…" forever instead of ever surfacing the failure.
+  if (error && !files) {
+    return <p style={{ color: 'var(--mv-color-danger)', fontSize: 12, margin: 0 }}>{t('gofeeler:files.loadError', { error })}</p>;
+  }
+
   if (!files) {
     return <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: 0 }}>{t('gofeeler:files.loading')}</p>;
   }
