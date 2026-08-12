@@ -11,13 +11,20 @@ const { pool } = require('../db');
 // (notes the customer can see) — omit it to get both, which is only
 // ever appropriate for a staff-facing view. See SCHEMA.md's
 // task_comments for why this split is one table, not two.
+// author_name (follow-up to task.js's assignee_name/owner_name) —
+// `author` is the commenter's email (or preferred_username, if the
+// token had no email — see task-routes.js's POST .../comments), not a
+// user id, so this joins by email same as findById's assignee/owner
+// joins. Falls back to the raw `author` string client-side when no
+// synced user matches (e.g. the preferred_username fallback case).
 async function listForTask(taskId, { visibility } = {}) {
   const params = visibility ? [taskId, visibility] : [taskId];
   const { rows } = await pool.query(
-    `SELECT DISTINCT ON (comment_id) *
-     FROM task_comments
-     WHERE task_id = $1 ${visibility ? 'AND visibility = $2' : ''}
-     ORDER BY comment_id, version DESC`,
+    `SELECT DISTINCT ON (tc.comment_id) tc.*, u.name AS author_name
+     FROM task_comments tc
+     LEFT JOIN users u ON u.email = tc.author
+     WHERE tc.task_id = $1 ${visibility ? 'AND tc.visibility = $2' : ''}
+     ORDER BY tc.comment_id, tc.version DESC`,
     params
   );
 
