@@ -214,6 +214,15 @@ struct AssetSummary {
 // justify yet) or a real metadata table (which the "stateless-first"
 // approach explicitly defers). Filename/size/uploaded_at come straight
 // off ListObjectsV2.
+//
+// Ownership check added to close the OWASP A01 finding (docs/security.md)
+// that this was the one of the three near-identical handlers skipping it
+// — download_url/delete_asset both check the key's username segment.
+// A customer here gets the list filtered to their own username segment
+// rather than a hard 403 on "no match": unlike download (which always
+// targets one specific filename), an empty result is the legitimate
+// state for a customer's own order before they've uploaded anything, and
+// a 403 there would wrongly read as "not your order."
 async fn list_assets(
     headers: HeaderMap,
     Path(order_id): Path<String>,
@@ -226,14 +235,32 @@ async fn list_assets(
         return Err((StatusCode::FORBIDDEN, format!("requires {service_role}")));
     }
 
+    let is_staff = STAFF_ROLES.iter().any(|r| claims.has_role(r));
+    let is_customer = claims.has_role("platform:customer");
+    if !is_staff && !is_customer {
+        return Err((StatusCode::FORBIDDEN, "no eligible platform role".into()));
+    }
+
     let objects = minio::list_order_objects(&minio::internal_client().await, &query.service, &order_id)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    let owned_prefix = if is_customer && !is_staff {
+        let username = claims
+            .username()
+            .ok_or((StatusCode::UNAUTHORIZED, "token has no preferred_username".into()))?;
+        Some(format!("/{username}/"))
+    } else {
+        None
+    };
 
     let summaries = objects
         .into_iter()
         .filter_map(|obj| {
             let key = obj.key?;
+            if owned_prefix.as_ref().is_some_and(|prefix| !key.contains(prefix.as_str())) {
+                return None;
+            }
             let filename = key.rsplit('/').next().unwrap_or(&key).to_string();
             Some(AssetSummary {
                 filename,
