@@ -2,8 +2,16 @@
 
 const express = require('express');
 const router = express.Router();
-const { listForPm, getProject, listTasksForProject, createProject, approveProject } = require('../models/project');
-const { listAccountsForUser } = require('../models/account');
+const {
+  listForPm,
+  getProject,
+  listTasksForProject,
+  createProject,
+  approveProject,
+  assignPm,
+  deactivateProject,
+} = require('../models/project');
+const { listAccountsForUser, listAllPms, linkPmToAccount } = require('../models/account');
 
 const SERVICE_PREFIX = 'service:';
 
@@ -20,6 +28,20 @@ function serviceScopesFrom(claims) {
 function isCustomerOnly(req) {
   const roles = req.claims?.realm_access?.roles || [];
   return roles.includes('platform:customer') && !roles.includes('platform:project-manager');
+}
+
+// Shared by every route that hands a Project back to the frontend —
+// ProjectDetail (AccountsProjectsView.js) always reads project.tasks,
+// so every response needs it, not just the original GET. (Pulled out
+// during 4.7's work; approve's response previously skipped this,
+// meaning ProjectDetail would have hit `project.tasks.length` on
+// undefined after a successful approve — same bug the two new 4.7
+// routes below would otherwise have introduced too.)
+async function withTasks(project, claims) {
+  const roles = claims?.realm_access?.roles || [];
+  const isAccountManager = roles.includes('platform:account-manager');
+  const tasks = await listTasksForProject(project.id, isAccountManager ? null : serviceScopesFrom(claims));
+  return { ...project, tasks };
 }
 
 // Ownership-scoped to the caller, same as /accounts.
@@ -55,10 +77,7 @@ router.get('/projects/:id', async (req, res) => {
       }
     }
 
-    const roles = req.claims?.realm_access?.roles || [];
-    const isAccountManager = roles.includes('platform:account-manager');
-    const tasks = await listTasksForProject(project.id, isAccountManager ? null : serviceScopesFrom(req.claims));
-    res.status(200).json({ ...project, tasks });
+    res.status(200).json(await withTasks(project, req.claims));
   } catch (err) {
     res.status(500).json({ message: 'Error fetching project', error: err.message });
   }
@@ -112,9 +131,90 @@ router.patch('/projects/:id/approve', async (req, res) => {
     if (!project) {
       return res.status(409).json({ message: 'Project not found or not pending approval' });
     }
-    res.status(200).json(project);
+    res.status(200).json(await withTasks(await getProject(project.id), req.claims));
   } catch (err) {
     res.status(500).json({ message: 'Error approving project', error: err.message });
+  }
+});
+
+// PM candidates for this Project (4.7) — every active platform-wide PM,
+// not scoped to the Account's existing pm_accounts. There's no
+// standalone "add PM to Account" UI anywhere in the app — assigning a
+// project's PM (below) is the only mechanism that ever populates
+// pm_accounts at all, so scoping candidates to it would mean a fresh
+// Account could never get its first PM. See models/account.js's
+// listAllPms comment.
+router.get('/projects/:id/pm-candidates', async (req, res) => {
+  const roles = req.claims?.realm_access?.roles || [];
+  if (!roles.includes('platform:account-manager')) {
+    return res.status(403).json({ message: 'Requires platform:account-manager' });
+  }
+
+  try {
+    const project = await getProject(req.params.id);
+    if (!project) return res.status(404).json({ message: 'Project not found' });
+
+    const pms = await listAllPms();
+    res.status(200).json(pms.map((pm) => ({ id: pm.id, name: pm.name, email: pm.email })));
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching PM candidates', error: err.message });
+  }
+});
+
+// account-manager assigns/reassigns a Project's responsible PM (4.7).
+// Target must be an active platform:project-manager (validated against
+// the same listAllPms pool the candidates route offers, not just
+// trusting a client-supplied id — same "validate the target" posture
+// task-routes.js's PM-assign route uses). Links pm_accounts as a side
+// effect of the assignment (no-op via ON CONFLICT if already linked) —
+// this is the mechanism that establishes that relationship, not a
+// precondition for it. Re-fetches via getProject after the write so
+// the response carries the joined account_name/responsible_user_name
+// the frontend renders, not just the raw updated row.
+router.patch('/projects/:id/pm', async (req, res) => {
+  const roles = req.claims?.realm_access?.roles || [];
+  if (!roles.includes('platform:account-manager')) {
+    return res.status(403).json({ message: 'Requires platform:account-manager' });
+  }
+
+  const { pmId } = req.body;
+  if (!pmId) {
+    return res.status(400).json({ message: 'Missing required "pmId"' });
+  }
+
+  try {
+    const project = await getProject(req.params.id);
+    if (!project) return res.status(404).json({ message: 'Project not found' });
+
+    const pms = await listAllPms();
+    if (!pms.some((pm) => pm.id === pmId)) {
+      return res.status(400).json({ message: 'pmId must be an active platform:project-manager' });
+    }
+
+    await linkPmToAccount(pmId, project.account_id);
+
+    await assignPm(project.id, pmId);
+    res.status(200).json(await withTasks(await getProject(project.id), req.claims));
+  } catch (err) {
+    res.status(500).json({ message: 'Error assigning project manager', error: err.message });
+  }
+});
+
+// account-manager deactivates a Project (4.7) — always allowed, see
+// models/project.js's deactivateProject comment on why there's no
+// open-tasks guard.
+router.patch('/projects/:id/deactivate', async (req, res) => {
+  const roles = req.claims?.realm_access?.roles || [];
+  if (!roles.includes('platform:account-manager')) {
+    return res.status(403).json({ message: 'Requires platform:account-manager' });
+  }
+
+  try {
+    const updated = await deactivateProject(req.params.id);
+    if (!updated) return res.status(404).json({ message: 'Project not found' });
+    res.status(200).json(await withTasks(await getProject(updated.id), req.claims));
+  } catch (err) {
+    res.status(500).json({ message: 'Error deactivating project', error: err.message });
   }
 });
 

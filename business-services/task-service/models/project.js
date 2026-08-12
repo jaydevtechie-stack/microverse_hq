@@ -68,4 +68,39 @@ async function approveProject(id) {
   return rows[0] || null;
 }
 
-module.exports = { listForPm, getProject, listTasksForProject, createProject, approveProject };
+// account-manager assigns/reassigns who's responsible for a Project
+// (4.7) — no status guard, unlike approveProject: an account-manager
+// should be able to line up a PM before or after approval, not just
+// once. Target eligibility (must already be one of the Account's own
+// pm_accounts) is checked by the route handler, same "validate the
+// target, not just trust the id" posture task-routes.js's PM-assign
+// route uses.
+async function assignPm(id, pmId) {
+  const { rows } = await pool.query(
+    `UPDATE projects SET responsible_user_id = $2 WHERE id = $1 RETURNING *`,
+    [id, pmId]
+  );
+  return rows[0] || null;
+}
+
+// Always allowed regardless of open tasks (4.7) — deactivation only
+// affects the Project record itself (e.g. hides it from active lists);
+// it doesn't touch any Task's own status, so there's nothing to guard
+// against on that front.
+async function deactivateProject(id) {
+  const { rows } = await pool.query(
+    `UPDATE projects SET status = 'inactive' WHERE id = $1 RETURNING *`,
+    [id]
+  );
+  return rows[0] || null;
+}
+
+module.exports = {
+  listForPm,
+  getProject,
+  listTasksForProject,
+  createProject,
+  approveProject,
+  assignPm,
+  deactivateProject,
+};

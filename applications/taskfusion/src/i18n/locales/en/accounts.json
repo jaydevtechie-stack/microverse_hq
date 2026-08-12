@@ -5,7 +5,8 @@
   "newAccountLink": "+ New account",
   "projectStatus": {
     "active": "Active",
-    "pendingApproval": "Pending approval"
+    "pendingApproval": "Pending approval",
+    "inactive": "Inactive"
   },
   "projectDetail": {
     "accountLabel": "Account: <1>{{accountName}}</1>",
@@ -16,7 +17,17 @@
     "paymentTermsLabel": "Payment terms",
     "tasksLabel": "Tasks",
     "noTasksYet": "No tasks under this project yet.",
-    "noDueDate": "No due date"
+    "noDueDate": "No due date",
+    "assignPmLabel": "Assign project manager",
+    "loadingPmCandidates": "Loading project managers…",
+    "pmCandidatesLoadError": "Couldn't load project managers: {{error}}",
+    "choosePm": "Choose a project manager...",
+    "assignPm": "Assign",
+    "assigningPm": "Assigning…",
+    "assignPmError": "Couldn't assign: {{error}}",
+    "deactivateProject": "Deactivate project",
+    "deactivating": "Deactivating…",
+    "deactivateError": "Couldn't deactivate: {{error}}"
   },
   "newProjectForm": {
     "heading": "New project",
