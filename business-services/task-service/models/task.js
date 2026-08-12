@@ -53,22 +53,24 @@ async function create({ id, service, title, context, tags, customerId, accountId
   return rows[0];
 }
 
-// Customer self-edit of their own still-unassigned order — same fields
-// Create Order accepts (title/context/tags). Files are a separate
-// asset-service concern with its own independent unassigned-only gate
+// Customer self-edit of their own order — same fields Create Order
+// accepts (title/context/tags). Files are a separate asset-service
+// concern with its own independent, identically-widened gate
 // (TaskFilesList's add/remove) — no shared transaction between the two
 // services, so each enforces the edit window on its own record.
 // customer_id/status ownership+window checks happen in the route
-// handler; the WHERE status = 'unassigned' guard here is the same
+// handler; the WHERE status = ANY(...) guard here is the same
 // last-instant race protection as assignAnalyst (returns null, not an
-// error, if the order was claimed between the caller's read and this
-// UPDATE running).
+// error, if the order moved past 'analyst' between the caller's read
+// and this UPDATE running). Statuses must match task-routes.js's
+// EDITABLE_STATUSES — kept as a literal array here rather than a shared
+// import since this module has no dependency on the routes layer.
 async function updateOrderDetails(id, { title, context, tags, dueDate }) {
   const { rows } = await pool.query(
     `UPDATE tasks SET title = $2, context = $3, tags = $4, due_date = $5
-     WHERE id = $1 AND status = 'unassigned'
+     WHERE id = $1 AND status = ANY($6)
      RETURNING *`,
-    [id, title, context || null, tags || [], dueDate || null]
+    [id, title, context || null, tags || [], dueDate || null, ['unassigned', 'analyst']]
   );
   return rows[0] || null;
 }

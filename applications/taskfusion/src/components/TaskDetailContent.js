@@ -20,6 +20,11 @@ const detailRowStyle = {
   fontSize: 13,
 };
 
+// Statuses during which a customer can still edit their own order (title/
+// context/tags/files) — must match task-service's/asset-service's own
+// EDITABLE_STATUSES/EDIT_WINDOW_STATUSES.
+const EDITABLE_STATUSES = ['unassigned', 'analyst'];
+
 // Which action panel (if any) to show is (viewer's platform role, task's
 // current state) — see ARCHITECTURE.md's "UI pattern" note. A PM gets
 // the assign picker while unassigned, and the bill button once done
@@ -128,11 +133,12 @@ const TaskDetailContent = ({ id }) => {
     : null;
 
   // Same window as TaskFilesList's add/remove — own submitted order,
-  // still unassigned. Both this and asset-service's file edit gate are
-  // enforced server-side too (task-service's PUT /api/tasks/:id,
-  // asset-service's own status check) — this just decides whether the
-  // edit affordance shows up.
-  const canEdit = Boolean(task) && isCustomer && task.customer_id === userId && task.status === 'unassigned';
+  // still unassigned or (5.7.1) reopened while an analyst is working it,
+  // so they can ask the customer for more content. Both this and
+  // asset-service's file edit gate are enforced server-side too
+  // (task-service's PUT /api/tasks/:id, asset-service's own status
+  // check) — this just decides whether the edit affordance shows up.
+  const canEdit = Boolean(task) && isCustomer && task.customer_id === userId && EDITABLE_STATUSES.includes(task.status);
 
   if (error) {
     return (

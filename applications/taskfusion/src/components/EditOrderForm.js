@@ -34,9 +34,9 @@ const fieldErrorStyle = {
 // `filesSlot` lets the caller render it between the fields and the
 // Save/Cancel row so Save stays the last thing on the page rather than
 // sitting above the files list. Only ever rendered while the order is
-// still `unassigned` (TaskDetailContent's call site gates on that +
-// customer ownership); task-service's PUT /api/tasks/:id enforces the
-// same window server-side regardless.
+// `unassigned` or `analyst` (TaskDetailContent's EDITABLE_STATUSES call
+// site gates on that + customer ownership); task-service's
+// PUT /api/tasks/:id enforces the same window server-side regardless.
 const EditOrderForm = ({ task, onSaved, onCancel, filesSlot }) => {
   const { t } = useTranslation(['orders', 'common']);
   const [title, setTitle] = useState(task.title);

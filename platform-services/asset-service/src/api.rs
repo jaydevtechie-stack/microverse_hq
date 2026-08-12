@@ -22,6 +22,14 @@ use crate::{minio, task_client};
 //    since `company_id` (here: username) sits before `order_id` in
 //    the key and there's no way to know a customer's username from
 //    the order_id alone without a real order-service to ask.
+// Statuses during which the customer's own edit window (title/context/tags
+// via task-service's PUT, files via upload-url/DELETE here) stays open.
+// `analyst` was added in 5.7.1 so an analyst short on content can ask the
+// customer to add a file after a PM has already assigned the order — same
+// window, no separate analyst-facing action. Must match task-service's
+// own EDITABLE_STATUSES (task-routes.js).
+const EDIT_WINDOW_STATUSES: [&str; 2] = ["unassigned", "analyst"];
+
 pub fn router() -> Router {
     Router::new()
         .route("/health", get(health))
@@ -64,9 +72,8 @@ struct UploadUrlResponse {
 // two phases — pre-submit compose (task row doesn't exist yet, files
 // upload before CreateOrderForm's POST /api/tasks) and post-submit
 // editing (task row exists). fetch_status's None case is exactly the
-// former; Some(status) other than "unassigned" means the order's
-// already moving and the customer's edit window (see docs/roadmap's
-// Branch 5 follow-up) has closed.
+// former; Some(status) outside EDIT_WINDOW_STATUSES means the order's
+// moved past both compose and the 5.7.1-widened edit window.
 async fn upload_url(
     headers: HeaderMap,
     Json(body): Json<UploadUrlRequest>,
@@ -89,10 +96,10 @@ async fn upload_url(
         .await
         .map_err(|e| (StatusCode::BAD_GATEWAY, e))?
     {
-        if status != "unassigned" {
+        if !EDIT_WINDOW_STATUSES.contains(&status.as_str()) {
             return Err((
                 StatusCode::FORBIDDEN,
-                "files can only be added while the order is unassigned".into(),
+                "files can only be added while the order is still open for edits".into(),
             ));
         }
     }
@@ -279,12 +286,12 @@ struct DeleteAssetQuery {
     filename: String,
 }
 
-// Customer-only (mirrors upload_url), same unassigned-only edit window,
-// same self-scoped ownership check as download_url (the key's own
-// username segment, not a task-service round-trip for identity).
-// Permanent delete — no soft-delete/orphan bookkeeping, matching
-// asset-service's stateless-first design (no metadata table to keep in
-// sync either way).
+// Customer-only (mirrors upload_url), same edit-window gate
+// (EDIT_WINDOW_STATUSES), same self-scoped ownership check as
+// download_url (the key's own username segment, not a task-service
+// round-trip for identity). Permanent delete — no soft-delete/orphan
+// bookkeeping, matching asset-service's stateless-first design (no
+// metadata table to keep in sync either way).
 async fn delete_asset(
     headers: HeaderMap,
     Path(order_id): Path<String>,
@@ -308,10 +315,10 @@ async fn delete_asset(
         .await
         .map_err(|e| (StatusCode::BAD_GATEWAY, e))?
         .ok_or((StatusCode::NOT_FOUND, "order not found".into()))?;
-    if status != "unassigned" {
+    if !EDIT_WINDOW_STATUSES.contains(&status.as_str()) {
         return Err((
             StatusCode::FORBIDDEN,
-            "files can only be removed while the order is unassigned".into(),
+            "files can only be removed while the order is still open for edits".into(),
         ));
     }
 

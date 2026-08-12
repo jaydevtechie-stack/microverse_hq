@@ -15,9 +15,9 @@ const formatSize = (bytes) => {
 // the Rust side's own list_assets handler.
 //
 // `editable` gates add/remove — only true for the owning customer while
-// the order is still `unassigned` (asset-service enforces the same
-// window server-side; this is just so the buttons don't appear when
-// they'd 403 anyway). Read-only otherwise, same as before.
+// the order is `unassigned` or (5.7.1) `analyst` (asset-service enforces
+// the same window server-side; this is just so the buttons don't appear
+// when they'd 403 anyway). Read-only otherwise, same as before.
 const TaskFilesList = ({ taskId, service, editable = false }) => {
   const { t } = useTranslation(['gofeeler', 'common']);
   const [files, setFiles] = useState(null);
