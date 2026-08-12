@@ -17,10 +17,12 @@
     },
     "meta": {
       "service": "Service",
+      "customer": "Customer",
       "assignee": "Assignee",
       "unassigned": "unassigned",
       "owner": "Owner",
       "projectManager": "Project manager",
+      "project": "Project",
       "due": "Due",
       "closed": "Closed",
       "created": "Created"

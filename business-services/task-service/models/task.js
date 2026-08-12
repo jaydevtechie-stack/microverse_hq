@@ -9,8 +9,20 @@ async function findByService(service) {
   return rows;
 }
 
+// customer_name/project_name (4.6) — the task detail meta line wants
+// display names, not raw customer_id/project_id UUIDs; joined here
+// rather than as a separate lookup since every caller of findById
+// already wants the enriched row (extra columns are harmless to the
+// handful of callers that only read assignee/status/etc off it).
 async function findById(id) {
-  const { rows } = await pool.query('SELECT * FROM tasks WHERE id = $1', [id]);
+  const { rows } = await pool.query(
+    `SELECT t.*, c.name AS customer_name, p.name AS project_name
+     FROM tasks t
+     LEFT JOIN users c ON c.id = t.customer_id
+     LEFT JOIN projects p ON p.id = t.project_id
+     WHERE t.id = $1`,
+    [id]
+  );
   return rows[0] || null;
 }
 
