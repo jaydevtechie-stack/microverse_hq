@@ -89,6 +89,32 @@ pub async fn delete_object(client: &Client, key: &str) -> Result<(), aws_sdk_s3:
     Ok(())
 }
 
+// Real bytes, not a presigned URL — used by the internal /content route
+// (5.8) that other backend services (gofeeler) fetch over the Docker
+// network. A presigned GET URL is signed for S3_ENDPOINT
+// (storage.microverse.local), which only resolves on the host machine,
+// not inside another container (see docker-compose.yml's S3_ENDPOINT
+// comment) — so server-to-server callers need the object streamed back
+// through asset-service itself instead.
+pub async fn get_object_bytes(client: &Client, key: &str) -> Result<(Vec<u8>, Option<String>), String> {
+    let resp = client
+        .get_object()
+        .bucket(bucket_name())
+        .key(key)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    let content_type = resp.content_type().map(str::to_string);
+    let bytes = resp
+        .body
+        .collect()
+        .await
+        .map_err(|e| e.to_string())?
+        .into_bytes()
+        .to_vec();
+    Ok((bytes, content_type))
+}
+
 pub async fn presigned_get_url(client: &Client, key: &str) -> Result<String, aws_sdk_s3::Error> {
     let presign_config = PresigningConfig::expires_in(PRESIGN_TTL).expect("valid TTL");
     let req = client

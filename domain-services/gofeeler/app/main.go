@@ -8,6 +8,7 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
+	"gofeeler/assetclient"
 	"gofeeler/config"
 	"gofeeler/db"
 	"gofeeler/engine"
@@ -44,7 +45,8 @@ func main() {
 		log.Println("OPENAI_API_KEY not set — advanced engine disabled")
 	}
 
-	sentimentHandler := handler.NewSentimentHandler(engines, results)
+	assets := assetclient.New(cfg.AssetServiceURL)
+	sentimentHandler := handler.NewSentimentHandler(engines, results, assets)
 	templatesHandler := handler.NewTemplatesHandler(templates)
 
 	router := gin.Default()

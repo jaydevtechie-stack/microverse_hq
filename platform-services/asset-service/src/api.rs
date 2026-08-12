@@ -35,6 +35,7 @@ pub fn router() -> Router {
         .route("/health", get(health))
         .route("/assets/upload-url", post(upload_url))
         .route("/assets/{order_id}/download-url", get(download_url))
+        .route("/assets/{order_id}/content", get(content))
         .route("/assets/{order_id}", get(list_assets).delete(delete_asset))
 }
 
@@ -202,6 +203,82 @@ async fn download_url(
         download_url,
         expires_at: expires_at(Duration::from_secs(15 * 60)),
     }))
+}
+
+#[derive(Deserialize)]
+struct ContentQuery {
+    filename: String,
+    service: String,
+}
+
+// Same "download" action as download_url, same auth/ownership/status
+// checks — just bytes in the response instead of a presigned S3 URL.
+// Built for 5.8: gofeeler forwards the analyst's own Authorization
+// header here to pull a file's content into /analyze, and a presigned
+// download_url doesn't work for that caller (see
+// minio::get_object_bytes's comment on why). Whoever's entitled to the
+// presigned link is equally entitled to the bytes directly, so the
+// staff/customer split and paid/closed gate are unchanged from
+// download_url.
+async fn content(
+    headers: HeaderMap,
+    Path(order_id): Path<String>,
+    Query(query): Query<ContentQuery>,
+) -> Result<impl IntoResponse, (StatusCode, String)> {
+    let claims = claims_from_headers(&headers)
+        .ok_or((StatusCode::UNAUTHORIZED, "missing or malformed token".into()))?;
+    let service_role = format!("service:{}", query.service);
+    if !claims.has_role(&service_role) {
+        return Err((StatusCode::FORBIDDEN, format!("requires {service_role}")));
+    }
+
+    let is_staff = STAFF_ROLES.iter().any(|r| claims.has_role(r));
+    let is_customer = claims.has_role("platform:customer");
+    if !is_staff && !is_customer {
+        return Err((StatusCode::FORBIDDEN, "no eligible platform role".into()));
+    }
+
+    let objects = minio::list_order_objects(&minio::internal_client().await, &query.service, &order_id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    let matching_key = objects
+        .into_iter()
+        .filter_map(|obj| obj.key)
+        .find(|k| k.ends_with(&format!("/{}", query.filename)))
+        .ok_or((StatusCode::NOT_FOUND, "no matching file for this order".into()))?;
+
+    if is_customer && !is_staff {
+        let username = claims
+            .username()
+            .ok_or((StatusCode::UNAUTHORIZED, "token has no preferred_username".into()))?;
+        if !matching_key.contains(&format!("/{username}/")) {
+            return Err((StatusCode::FORBIDDEN, "not this customer's order".into()));
+        }
+
+        let status = task_client::fetch_status(&order_id)
+            .await
+            .map_err(|e| (StatusCode::BAD_GATEWAY, e))?
+            .ok_or((StatusCode::NOT_FOUND, "order not found".into()))?;
+        if !matches!(status.as_str(), "paid" | "closed") {
+            return Err((
+                StatusCode::FORBIDDEN,
+                "download unlocks once the order is paid".into(),
+            ));
+        }
+    }
+
+    let (bytes, content_type) = minio::get_object_bytes(&minio::internal_client().await, &matching_key)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+
+    Ok((
+        [(
+            axum::http::header::CONTENT_TYPE,
+            content_type.unwrap_or_else(|| "application/octet-stream".to_string()),
+        )],
+        bytes,
+    ))
 }
 
 #[derive(Deserialize)]

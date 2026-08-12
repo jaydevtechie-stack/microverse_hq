@@ -69,7 +69,7 @@
       "templatesLoadError": "Couldn't load templates: {{error}}",
       "analyse": "Analyse",
       "analysing": "Analysing…",
-      "noContent": "No order context to analyze yet.",
+      "noContent": "No order context or uploaded files to analyze yet.",
       "analyseError": "Couldn't analyze: {{error}}",
       "results": "Results",
       "resultViaEngine": "via {{engine}}",
