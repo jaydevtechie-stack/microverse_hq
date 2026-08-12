@@ -5,7 +5,7 @@ import { getKeycloak, authHeaders } from '../services/keycloak';
 import TaskStatusBadge from './TaskStatusBadge';
 import PmAssignPanel from './PmAssignPanel';
 import PmBillPanel from './PmBillPanel';
-import AnalystPanel from './AnalystPanel';
+import AnalysisPanel from './AnalysisPanel';
 import ReviewerPanel from './ReviewerPanel';
 import CustomerProgressPanel from './CustomerProgressPanel';
 import TaskComments from './TaskComments';
@@ -35,7 +35,7 @@ function actionPanelFor({ task, isPM, isAnalyst, isReviewer, isCustomer, usernam
     return <PmBillPanel />;
   }
   if (isAnalyst && task.status === 'analyst' && task.assignee === username) {
-    return <AnalystPanel task={task} />;
+    return <AnalysisPanel task={task} />;
   }
   if (isReviewer && task.status === 'reviewer' && task.assignee === username) {
     return <ReviewerPanel />;

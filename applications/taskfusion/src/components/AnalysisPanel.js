@@ -28,7 +28,7 @@ const SENTIMENT_COLOR = {
 // machine). Comments and customer-facing notes live in
 // TaskDetailContent now, not here — visible to any staff role
 // regardless of the active action panel.
-const AnalystPanel = ({ task }) => {
+const AnalysisPanel = ({ task }) => {
   const { t } = useTranslation('gofeeler');
   const [note, setNote] = useState('');
   const [movedToReview, setMovedToReview] = useState(false);
@@ -225,4 +225,4 @@ const AnalystPanel = ({ task }) => {
   );
 };
 
-export default AnalystPanel;
+export default AnalysisPanel;
