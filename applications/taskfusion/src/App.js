@@ -10,7 +10,7 @@ import microverseLogo from './assets/brand/design-system/logos/microverse-logo.p
 import LandingPage from './pages/LandingPage';
 import Navbar from './components/Navbar';
 import Dashboard from './pages/Dashboard';  // Example protected page
-import CustomerPage from './pages/CustomerPage';
+import AccountsViewPage from './pages/AccountsViewPage';
 import GofeelerSplitView from './pages/GofeelerSplitView';
 import CreateOrderPage from './pages/CreateOrderPage';
 import TaskDetailPage from './pages/TaskDetailPage';
@@ -21,11 +21,11 @@ import ServiceLandingPage from './pages/ServiceLandingPage';
 import InactiveUserScrim from './components/InactiveUserScrim';
 import PmOrdersPage from './pages/PmOrdersPage';
 import DeliveryTeamPage from './pages/DeliveryTeamPage';
-import AmCustomersPage from './pages/AmCustomersPage';
+import AccountsManagePage from './pages/AccountsManagePage';
 import AmBillingPage from './pages/AmBillingPage';
 
 // microverse.local carries everything platform-side (landing page,
-// /dashboard, /customer — path-based). Domain services get
+// /dashboard, /accounts/view — path-based). Domain services get
 // their own microsite subdomain instead — same app/build, just a
 // different root route. `id` (not `key`/`name`) is what routing logic
 // compares against — see data/services.js's SERVICE_THEME comment.
@@ -76,8 +76,8 @@ const App = () => {
 
   // PrivateRoute component to protect routes.
   // `roles` — the route renders if the user holds at least one (OR).
-  //   Used for platform-function-only checks, e.g. /customer just needs
-  //   platform:customer OR platform:project-manager.
+  //   Used for platform-function-only checks, e.g. /accounts/view just
+  //   needs platform:customer OR platform:project-manager.
   // `requireAllRoles` — the route renders only if the user holds every
   //   one (AND). Used for the two-dimensional model (see
   //   ARCHITECTURE.md's Roles and permissions) where a service-scoped
@@ -174,10 +174,10 @@ const App = () => {
             />
 
             <Route
-              path="/customer"
+              path="/accounts/view"
               element={
                 <PrivateRoute
-                  element={<CustomerPage />}
+                  element={<AccountsViewPage />}
                   keycloak={keycloak}
                   roles={['platform:customer', 'platform:project-manager']}
                 />
@@ -240,10 +240,10 @@ const App = () => {
                 provisioned in Keycloak, so these routes exist but
                 nobody can reach them until the role is granted. */}
             <Route
-              path="/am/customers"
+              path="/accounts/manage"
               element={
                 <PrivateRoute
-                  element={<AmCustomersPage />}
+                  element={<AccountsManagePage />}
                   keycloak={keycloak}
                   roles={['platform:account-manager']}
                 />

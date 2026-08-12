@@ -164,9 +164,15 @@ const TaskDetailContent = ({ id }) => {
   // "·" separators instead of borders/rows.
   const metaFields = [
     [t('taskDetail.meta.service'), task.service],
+    // customer_name/project_name (4.6) — findById now joins these in;
+    // both can be null (a dummy/seeded task with no real customer_id,
+    // or one never attached to a Project), same '—' fallback as the
+    // other optional fields below.
+    [t('taskDetail.meta.customer'), task.customer_name || '—'],
     [t('taskDetail.meta.assignee'), task.assignee || t('taskDetail.meta.unassigned')],
     [t('taskDetail.meta.owner'), task.owner || '—'],
     ...(projectManagerNames ? [[t('taskDetail.meta.projectManager'), projectManagerNames]] : []),
+    ...(task.project_name ? [[t('taskDetail.meta.project'), task.project_name]] : []),
     [t('taskDetail.meta.due'), task.due_date ? new Date(task.due_date).toLocaleDateString() : '—'],
     ...(task.closed_at ? [[t('taskDetail.meta.closed'), new Date(task.closed_at).toLocaleDateString()]] : []),
     [t('taskDetail.meta.created'), new Date(task.created_at).toLocaleDateString()],

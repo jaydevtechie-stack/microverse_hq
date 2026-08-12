@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { IconChevronDown, IconChevronRight } from '@tabler/icons-react';
 import { authHeaders } from '../services/keycloak';
 import SplitView from './SplitView';
@@ -122,8 +123,13 @@ const AccountAccordion = ({ accounts, expanded, onToggle, selection, onSelectPro
 
 const infoBox = { background: 'var(--mv-bg)', border: '0.5px solid var(--mv-border)', borderRadius: 8, padding: '10px 12px' };
 
+// Task rows navigate to /task/:id (TaskDetailPage off the gofeeler
+// microsite — same TaskDetailContent GofeelerSplitView renders inline
+// as a panel there) — 4.6, closing the gap where a customer could see
+// their own Accounts/Projects but never click through to a Task.
 const ProjectDetail = ({ project, canApprove, onApprove, approving }) => {
   const { t } = useTranslation('accounts');
+  const navigate = useNavigate();
   return (
   <>
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 4px' }}>
@@ -180,12 +186,14 @@ const ProjectDetail = ({ project, canApprove, onApprove, approving }) => {
     {project.tasks.map((task) => (
       <div
         key={task.id}
+        onClick={() => navigate(`/task/${task.id}`)}
         style={{
           display: 'flex',
           alignItems: 'center',
           gap: 10,
           padding: '8px 4px',
           borderBottom: '0.5px solid var(--mv-border)',
+          cursor: 'pointer',
         }}
       >
         <span
@@ -389,8 +397,8 @@ const NewAccountForm = ({ onCreate, onCancel }) => {
   );
 };
 
-// Shared by CustomerPage (own Accounts, can propose new Projects) and
-// AmCustomersPage (every Account, can create new Accounts, can approve
+// Shared by AccountsViewPage (own Accounts, can propose new Projects) and
+// AccountsManagePage (every Account, can create new Accounts, can approve
 // dormant Projects) — same accordion + split-view shell, just which
 // creation/approval affordances show differs by role. GET /api/accounts
 // is already branched server-side per role (account-routes.js), so this
