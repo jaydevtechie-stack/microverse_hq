@@ -61,6 +61,29 @@ func (t *Templates) Create(ctx context.Context, req model.CreateTemplateRequest,
 	return tpl, nil
 }
 
+// Update is a partial update via COALESCE — only fields present in req
+// change. Returns pgx.ErrNoRows (via Scan) if id doesn't match any row,
+// same "let the caller's Scan error tell the story" pattern as List/
+// Create rather than a separate existence check. No is_system_default
+// protection: edit is self-service same as create, same "blast radius
+// contained to the editor's own analyses" trust posture.
+func (t *Templates) Update(ctx context.Context, id string, req model.UpdateTemplateRequest) (model.Template, error) {
+	var tpl model.Template
+	var scannedID string
+	err := t.pool.QueryRow(ctx, `
+		UPDATE gofeeler.sentiment_prompt_templates
+		SET name = COALESCE($2, name),
+		    prompt_body = COALESCE($3, prompt_body)
+		WHERE id = $1
+		RETURNING id, name, prompt_body, created_by, is_system_default, created_at
+	`, id, req.Name, req.PromptBody).Scan(&scannedID, &tpl.Name, &tpl.PromptBody, &tpl.CreatedBy, &tpl.IsSystemDefault, &tpl.CreatedAt)
+	if err != nil {
+		return model.Template{}, err
+	}
+	tpl.ID = scannedID
+	return tpl, nil
+}
+
 // Resolve implements engine.TemplateResolver: a non-empty templateID looks
 // up that specific row; empty falls back to the system default.
 func (t *Templates) Resolve(ctx context.Context, templateID string) (engine.Template, error) {
