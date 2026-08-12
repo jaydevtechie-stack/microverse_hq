@@ -53,8 +53,16 @@
   },
   "panels": {
     "sentimentNegative": "Negative",
+    "sentiment": {
+      "positive": "Positive",
+      "negative": "Negative",
+      "neutral": "Neutral"
+    },
     "analyst": {
       "analyse": "Analyse",
+      "analysing": "Analysing…",
+      "noContent": "No order context to analyze yet.",
+      "analyseError": "Couldn't analyze: {{error}}",
       "results": "Results",
       "addNote": "Add a note",
       "notePlaceholder": "Add a note...",
