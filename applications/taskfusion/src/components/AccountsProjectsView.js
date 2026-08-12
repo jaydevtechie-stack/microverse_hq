@@ -9,6 +9,7 @@ import { STATUS_STYLE } from './TaskStatusBadge';
 const PROJECT_STATUS_STYLE = {
   active: { bg: 'var(--mv-color-success, #2f9e64)', labelKey: 'projectStatus.active' },
   dormant: { bg: 'var(--mv-text-muted)', labelKey: 'projectStatus.pendingApproval' },
+  inactive: { bg: 'var(--mv-color-danger)', labelKey: 'projectStatus.inactive' },
 };
 
 const ProjectStatusBadge = ({ status }) => {
@@ -127,9 +128,61 @@ const infoBox = { background: 'var(--mv-bg)', border: '0.5px solid var(--mv-bord
 // microsite — same TaskDetailContent GofeelerSplitView renders inline
 // as a panel there) — 4.6, closing the gap where a customer could see
 // their own Accounts/Projects but never click through to a Task.
-const ProjectDetail = ({ project, canApprove, onApprove, approving }) => {
+// `canManageProject` (4.7, account-manager only) adds the PM-assign
+// picker and Deactivate action. PM candidates are fetched per-project
+// rather than reusing account.pms from the accordion — they're the
+// same set (the Account's own pm_accounts), but this component only
+// has the flat accounts list in scope, not a per-account PM lookup, so
+// a small dedicated fetch is simpler than threading that through.
+const ProjectDetail = ({ project, canApprove, onApprove, approving, canManageProject, onAssignPm, onDeactivate }) => {
   const { t } = useTranslation('accounts');
   const navigate = useNavigate();
+  const [pmCandidates, setPmCandidates] = useState(null);
+  const [pmCandidatesError, setPmCandidatesError] = useState(null);
+  const [pmPicked, setPmPicked] = useState('');
+  const [assigningPm, setAssigningPm] = useState(false);
+  const [assignPmError, setAssignPmError] = useState(null);
+  const [deactivating, setDeactivating] = useState(false);
+  const [deactivateError, setDeactivateError] = useState(null);
+
+  useEffect(() => {
+    if (!canManageProject) return;
+    setPmCandidates(null);
+    setPmCandidatesError(null);
+    fetch(`/api/projects/${project.id}/pm-candidates`, { headers: authHeaders() })
+      .then((res) => {
+        if (!res.ok) throw new Error(`task-service returned ${res.status}`);
+        return res.json();
+      })
+      .then(setPmCandidates)
+      .catch((err) => setPmCandidatesError(err.message));
+  }, [canManageProject, project.id]);
+
+  const handleAssignPm = async () => {
+    setAssigningPm(true);
+    setAssignPmError(null);
+    try {
+      await onAssignPm(pmPicked);
+      setPmPicked('');
+    } catch (err) {
+      setAssignPmError(err.message);
+    } finally {
+      setAssigningPm(false);
+    }
+  };
+
+  const handleDeactivate = async () => {
+    setDeactivating(true);
+    setDeactivateError(null);
+    try {
+      await onDeactivate();
+    } catch (err) {
+      setDeactivateError(err.message);
+    } finally {
+      setDeactivating(false);
+    }
+  };
+
   return (
   <>
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 4px' }}>
@@ -178,6 +231,82 @@ const ProjectDetail = ({ project, canApprove, onApprove, approving }) => {
         <p style={{ color: 'var(--mv-text)', fontSize: 13, margin: 0 }}>{project.payment_terms || '—'}</p>
       </div>
     </div>
+
+    {canManageProject && (
+      <>
+        <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 6px' }}>{t('projectDetail.assignPmLabel')}</p>
+        {pmCandidatesError && (
+          <p style={{ color: 'var(--mv-color-danger)', fontSize: 12, margin: '0 0 8px' }}>
+            {t('projectDetail.pmCandidatesLoadError', { error: pmCandidatesError })}
+          </p>
+        )}
+        {!pmCandidatesError && !pmCandidates && (
+          <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>{t('projectDetail.loadingPmCandidates')}</p>
+        )}
+        {pmCandidates && (
+          <>
+            <select value={pmPicked} onChange={(e) => setPmPicked(e.target.value)} style={fieldInputStyle}>
+              <option value="">{t('projectDetail.choosePm')}</option>
+              {pmCandidates.map((pm) => (
+                <option key={pm.id} value={pm.id}>
+                  {pm.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={handleAssignPm}
+              disabled={!pmPicked || assigningPm}
+              style={{
+                padding: '8px 14px',
+                marginBottom: 10,
+                background: pmPicked && !assigningPm ? 'var(--mv-color-primary)' : 'var(--mv-badge-bg)',
+                color: pmPicked && !assigningPm ? 'var(--mv-color-primary-contrast)' : 'var(--mv-badge-text)',
+                fontWeight: 500,
+                fontSize: 12,
+                border: 'none',
+                borderRadius: 8,
+                cursor: pmPicked && !assigningPm ? 'pointer' : 'not-allowed',
+              }}
+            >
+              {assigningPm ? t('projectDetail.assigningPm') : t('projectDetail.assignPm')}
+            </button>
+            {assignPmError && (
+              <p style={{ color: 'var(--mv-color-danger)', fontSize: 12, margin: '-4px 0 10px' }}>
+                {t('projectDetail.assignPmError', { error: assignPmError })}
+              </p>
+            )}
+          </>
+        )}
+
+        {project.status !== 'inactive' && (
+          <button
+            type="button"
+            onClick={handleDeactivate}
+            disabled={deactivating}
+            style={{
+              marginBottom: 18,
+              padding: '8px 14px',
+              background: 'transparent',
+              border: '0.5px solid var(--mv-color-danger)',
+              color: 'var(--mv-color-danger)',
+              fontWeight: 500,
+              fontSize: 12,
+              borderRadius: 8,
+              cursor: deactivating ? 'default' : 'pointer',
+              opacity: deactivating ? 0.6 : 1,
+            }}
+          >
+            {deactivating ? t('projectDetail.deactivating') : t('projectDetail.deactivateProject')}
+          </button>
+        )}
+        {deactivateError && (
+          <p style={{ color: 'var(--mv-color-danger)', fontSize: 12, margin: '-14px 0 18px' }}>
+            {t('projectDetail.deactivateError', { error: deactivateError })}
+          </p>
+        )}
+      </>
+    )}
 
     <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>{t('projectDetail.tasksLabel')}</p>
     {project.tasks.length === 0 && (
@@ -404,7 +533,12 @@ const NewAccountForm = ({ onCreate, onCancel }) => {
 // is already branched server-side per role (account-routes.js), so this
 // component doesn't need to know which role it's rendering for beyond
 // the capability flags passed in.
-const AccountsProjectsView = ({ canCreateProject = false, canCreateAccount = false, canApproveProject = false }) => {
+const AccountsProjectsView = ({
+  canCreateProject = false,
+  canCreateAccount = false,
+  canApproveProject = false,
+  canManageProject = false,
+}) => {
   const { t } = useTranslation('accounts');
   const [accounts, setAccounts] = useState(null);
   const [error, setError] = useState(null);
@@ -492,6 +626,37 @@ const AccountsProjectsView = ({ canCreateProject = false, canCreateAccount = fal
     }
   };
 
+  // Both throw on failure rather than setting `error` themselves — the
+  // caller is ProjectDetail's own handleAssignPm/handleDeactivate,
+  // which display the error inline next to the action that failed
+  // (same "throw, let the local handler catch and show it" contract
+  // AnalystPicker's onConfirm prop uses), not this view's page-level
+  // error state.
+  const handleAssignPm = async (pmId) => {
+    if (selection?.type !== 'project') return;
+    const res = await fetch(`/api/projects/${selection.id}/pm`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify({ pmId }),
+    });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.message || `task-service returned ${res.status}`);
+    setDetail(body);
+    await refetchAccounts();
+  };
+
+  const handleDeactivate = async () => {
+    if (selection?.type !== 'project') return;
+    const res = await fetch(`/api/projects/${selection.id}/deactivate`, {
+      method: 'PATCH',
+      headers: authHeaders(),
+    });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.message || `task-service returned ${res.status}`);
+    setDetail(body);
+    await refetchAccounts();
+  };
+
   if (error) {
     return <p style={{ color: 'var(--mv-color-danger)', fontSize: 13, margin: 'var(--mv-space-3)' }}>{t('loadError', { error })}</p>;
   }
@@ -553,7 +718,15 @@ const AccountsProjectsView = ({ canCreateProject = false, canCreateAccount = fal
           if (selection.type === 'project') {
             return (
               detail && (
-                <ProjectDetail project={detail} canApprove={canApproveProject} onApprove={handleApprove} approving={approving} />
+                <ProjectDetail
+                  project={detail}
+                  canApprove={canApproveProject}
+                  onApprove={handleApprove}
+                  approving={approving}
+                  canManageProject={canManageProject}
+                  onAssignPm={handleAssignPm}
+                  onDeactivate={handleDeactivate}
+                />
               )
             );
           }

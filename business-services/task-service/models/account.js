@@ -77,6 +77,31 @@ async function linkUserToAccount(userId, accountId) {
   );
 }
 
+// Every active PM, platform-wide (4.7) — not scoped to an Account,
+// unlike listPmsForAccount. Assigning a project's PM (project-routes.js's
+// PATCH /projects/:id/pm) is currently the *only* way a PM ever gets
+// linked to an Account at all (no standalone "add PM to Account" UI
+// exists) — restricting the assign-PM candidate list to
+// listPmsForAccount would mean nobody could ever become a project's
+// first PM, since pm_accounts starts empty for every Account. This is
+// the actual candidate pool; assignPm's caller links pm_accounts as a
+// side effect of the assignment, not a precondition for it.
+async function listAllPms() {
+  const { rows } = await pool.query(
+    `SELECT * FROM users WHERE active = true AND roles @> $1::text[] ORDER BY name`,
+    [['platform:project-manager']]
+  );
+  return rows;
+}
+
+async function linkPmToAccount(pmId, accountId) {
+  await pool.query(
+    `INSERT INTO pm_accounts (pm_id, account_id) VALUES ($1, $2)
+     ON CONFLICT (pm_id, account_id) DO NOTHING`,
+    [pmId, accountId]
+  );
+}
+
 // account-manager's global view — every Account, unscoped. Distinct
 // from listForPm (ownership-scoped) and listAccountsForUser
 // (membership-scoped) — an account-manager isn't tied to specific
@@ -128,6 +153,8 @@ module.exports = {
   createAccount,
   listAccountsForUser,
   linkUserToAccount,
+  listAllPms,
+  linkPmToAccount,
   listAllAccounts,
   listUsersForAccount,
   accountEngagement,

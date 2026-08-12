@@ -7,14 +7,15 @@ import usePageMeta from '../hooks/usePageMeta';
 // listAllAccounts server-side for platform:account-manager), same
 // accordion + split-view shell AccountsViewPage uses — but
 // account-managers create Accounts (not Projects, that's
-// customer-initiated) and approve the dormant Projects customers
-// propose. Renamed from AmCustomersPage (route /am/customers ->
-// /accounts/manage) — "Am" prefix read as an unrelated abbreviation
-// out of context, and the manage/view split now lives in the URL
-// itself rather than the component name.
+// customer-initiated), approve the dormant Projects customers propose,
+// and (4.7) assign a Project's responsible PM / deactivate a Project.
+// Renamed from AmCustomersPage (route /am/customers -> /accounts/manage)
+// — "Am" prefix read as an unrelated abbreviation out of context, and
+// the manage/view split now lives in the URL itself rather than the
+// component name.
 const AccountsManagePage = () => {
   usePageMeta({ title: 'Microverse - Accounts' });
-  return <AccountsProjectsView canCreateAccount canApproveProject />;
+  return <AccountsProjectsView canCreateAccount canApproveProject canManageProject />;
 };
 
 export default AccountsManagePage;
