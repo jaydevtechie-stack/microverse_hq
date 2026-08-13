@@ -80,7 +80,11 @@ GoFeeler stays one service, one analyst-facing interface — the LLM upgrade is 
 
 **Branch 6 — search-service integration**
 - ✅ search-service + Elasticsearch added to the `gofeeler` docker profile — genuinely queried via the tag-suggest endpoint (Branch 3.2), not just scaffolded
-- 🟡 6.1 Task content model + ES index mapping — locks the searchable doc shape (see Proposals). Analyzed/keyword split mirrors the tag index. Writes "what can be searched" into the doc rather than leaving it implicit.
+- 🟢 6.1 Task content model + ES index mapping — locks the searchable doc shape (see Proposals). Analyzed/keyword split mirrors the tag index. Writes "what can be searched" into the doc rather than leaving it implicit. Decomposed:
+- 🟢 6.1.1 Faceted per-service indices — `tasks-<service>` (one index per service) via an ES index template, not one flat `tasks` index. Service-scope becomes index routing, not a query filter — matches the discovery-scoped resolution below, and means the mapping doesn't need its own `service` keyword field.
+- 🟢 6.1.2 Field split — analyzed (query targets): `title`, `context`. Keyword (filters, feeds 6.4.3's narrowing params): `status`, `tags`, `owner`, `customer_id`, `account_id`, `project_id`, `assignee_ids` (kept for future "my tasks" narrowing/ranking, not required for base access under discovery-scoping). Date: `created_at`, `assigned_at`.
+- 🟢 6.1.3 Doc identity — `_id = task_id`, so 6.2's future indexing writes are idempotent upserts, not append-only.
+- 🟢 6.1.4 Scope boundaries — no-index handling stays 6.3's job (a delete, not a mapping concern); comments indexing stays deferred, not pulled into this pass.
 - 🟡 6.2 Lifecycle-aware indexing consumer — Kafka. Index on `task.assigned`; update `assignee_ids` on reassign/reviewer-change; drop/update on unassign. The rule is "the index tracks the assignment lifecycle," not "index on assign" — stale `assignee_ids` is the authz leak, so this is a security requirement, not a freshness nicety.
 - 🟡 6.3 `no-index` reconcile — tag applied *after* indexing triggers removal, not just future suppression. Tasks are default-index-with-exclusions (inverse of the default-deny chosen for opaque file contents).
 - 🟡 6.4 Permission-scoped query endpoint — `GET /search?q=`; the `bool` shape and per-role filter from Proposals. React calls it, never raw ES. Decomposed:
