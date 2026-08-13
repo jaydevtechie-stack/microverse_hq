@@ -143,6 +143,15 @@
         "attributes": {}
       },
       {
+        "id": "4ce83f2c-0115-4473-bd6d-42bc61a1aee6",
+        "name": "platform:account-manager",
+        "description": "",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "9e9ca4e3-1cbb-4381-8356-c255387cc21c",
+        "attributes": {}
+      },
+      {
         "id": "a7d425a4-11c5-4262-9ef8-7ba5d2e24e59",
         "name": "platform:admin",
         "description": "",

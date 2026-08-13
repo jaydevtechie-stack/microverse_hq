@@ -77,10 +77,11 @@ A Customer is deliberately **not** a separate table — it's a `users` row with 
 
 ```sql
 CREATE TABLE accounts (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  type        TEXT NOT NULL CHECK (type IN ('company', 'individual')),
-  name        TEXT NOT NULL,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  type                TEXT NOT NULL CHECK (type IN ('company', 'individual')),
+  name                TEXT NOT NULL,
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+  account_manager_id  UUID REFERENCES users(id)  -- who owns this Account (6.2.5); nullable — an unowned account is a legitimate transitional state, not an error
 );
 ```
 

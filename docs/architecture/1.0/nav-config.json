@@ -88,7 +88,7 @@
           "id": "billing",
           "label": "Billing",
           "route": "/am/billing",
-          "notes": "Moved here from platform:admin in 4.3 — account-manager scoped, not Admin's; still unscoped/global across Accounts though (see the Customers item above), same as Admin's old view was, just gated on a different role. Fits the sell/commercial-engagement remit: contract terms (docs/business/1.0/overview.md's payment_terms), invoicing status, live under the role that owns the customer relationship rather than Admin. Currently a stub page (AmBillingPage) regardless of scope."
+          "notes": "Moved here from platform:admin in 4.3 — account-manager scoped, not Admin's. As of 6.2.5, actually ownership-scoped (accounts.account_manager_id), not global across every Account the way Admin's old view was — see docs/roadmap/1.0/domain-services.md's 4.3 resolution note on why 'no table at all' was superseded. Fits the sell/commercial-engagement remit: contract terms (docs/business/1.0/overview.md's payment_terms), invoicing status, live under the role that owns the customer relationship rather than Admin. Currently a stub page (AmBillingPage) regardless of scope."
         }
       ]
     },
