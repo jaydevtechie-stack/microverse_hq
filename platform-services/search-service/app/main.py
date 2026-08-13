@@ -5,6 +5,8 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from elasticsearch import Elasticsearch
 
+from app.kafka_consumer import start_kafka_consumer_thread
+
 ELASTICSEARCH_URL = os.environ.get("ELASTICSEARCH_URL", "http://localhost:9200")
 
 # One shared index across every domain service that wants tag
@@ -88,6 +90,28 @@ def ensure_tasks_template():
         index_patterns=[TASKS_INDEX_PATTERN],
         template={"mappings": TASKS_MAPPINGS},
     )
+
+
+# Lifecycle-aware indexing consumer (6.2) — a background thread, not a
+# separate process, matching how rustledger owns its own Kafka consumer
+# rather than a shared bus-listener service. Runs on a thread (not the
+# asyncio event loop) since KafkaConsumer is a blocking/sync client, the
+# same posture the Elasticsearch client above already has in this app.
+# Starting it on a thread means a Kafka outage at boot doesn't stop the
+# rest of search-service (tag suggest, health) from working.
+@app.on_event("startup")
+def start_kafka_consumer():
+    app.state.kafka_thread, app.state.kafka_stop_event = start_kafka_consumer_thread(
+        es, service_index_name
+    )
+
+
+@app.on_event("shutdown")
+def stop_kafka_consumer():
+    stop_event = getattr(app.state, "kafka_stop_event", None)
+    if stop_event is None:
+        return
+    stop_event.set()
 
 
 @app.get("/")

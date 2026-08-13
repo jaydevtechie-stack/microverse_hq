@@ -2,5 +2,6 @@ fastapi==0.141.1
 uvicorn[standard]==0.52.1
 pydantic==2.13.4
 elasticsearch==8.15.0
+kafka-python-ng==2.2.3
 pytest==8.3.5
 httpx==0.28.1

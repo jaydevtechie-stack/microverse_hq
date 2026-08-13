@@ -18,6 +18,7 @@ const { getUser, listUsers, ensureAccountForCustomer } = require('../models/user
 const { recommendAnalysts } = require('../models/scout');
 const { listPmsForAccount } = require('../models/account');
 const { requireRealmRole, requireAnyRealmRole } = require('../middleware/auth');
+const { publishTaskEvent } = require('../events/kafka-producer');
 
 // The PM(s) a customer should reach out to about this order — ownership
 // (pm_accounts, which Accounts a PM can see at all) narrowed to service
@@ -226,6 +227,7 @@ router.patch('/tasks/:id', requireRealmRole('platform:project-manager'), async (
     if (!updated) {
       return res.status(409).json({ message: 'Task was assigned by someone else just now' });
     }
+    await publishTaskEvent('task.assigned', updated);
     res.status(200).json(updated);
   } catch (err) {
     res.status(500).json({ message: 'Error assigning task', error: err.message });
@@ -310,6 +312,7 @@ router.patch('/tasks/:id/move-to-review', requireRealmRole('platform:analyst'), 
     if (!updated) {
       return res.status(409).json({ message: 'Task status changed just now' });
     }
+    await publishTaskEvent('task.moved-to-review', updated);
     res.status(200).json({ ...updated, project_managers: await projectManagersFor(updated) });
   } catch (err) {
     res.status(500).json({ message: 'Error moving task to review', error: err.message });
@@ -361,6 +364,7 @@ router.patch(
       if (!updated) {
         return res.status(409).json({ message: 'Task was reassigned by someone else just now' });
       }
+      await publishTaskEvent('task.reviewer-reassigned', updated);
       res.status(200).json({ ...updated, project_managers: await projectManagersFor(updated) });
     } catch (err) {
       res.status(500).json({ message: 'Error reassigning reviewer', error: err.message });
@@ -410,6 +414,12 @@ router.patch(
       if (!updated) {
         return res.status(409).json({ message: 'Task status changed just now' });
       }
+      // assignee is cleared on approve (reviewer -> done) — the closest
+      // thing this codebase has to an "unassign" today (see 6.2's roadmap
+      // note: no standalone unassign endpoint exists yet). publishing here
+      // updates assignee_ids to [] in the index rather than leaving a
+      // stale assignee on a done task.
+      await publishTaskEvent('task.approved', updated);
       res.status(200).json({ ...updated, project_managers: await projectManagersFor(updated) });
     } catch (err) {
       res.status(500).json({ message: 'Error approving task', error: err.message });
@@ -463,6 +473,7 @@ router.patch(
       if (!updated) {
         return res.status(409).json({ message: 'Task status changed just now' });
       }
+      await publishTaskEvent('task.rejected', updated);
       res.status(200).json({ ...updated, project_managers: await projectManagersFor(updated) });
     } catch (err) {
       res.status(500).json({ message: 'Error rejecting task', error: err.message });
