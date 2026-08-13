@@ -2,8 +2,9 @@
 
 Scope: `domain-services/gofeeler`, up through Branch 5 in
 [docs/roadmap/1.0/domain-services.md](../roadmap/1.0/domain-services.md).
-Other services have no CI or test-case docs yet — this is the first pass,
-not a repo-wide convention (yet).
+This was the first service to get CI/test-case docs — see below for
+`search-service`'s, added in Branch 6.1. Still not a repo-wide convention;
+most other services have neither yet.
 
 CI runs this automatically: `.github/workflows/gofeeler-ci.yml`, on any
 push/PR touching `domain-services/gofeeler/**`.
@@ -167,3 +168,52 @@ Checklist:
    `platform:reviewer`) and confirm the list still loads (their assigned
    tasks) but no "+ New" button appears, and navigating to `/create`
    directly bounces back rather than rendering the form.
+
+---
+
+# Testing — search-service (Branch 6.1, task search index)
+
+Scope: `platform-services/search-service`. CI runs this automatically:
+`.github/workflows/search-service-ci.yml`, on any push/PR touching
+`platform-services/search-service/**`.
+
+## Automated (`pytest`, CI `test` job)
+
+One job, one real Elasticsearch instance (`services:` in the workflow,
+config mirrors `docker-compose.yml`'s `microverse-elasticsearch` exactly)
+— same "integration, not mocked" posture as gofeeler's tests above, not
+split into separate unit/integration jobs since there's no meaningful
+logic here that doesn't ultimately touch ES.
+
+| Test | Covers |
+|---|---|
+| `test_service_index_name` | Pure function, no ES: `tasks-<service>` naming convention. |
+| `test_health_reports_elasticsearch_up` | `/health` reflects a real ES connection. |
+| `test_tasks_template_registered` | The `tasks-template` index template (Branch 6.1) exists on boot, pattern `tasks-*`. |
+| `test_new_service_index_inherits_tasks_mapping` | Writing to a disposable `tasks-<service>` index lazily creates it with the templated mapping — analyzed `title`/`context`, keyword `status`/`assignee_ids`/etc., no `service` field. Never touches `tasks-gofeeler` itself. |
+| `test_tag_suggest_still_works` | Regression check on the pre-existing `/tags/suggest` endpoint, since it shares `main.py` with the new template code. |
+
+Run locally (needs a reachable Elasticsearch — `ELASTICSEARCH_URL` env var,
+defaults to `http://localhost:9200`):
+
+```
+cd platform-services/search-service
+pip install -r requirements.txt
+python -m pytest tests/ -v
+```
+
+## Manual — end-to-end through the running stack
+
+```
+docker compose --profile gofeeler up -d --build microverse-search-service
+```
+
+Then, from inside the container (no ES port published to the host by
+default):
+
+```
+docker exec microverse-search-service python -c "
+from app.main import es, TASKS_TEMPLATE_NAME
+print(es.indices.get_index_template(name=TASKS_TEMPLATE_NAME).body)
+"
+```

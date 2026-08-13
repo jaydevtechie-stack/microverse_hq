@@ -292,6 +292,21 @@ Shared pool, visible to every analyst; any analyst can create or edit (self-serv
 
 `name.keyword` (lowercase-normalized) is used for exact upsert/lookup; the analyzed `name` field is for fuzzy/prefix suggestion matching only — see [docs/roadmap/1.0/domain-services.md](roadmap/1.0/domain-services.md)'s "Implemented as" note for the real `match_bool_prefix` + fuzzy `match` query shape (`fuzziness: AUTO` alone wasn't enough for early-keystroke matching). See `task-service`'s `tasks.tags` above for how this vocabulary relates to what actually gets stored on a task.
 
+## tasks-\<service\> — 🟢 template live, unpopulated (Branch 6.1)
+
+**Elasticsearch** — index template `tasks-template`, pattern `tasks-*`. One index per service (`tasks-gofeeler`, etc.) rather than one flat `tasks` index — see [docs/roadmap/1.0/domain-services.md](roadmap/1.0/domain-services.md)'s "Task search index" proposal for why: service-scope becomes index routing, not a query-time filter. The template governs any matching index lazily — a new service's first task write creates a correctly-mapped index with no manual per-service setup.
+
+```
+{
+  title, context,                                              -- analyzed (text) — the query targets
+  status, tags, owner, customer_id, account_id, project_id,    -- keyword — filter/narrowing only
+  assignee_ids,                                                -- keyword[] — kept for future "my tasks" narrowing, not required for base access
+  created_at, assigned_at                                      -- date
+}
+```
+
+Doc `_id = task_id` (REFERENCES `task-service`'s `tasks.id`, cross-service reference, not enforced by an FK — same posture as `gofeeler.sentiment_results.task_id` above), so future lifecycle-driven writes (Branch 6.2) are idempotent upserts, not append-only. No `service` field — implicit in which index a document lives in. Template exists and is documented; nothing writes to it yet — that's Branch 6.2's job.
+
 ---
 
 # asset-service / MinIO

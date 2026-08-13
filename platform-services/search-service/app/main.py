@@ -48,6 +48,48 @@ def ensure_index():
         es.index(index=TAGS_INDEX, document={"name": name, "created_at": now, "usage_count": 0})
 
 
+# One index per service (tasks-<service>), not one flat "tasks" index —
+# service-scope becomes index *routing*, not a query-time filter (see
+# ROADMAP.md's "Task search index" proposal). A template governs any
+# tasks-* index lazily, so a new service's first task write creates a
+# correctly-mapped index with no per-service setup needed here. No
+# `service` field in the mapping — it's implicit in which index a
+# document lives in.
+TASKS_INDEX_PATTERN = "tasks-*"
+TASKS_TEMPLATE_NAME = "tasks-template"
+TASKS_MAPPINGS = {
+    "properties": {
+        # Analyzed — the actual query targets.
+        "title": {"type": "text"},
+        "context": {"type": "text"},
+        # Keyword — filter/narrowing only, never relevance-matched.
+        "status": {"type": "keyword"},
+        "tags": {"type": "keyword"},
+        "owner": {"type": "keyword"},
+        "customer_id": {"type": "keyword"},
+        "account_id": {"type": "keyword"},
+        "project_id": {"type": "keyword"},
+        "assignee_ids": {"type": "keyword"},  # kept for future "my tasks" narrowing, not required for base access
+        "created_at": {"type": "date"},
+        "assigned_at": {"type": "date"},
+    }
+}
+
+
+def service_index_name(service: str) -> str:
+    """Single source of truth for the tasks-<service> naming convention."""
+    return f"tasks-{service}"
+
+
+@app.on_event("startup")
+def ensure_tasks_template():
+    es.indices.put_index_template(
+        name=TASKS_TEMPLATE_NAME,
+        index_patterns=[TASKS_INDEX_PATTERN],
+        template={"mappings": TASKS_MAPPINGS},
+    )
+
+
 @app.get("/")
 async def root():
     return {"message": "search-service is running"}
