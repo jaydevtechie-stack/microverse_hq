@@ -174,7 +174,9 @@ CREATE TABLE projects (
   name                  TEXT NOT NULL,
   responsible_user_id   UUID REFERENCES users(id),  -- any role — PM, senior analyst, etc., not locked to PM
   payment_terms         TEXT,  -- e.g. 'upfront', 'net_30' — nullable until docs/business/1.0/overview.md's payment-timing question is settled
-  created_at            TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
+  status                TEXT NOT NULL DEFAULT 'active',  -- 'dormant' (pending account-manager approval) -> 'active' -> 'inactive'
+  no_index              BOOLEAN NOT NULL DEFAULT false  -- starting value for tasks created under this Project (6.3.1) — never a live cascade onto existing tasks
 );
 ```
 

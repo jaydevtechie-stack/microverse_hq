@@ -125,6 +125,18 @@ const AccountAccordion = ({ accounts, expanded, onToggle, selection, onSelectPro
 
 const infoBox = { background: 'var(--mv-bg)', border: '0.5px solid var(--mv-border)', borderRadius: 8, padding: '10px 12px' };
 
+// Compact toolbar buttons for ProjectDetail's task mass-toggle (6.3.1) —
+// too small a footprint to warrant ActionButtonRow's full-width flex:1
+// buttons, which are sized for the Assign/Deactivate row above.
+const smallOutlineButtonStyle = {
+  padding: '4px 10px',
+  background: 'transparent',
+  border: '0.5px solid var(--mv-border)',
+  color: 'var(--mv-text-muted)',
+  fontSize: 11,
+  borderRadius: 6,
+};
+
 // Task rows select a Task in place of this Project within the same
 // split view (`onSelectTask`, 4.6/follow-up) — same TaskDetailContent
 // GofeelerSplitView renders inline as a panel, but staying inside this
@@ -137,7 +149,7 @@ const infoBox = { background: 'var(--mv-bg)', border: '0.5px solid var(--mv-bord
 // but this component only has the flat accounts list in scope, not a
 // per-account PM lookup, so a small dedicated fetch is simpler than
 // threading that through.
-const ProjectDetail = ({ project, canApprove, onApprove, approving, canManageProject, onAssignPm, onDeactivate, onSelectTask }) => {
+const ProjectDetail = ({ project, canApprove, onApprove, approving, canManageProject, onAssignPm, onDeactivate, onBulkNoIndex, onSelectTask }) => {
   const { t } = useTranslation('accounts');
   const [pmCandidates, setPmCandidates] = useState(null);
   const [pmCandidatesError, setPmCandidatesError] = useState(null);
@@ -146,6 +158,18 @@ const ProjectDetail = ({ project, canApprove, onApprove, approving, canManagePro
   const [assignPmError, setAssignPmError] = useState(null);
   const [deactivating, setDeactivating] = useState(false);
   const [deactivateError, setDeactivateError] = useState(null);
+  const [selectedTaskIds, setSelectedTaskIds] = useState(new Set());
+  const [bulkWorking, setBulkWorking] = useState(false);
+  const [bulkNoIndexError, setBulkNoIndexError] = useState(null);
+
+  // ProjectDetail doesn't remount between different Projects (no `key`
+  // upstream) — reset the selection when the viewed Project itself
+  // changes, so a stale selection from a previous Project's tasks can't
+  // carry over.
+  useEffect(() => {
+    setSelectedTaskIds(new Set());
+    setBulkNoIndexError(null);
+  }, [project.id]);
 
   useEffect(() => {
     if (!canManageProject) return;
@@ -182,6 +206,34 @@ const ProjectDetail = ({ project, canApprove, onApprove, approving, canManagePro
       setDeactivateError(err.message);
     } finally {
       setDeactivating(false);
+    }
+  };
+
+  const toggleTaskSelected = (taskId) => {
+    setSelectedTaskIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(taskId)) next.delete(taskId);
+      else next.add(taskId);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedTaskIds((prev) =>
+      prev.size === project.tasks.length ? new Set() : new Set(project.tasks.map((t) => t.id))
+    );
+  };
+
+  const handleBulkNoIndex = async (noIndex) => {
+    setBulkWorking(true);
+    setBulkNoIndexError(null);
+    try {
+      await onBulkNoIndex(Array.from(selectedTaskIds), noIndex);
+      setSelectedTaskIds(new Set());
+    } catch (err) {
+      setBulkNoIndexError(err.message);
+    } finally {
+      setBulkWorking(false);
     }
   };
 
@@ -299,10 +351,56 @@ const ProjectDetail = ({ project, canApprove, onApprove, approving, canManagePro
       </>
     )}
 
-    <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>{t('projectDetail.tasksLabel')}</p>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 8px' }}>
+      <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: 0 }}>{t('projectDetail.tasksLabel')}</p>
+      {canManageProject && project.tasks.length > 0 && (
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--mv-text-muted)', fontSize: 11, cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={selectedTaskIds.size === project.tasks.length}
+            onChange={toggleSelectAll}
+          />
+          {t('projectDetail.selectAll')}
+        </label>
+      )}
+    </div>
     {project.tasks.length === 0 && (
       <p style={{ color: 'var(--mv-badge-bg)', fontSize: 12 }}>{t('projectDetail.noTasksYet')}</p>
     )}
+
+    {/* Reconciling an existing task set with a changed Project-level
+        no_index (6.3.1) — bulk apply/remove rather than editing tasks
+        one by one. Both actions always shown together since a mixed-
+        state selection may need either direction. */}
+    {canManageProject && selectedTaskIds.size > 0 && (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '0 0 10px' }}>
+        <span style={{ color: 'var(--mv-text-muted)', fontSize: 11 }}>
+          {t('projectDetail.nSelected', { count: selectedTaskIds.size })}
+        </span>
+        <button
+          type="button"
+          onClick={() => handleBulkNoIndex(true)}
+          disabled={bulkWorking}
+          style={{ ...smallOutlineButtonStyle, cursor: bulkWorking ? 'default' : 'pointer' }}
+        >
+          {t('projectDetail.excludeFromSearch')}
+        </button>
+        <button
+          type="button"
+          onClick={() => handleBulkNoIndex(false)}
+          disabled={bulkWorking}
+          style={{ ...smallOutlineButtonStyle, cursor: bulkWorking ? 'default' : 'pointer' }}
+        >
+          {t('projectDetail.includeInSearch')}
+        </button>
+      </div>
+    )}
+    {bulkNoIndexError && (
+      <p style={{ color: 'var(--mv-color-danger)', fontSize: 12, margin: '-4px 0 10px' }}>
+        {t('projectDetail.bulkNoIndexError', { error: bulkNoIndexError })}
+      </p>
+    )}
+
     {project.tasks.map((task) => (
       <div
         key={task.id}
@@ -316,12 +414,26 @@ const ProjectDetail = ({ project, canApprove, onApprove, approving, canManagePro
           cursor: 'pointer',
         }}
       >
+        {canManageProject && (
+          <input
+            type="checkbox"
+            checked={selectedTaskIds.has(task.id)}
+            onClick={(e) => e.stopPropagation()}
+            onChange={() => toggleTaskSelected(task.id)}
+            style={{ flexShrink: 0 }}
+          />
+        )}
         <span style={{ flexShrink: 0 }}>
           <TaskStatusBadge status={task.status} />
         </span>
         <span style={{ color: 'var(--mv-text)', fontSize: 12, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {task.title}
         </span>
+        {task.no_index && (
+          <span style={{ color: 'var(--mv-color-danger)', fontSize: 10, whiteSpace: 'nowrap' }}>
+            {t('projectDetail.excludedBadge')}
+          </span>
+        )}
         <span style={{ color: 'var(--mv-text-muted)', fontSize: 11, whiteSpace: 'nowrap' }}>
           {task.due_date ? new Date(task.due_date).toLocaleDateString() : t('projectDetail.noDueDate')}
         </span>
@@ -642,6 +754,35 @@ const AccountsProjectsView = ({
     await refetchAccounts();
   };
 
+  // Bringing an existing task set in line with a changed project
+  // no_index flag (6.3.1) — no bulk endpoint, just N individual
+  // PATCH /tasks/:id/no-index calls (task-service's existing 6.3
+  // route) run in parallel, dev-scale task-list sizes don't warrant a
+  // dedicated bulk route. Merges each call's own returned task row into
+  // detail.tasks locally rather than a full refetch — same "throw, let
+  // the local handler catch and show it" contract as
+  // handleAssignPm/handleDeactivate above.
+  const handleBulkNoIndex = async (taskIds, noIndex) => {
+    if (selection?.type !== 'project') return;
+    const updated = await Promise.all(
+      taskIds.map((id) =>
+        fetch(`/api/tasks/${id}/no-index`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', ...authHeaders() },
+          body: JSON.stringify({ noIndex }),
+        }).then(async (res) => {
+          const body = await res.json();
+          if (!res.ok) throw new Error(body.message || `task-service returned ${res.status}`);
+          return body;
+        })
+      )
+    );
+    setDetail((prev) => ({
+      ...prev,
+      tasks: prev.tasks.map((t) => updated.find((u) => u.id === t.id) || t),
+    }));
+  };
+
   if (error) {
     return <p style={{ color: 'var(--mv-color-danger)', fontSize: 13, margin: 'var(--mv-space-3)' }}>{t('loadError', { error })}</p>;
   }
@@ -711,6 +852,7 @@ const AccountsProjectsView = ({
                   canManageProject={canManageProject}
                   onAssignPm={handleAssignPm}
                   onDeactivate={handleDeactivate}
+                  onBulkNoIndex={handleBulkNoIndex}
                   onSelectTask={(taskId) => setSelection({ type: 'task', id: taskId, projectId: selection.id })}
                 />
               )

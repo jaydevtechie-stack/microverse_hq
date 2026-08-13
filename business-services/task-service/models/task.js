@@ -69,12 +69,17 @@ async function assignAnalyst(id, email) {
 // the customer, not nobody; leaving it null until assignment left
 // customer-only views (Notes, CustomerProgressPanel) keyed on
 // `task.owner === username` unable to ever match their own fresh order.
-async function create({ id, service, title, context, tags, customerId, accountId, ownerEmail, dueDate }) {
+// projectId/noIndex (6.3.1) — optional project association and its
+// no_index starting value, resolved by the route handler (project's
+// current no_index, or false if no projectId). A one-time copy at
+// creation, never revisited — the task's own no_index is independent
+// from here on, same as any other no_index change.
+async function create({ id, service, title, context, tags, customerId, accountId, ownerEmail, dueDate, projectId, noIndex }) {
   const { rows } = await pool.query(
-    `INSERT INTO tasks (id, service, title, context, tags, customer_id, account_id, owner, due_date)
-     VALUES (COALESCE($1, gen_random_uuid()), $2, $3, $4, $5, $6, $7, $8, $9)
+    `INSERT INTO tasks (id, service, title, context, tags, customer_id, account_id, owner, due_date, project_id, no_index)
+     VALUES (COALESCE($1, gen_random_uuid()), $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
      RETURNING *`,
-    [id || null, service, title, context || null, tags || [], customerId, accountId, ownerEmail || null, dueDate || null]
+    [id || null, service, title, context || null, tags || [], customerId, accountId, ownerEmail || null, dueDate || null, projectId || null, noIndex || false]
   );
   return rows[0];
 }
