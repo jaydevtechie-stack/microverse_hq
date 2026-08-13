@@ -186,7 +186,7 @@ CREATE TABLE projects (
 -- title, due_date, context, tags, created_at stay as-is
 ```
 
-## task_comments — 🟢 designed, not yet migrated
+## task_comments — ✅ live
 
 ```sql
 CREATE TABLE task_comments (
