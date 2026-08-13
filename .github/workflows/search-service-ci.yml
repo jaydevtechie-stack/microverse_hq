@@ -1,0 +1,53 @@
+name: search-service CI
+
+on:
+  push:
+    branches: [develop, main]
+    paths:
+      - 'platform-services/search-service/**'
+      - '.github/workflows/search-service-ci.yml'
+  pull_request:
+    paths:
+      - 'platform-services/search-service/**'
+      - '.github/workflows/search-service-ci.yml'
+
+defaults:
+  run:
+    working-directory: platform-services/search-service
+
+jobs:
+  test:
+    name: Test against real Elasticsearch
+    runs-on: ubuntu-latest
+
+    # Real ES, not mocked — same "integration, not internals" posture as
+    # gofeeler's tests (docs/development/TESTING.md). Config mirrors
+    # docker-compose.yml's microverse-elasticsearch service exactly.
+    services:
+      elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: "false"
+          ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+        ports:
+          - 9200:9200
+        options: >-
+          --health-cmd "curl -sf http://127.0.0.1:9200/_cluster/health"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 15
+
+    env:
+      ELASTICSEARCH_URL: http://localhost:9200
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - run: pip install -r requirements.txt
+
+      - run: python -m pytest tests/ -v
