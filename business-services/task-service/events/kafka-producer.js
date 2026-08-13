@@ -50,6 +50,12 @@ function taskToEvent(event, task) {
     project_id: task.project_id,
     created_at: task.created_at,
     assigned_at: task.assigned_at,
+    // 6.3 — rides along on every transition, not just the no-index
+    // toggle itself, so a later event (e.g. a reassignment) can't
+    // silently resurrect an excluded doc by re-upserting it without
+    // the flag. search-service's consumer deletes rather than upserts
+    // whenever this is true.
+    no_index: !!task.no_index,
   };
 }
 

@@ -283,3 +283,59 @@ consumer thread retries every 5s, no restart needed) and
 `docker logs microverse-task-service` for `Error publishing ... for task
 ...` (producer failure — fire-and-forget, so the API call itself still
 succeeds even if this fails).
+
+# Testing — search-service (Branch 6.3, no_index reconcile)
+
+Scope: `platform-services/search-service/app/kafka_consumer.py`'s
+delete-vs-upsert branch and `business-services/task-service/routes/
+task-routes.js`'s `PATCH /tasks/:id/no-index`. Same CI workflow as 6.1/
+6.2 — no separate job. Depends on 6.2.5 (AM account ownership) for the
+account-manager side of the route's ownership check.
+
+## Automated (`pytest`, CI `test` job, `tests/test_kafka_consumer.py`)
+
+Same real-ES-integration style as 6.1/6.2 — no mocking, no live Kafka
+broker needed, since what's risky is the event → ES delete-or-upsert
+logic, not the Kafka wire protocol.
+
+| Test | Covers |
+|---|---|
+| `test_index_task_event_deletes_on_no_index` | A task indexed via a normal event is actually removed by a later `no_index: true` event — the delete branch, not just a suppressed future write. |
+| `test_index_task_event_deleting_missing_doc_is_a_noop` | A `no_index: true` event for a task that was never indexed (or already removed) doesn't raise — `ignore_status=404`. |
+| `test_index_task_event_reindexes_after_un_flagging` | A later `no_index: false` event re-indexes the task — reconcile works in both directions, not just delete. |
+
+## Manual — end-to-end through the running stack
+
+Needs the `gofeeler` docker-compose profile up, same as 6.2. `abby`
+(the seeded `platform:account-manager` holder, per 6.2.5) needs to own
+the target task's Account for the AM path — check via `GET /accounts`
+first if unsure.
+
+Flag a task, gated on the caller being either the owning
+account-manager or the task's own customer:
+
+```
+curl -X PATCH http://localhost:3000/api/tasks/<task_id>/no-index \
+  -H "Authorization: Bearer <token>" -H "Content-Type: application/json" \
+  -d '{"noIndex": true}'
+```
+
+Confirm the ES doc is actually gone, not just left stale:
+
+```
+docker exec microverse-search-service python -c "
+from elasticsearch import NotFoundError
+from app.main import es, service_index_name
+try:
+    print(es.get(index=service_index_name('gofeeler'), id='<task_id>').body['_source'])
+except NotFoundError:
+    print('deleted, as expected')
+"
+```
+
+Un-flag (`{"noIndex": false}`) and confirm the same `es.get(...)` call
+succeeds again, with the task's current state. Also worth checking that
+a caller who neither owns the Account nor the order gets a 403, and
+that PM/analyst/reviewer/admin tokens can't reach the route at all
+(gated at `requireAnyRealmRole('platform:account-manager',
+'platform:customer')` before the ownership check ever runs).
