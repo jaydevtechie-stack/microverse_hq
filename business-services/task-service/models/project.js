@@ -98,6 +98,19 @@ async function deactivateProject(id) {
   return rows[0] || null;
 }
 
+// Starting value for tasks created under this Project from here on
+// (6.3.1) — never touches any existing task's own no_index. See
+// task-service's POST /tasks for the inheritance read, and
+// AccountsProjectsView.js's mass-toggle for reconciling existing tasks
+// explicitly.
+async function setProjectNoIndex(id, noIndex) {
+  const { rows } = await pool.query(
+    `UPDATE projects SET no_index = $2 WHERE id = $1 RETURNING *`,
+    [id, noIndex]
+  );
+  return rows[0] || null;
+}
+
 module.exports = {
   listForPm,
   getProject,
@@ -106,4 +119,5 @@ module.exports = {
   approveProject,
   assignPm,
   deactivateProject,
+  setProjectNoIndex,
 };

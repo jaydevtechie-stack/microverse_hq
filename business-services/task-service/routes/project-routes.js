@@ -10,6 +10,7 @@ const {
   approveProject,
   assignPm,
   deactivateProject,
+  setProjectNoIndex,
 } = require('../models/project');
 const { listAccountsForUser, listAllPms, linkPmToAccount } = require('../models/account');
 
@@ -244,6 +245,38 @@ router.patch('/projects/:id/deactivate', async (req, res) => {
     res.status(200).json(await withTasks(await getProject(updated.id), req.claims));
   } catch (err) {
     res.status(500).json({ message: 'Error deactivating project', error: err.message });
+  }
+});
+
+// account-manager flags/unflags this Project for search exclusion
+// (6.3.1) — a starting value for tasks created under it from here on
+// (see task-routes.js's POST /tasks), never a live cascade onto
+// existing tasks. No Kafka publish — Projects aren't indexed
+// themselves, only Tasks are, so there's nothing to reconcile in ES
+// from this route alone; bringing existing tasks in line is the
+// explicit mass-toggle in AccountsProjectsView.js's ProjectDetail.
+router.patch('/projects/:id/no-index', async (req, res) => {
+  const roles = req.claims?.realm_access?.roles || [];
+  if (!roles.includes('platform:account-manager')) {
+    return res.status(403).json({ message: 'Requires platform:account-manager' });
+  }
+
+  const { noIndex } = req.body;
+  if (typeof noIndex !== 'boolean') {
+    return res.status(400).json({ message: '"noIndex" must be a boolean' });
+  }
+
+  try {
+    const existing = await getProject(req.params.id);
+    if (!existing) return res.status(404).json({ message: 'Project not found' });
+    if (isForeignAccountManager(existing, req)) {
+      return res.status(403).json({ message: 'Not an Account you own' });
+    }
+
+    await setProjectNoIndex(existing.id, noIndex);
+    res.status(200).json(await withTasks(await getProject(existing.id), req.claims));
+  } catch (err) {
+    res.status(500).json({ message: 'Error updating no_index', error: err.message });
   }
 });
 

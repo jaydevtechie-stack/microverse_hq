@@ -17,7 +17,8 @@ const {
 const { listForTask, findLatestByCommentId, createComment } = require('../models/comment');
 const { getUser, listUsers, ensureAccountForCustomer } = require('../models/user');
 const { recommendAnalysts } = require('../models/scout');
-const { listPmsForAccount } = require('../models/account');
+const { listPmsForAccount, listAccountsForUser } = require('../models/account');
+const { getProject } = require('../models/project');
 const { requireRealmRole, requireAnyRealmRole } = require('../middleware/auth');
 const { publishTaskEvent } = require('../events/kafka-producer');
 
@@ -102,7 +103,7 @@ router.post('/tasks', async (req, res) => {
   }
 
   const roles = req.claims?.realm_access?.roles || [];
-  const { id, service, title, context, tags, dueDate } = req.body;
+  const { id, service, title, context, tags, dueDate, projectId } = req.body;
   if (!service || !title?.trim()) {
     return res.status(400).json({ message: '"service" and "title" are required' });
   }
@@ -114,6 +115,24 @@ router.post('/tasks', async (req, res) => {
 
   try {
     const accountId = await ensureAccountForCustomer(customerId);
+
+    // Optional project association (6.3.1) — not yet reachable via
+    // CreateOrderForm.js (no project-picker UI exists there yet), but
+    // real and ownership-checked so a direct API call can exercise it,
+    // same backend-ahead-of-frontend posture as 5.2.1/5.2.2. Same
+    // ownership check POST /projects itself already uses
+    // (listAccountsForUser), applied here to an existing project
+    // rather than a proposed accountId.
+    let project = null;
+    if (projectId) {
+      project = await getProject(projectId);
+      if (!project) return res.status(404).json({ message: 'Project not found' });
+      const myAccounts = await listAccountsForUser(customerId);
+      if (!myAccounts.some((a) => a.id === project.account_id)) {
+        return res.status(403).json({ message: 'Not an Account you belong to' });
+      }
+    }
+
     const task = await create({
       id,
       service,
@@ -128,6 +147,10 @@ router.post('/tasks', async (req, res) => {
       // that role to whoever the task is actively with.
       ownerEmail: req.claims?.email,
       dueDate: dueDate || null,
+      projectId: project?.id || null,
+      // Starting value only (6.3.1) — never re-applied after creation;
+      // the task's own no_index is independent from here on.
+      noIndex: project?.no_index || false,
     });
     res.status(201).json(task);
   } catch (err) {

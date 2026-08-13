@@ -230,6 +230,17 @@ async function ensureSchema() {
     ALTER TABLE projects ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active';
   `);
 
+  // Project-level search exclusion (6.3.1), alongside the task-level
+  // tasks.no_index (6.3) — never a live cascade onto existing tasks
+  // when this flips, only a starting value for tasks created under this
+  // Project from here on (see task-service's POST /tasks). Bringing an
+  // existing task set in line with a changed project flag is an
+  // explicit action (the mass-toggle in AccountsProjectsView.js's
+  // ProjectDetail), not automatic.
+  await pool.query(`
+    ALTER TABLE projects ADD COLUMN IF NOT EXISTS no_index BOOLEAN NOT NULL DEFAULT false;
+  `);
+
   // Backs the Dashboard's service grid and Admin's Services tab (see
   // ARCHITECTURE.md's Dashboard/UI notes) — replaces the hardcoded
   // SERVICES array that lived in the frontend's data/services.js.

@@ -27,7 +27,13 @@
     "assignPmError": "Couldn't assign: {{error}}",
     "deactivateProject": "Deactivate project",
     "deactivating": "Deactivating…",
-    "deactivateError": "Couldn't deactivate: {{error}}"
+    "deactivateError": "Couldn't deactivate: {{error}}",
+    "selectAll": "Select all",
+    "nSelected": "{{count}} selected",
+    "excludeFromSearch": "Exclude from search",
+    "includeInSearch": "Include in search",
+    "excludedBadge": "Excluded from search",
+    "bulkNoIndexError": "Couldn't update: {{error}}"
   },
   "newProjectForm": {
     "heading": "New project",
