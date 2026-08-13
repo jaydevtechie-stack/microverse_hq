@@ -29,6 +29,11 @@
     },
     "editingOrder": "Editing order…",
     "editOrderAriaLabel": "Edit order",
+    "noIndex": {
+      "exclude": "Exclude from search",
+      "excluded": "Excluded from search — Include",
+      "working": "Working…"
+    },
     "filesLabel": "Files",
     "commentsLabel": "Comments",
     "notesVisibleToCustomer": "Notes (visible to customer)",

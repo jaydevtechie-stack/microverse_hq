@@ -121,10 +121,12 @@ const TaskDetailContent = ({ id }) => {
   const isAnalyst = keycloak?.hasRealmRole('platform:analyst');
   const isReviewer = keycloak?.hasRealmRole('platform:reviewer');
   const isCustomer = keycloak?.hasRealmRole('platform:customer');
+  const isAccountManager = keycloak?.hasRealmRole('platform:account-manager');
 
   const [task, setTask] = useState(null);
   const [error, setError] = useState(null);
   const [editing, setEditing] = useState(false);
+  const [togglingNoIndex, setTogglingNoIndex] = useState(false);
 
   useEffect(() => {
     setTask(null);
@@ -151,6 +153,27 @@ const TaskDetailContent = ({ id }) => {
   // decides whether the affordance shows up.
   const isOwnOrder = Boolean(task) && isCustomer && task.customer_id === userId;
   const canEdit = isOwnOrder && EDITABLE_STATUSES.includes(task.status);
+  // Who can flag this task out of search (6.3) — the owning
+  // account-manager or the owning customer only, not PM/analyst/
+  // reviewer/admin. A visibility/privacy control, not a content edit,
+  // so it's not gated on EDITABLE_STATUSES the way canEdit is.
+  const canToggleNoIndex = Boolean(task) && (isAccountManager || isOwnOrder);
+
+  const toggleNoIndex = () => {
+    setTogglingNoIndex(true);
+    fetch(`/api/tasks/${task.id}/no-index`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify({ noIndex: !task.no_index }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`task-service returned ${res.status}`);
+        return res.json();
+      })
+      .then((updated) => setTask((prev) => ({ ...prev, ...updated })))
+      .catch((err) => setError(err.message))
+      .finally(() => setTogglingNoIndex(false));
+  };
 
   if (error) {
     return (
@@ -207,6 +230,30 @@ const TaskDetailContent = ({ id }) => {
           </React.Fragment>
         ))}
       </p>
+
+      {canToggleNoIndex && (
+        <button
+          type="button"
+          onClick={toggleNoIndex}
+          disabled={togglingNoIndex}
+          style={{
+            fontSize: 11,
+            color: task.no_index ? 'var(--mv-color-danger)' : 'var(--mv-text-muted)',
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            margin: '-6px 0 12px',
+            cursor: togglingNoIndex ? 'default' : 'pointer',
+            textDecoration: 'underline',
+          }}
+        >
+          {togglingNoIndex
+            ? t('taskDetail.noIndex.working')
+            : task.no_index
+              ? t('taskDetail.noIndex.excluded')
+              : t('taskDetail.noIndex.exclude')}
+        </button>
+      )}
 
       <div
         style={{

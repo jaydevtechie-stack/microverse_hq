@@ -102,3 +102,55 @@ def test_index_task_event_skips_when_missing_task_id_or_service(disposable_index
     es.indices.refresh(index=disposable_index, ignore_unavailable=True)
     count = es.count(index=disposable_index, ignore_unavailable=True)
     assert count.body["count"] == 0
+
+
+def test_index_task_event_deletes_on_no_index(disposable_index):
+    # 6.3 — a no_index: true event removes an already-indexed doc, not
+    # just suppresses future writes. Index it first via a normal event,
+    # then flag it, and confirm the doc is actually gone.
+    task_id = str(uuid.uuid4())
+    service = disposable_index.removeprefix("tasks-")
+    event = {
+        "event": "task.assigned",
+        "task_id": task_id,
+        "service": service,
+        "title": "Sensitive order",
+        "status": "analyst",
+    }
+    index_task_event(es, event, service_index_name)
+    es.indices.refresh(index=disposable_index)
+    assert es.exists(index=disposable_index, id=task_id)
+
+    flagged_event = {**event, "event": "task.no-index-changed", "no_index": True}
+    index_task_event(es, flagged_event, service_index_name)
+    es.indices.refresh(index=disposable_index)
+    assert not es.exists(index=disposable_index, id=task_id)
+
+
+def test_index_task_event_deleting_missing_doc_is_a_noop(disposable_index):
+    # A no_index: true event for a task that was never indexed (or
+    # already removed by an earlier no_index event) must not raise.
+    task_id = str(uuid.uuid4())
+    service = disposable_index.removeprefix("tasks-")
+    event = {"task_id": task_id, "service": service, "no_index": True}
+    index_task_event(es, event, service_index_name)  # no exception
+    es.indices.refresh(index=disposable_index, ignore_unavailable=True)
+    count = es.count(index=disposable_index, ignore_unavailable=True)
+    assert count.body["count"] == 0
+
+
+def test_index_task_event_reindexes_after_un_flagging(disposable_index):
+    # Reconcile the other direction — a later no_index: false event
+    # (unflagging) re-indexes the task, same as any other upsert.
+    task_id = str(uuid.uuid4())
+    service = disposable_index.removeprefix("tasks-")
+    flagged_event = {"task_id": task_id, "service": service, "title": "Was hidden", "no_index": True}
+    index_task_event(es, flagged_event, service_index_name)
+    es.indices.refresh(index=disposable_index, ignore_unavailable=True)
+    assert not es.exists(index=disposable_index, id=task_id)
+
+    unflagged_event = {**flagged_event, "no_index": False}
+    index_task_event(es, unflagged_event, service_index_name)
+    es.indices.refresh(index=disposable_index)
+    doc = es.get(index=disposable_index, id=task_id)
+    assert doc.body["_source"]["title"] == "Was hidden"

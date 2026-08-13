@@ -12,6 +12,7 @@ const {
   reassignReviewer,
   approveTask,
   rejectTask,
+  setNoIndex,
 } = require('../models/task');
 const { listForTask, findLatestByCommentId, createComment } = require('../models/comment');
 const { getUser, listUsers, ensureAccountForCustomer } = require('../models/user');
@@ -185,6 +186,48 @@ router.put('/tasks/:id', async (req, res) => {
     res.status(500).json({ message: 'Error updating task', error: err.message });
   }
 });
+
+// Excludes/re-includes a task from the search index (6.3) — a privacy
+// control, not a content edit, so no EDITABLE_STATUSES window: settable
+// regardless of status. Owning account-manager (task.account_manager_id
+// from findById's join, per 6.2.5) or the owning customer
+// (task.customer_id) only — not PM/analyst/reviewer/admin, same
+// Principle of Least Privilege reasoning as Branch 6's other role
+// resolutions. Publishes immediately so setting the flag triggers
+// removal of an already-indexed doc right away, not just suppresses
+// future writes — see kafka-producer.js's taskToEvent for how no_index
+// also rides along on every other transition event.
+router.patch(
+  '/tasks/:id/no-index',
+  requireAnyRealmRole('platform:account-manager', 'platform:customer'),
+  async (req, res) => {
+    const { noIndex } = req.body;
+    if (typeof noIndex !== 'boolean') {
+      return res.status(400).json({ message: '"noIndex" must be a boolean' });
+    }
+
+    try {
+      const task = await findById(req.params.id);
+      if (!task) return res.status(404).json({ message: 'Task not found' });
+
+      const roles = req.claims?.realm_access?.roles || [];
+      const isAccountManager = roles.includes('platform:account-manager');
+      if (isAccountManager) {
+        if (task.account_manager_id !== req.claims?.sub) {
+          return res.status(403).json({ message: 'Not an Account you own' });
+        }
+      } else if (task.customer_id !== req.claims?.sub) {
+        return res.status(403).json({ message: "Not this customer's order" });
+      }
+
+      const updated = await setNoIndex(task.id, noIndex);
+      await publishTaskEvent('task.no-index-changed', updated);
+      res.status(200).json(updated);
+    } catch (err) {
+      res.status(500).json({ message: 'Error updating no_index', error: err.message });
+    }
+  }
+);
 
 // PM assigns a specific analyst to a specific unassigned task (4.1) —
 // the word-cloud/dropdown flow, not the shared-pool self-claim query

@@ -298,6 +298,15 @@ async function ensureSchema() {
         WHERE active = true AND roles @> ARRAY['platform:account-manager']
       );
   `);
+
+  // Excluded from search (6.3) — set, this triggers removal of the
+  // task's already-indexed ES doc, not just suppression of future
+  // writes (tasks are default-index-with-exclusions). See
+  // events/kafka-producer.js's taskToEvent and search-service's
+  // kafka_consumer.py for the removal mechanism itself.
+  await pool.query(`
+    ALTER TABLE tasks ADD COLUMN IF NOT EXISTS no_index BOOLEAN NOT NULL DEFAULT false;
+  `);
 }
 
 module.exports = { pool, ensureSchema };

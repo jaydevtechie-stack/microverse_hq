@@ -38,21 +38,37 @@ def task_event_to_doc(event: dict) -> dict:
 
 
 def index_task_event(es, event: dict, service_index_name) -> None:
-    """Upsert, not append.
+    """Upsert, not append — except when no_index (6.3) is set.
 
     Every lifecycle transition (task.assigned, task.moved-to-review,
-    task.reviewer-reassigned, task.approved, task.rejected) republishes
-    the task's full current state, and _id = task_id (6.1.3) means this
-    is always "replace with latest," never a partial patch — that's what
-    makes "index on assign / update on reassign or reviewer-change" a
-    single code path instead of one per event type.
+    task.reviewer-reassigned, task.approved, task.rejected,
+    task.no-index-changed) republishes the task's full current state,
+    and _id = task_id (6.1.3) means this is always "replace with
+    latest," never a partial patch — that's what makes "index on
+    assign / update on reassign or reviewer-change" a single code path
+    instead of one per event type.
+
+    A `no_index: true` event is the one exception: tasks are default-
+    index-with-exclusions, so this deletes the doc outright rather than
+    upserting it — a flag applied *after* indexing has to actively
+    remove the already-indexed doc, not just suppress future writes.
+    `no_index` never becomes an ES doc field itself (task_event_to_doc
+    doesn't whitelist it) — it's routing info deciding delete-vs-upsert,
+    same as task_id/service/event.
     """
     task_id = event.get("task_id")
     service = event.get("service")
     if not task_id or not service:
         logger.warning("skipping task event missing task_id/service: %s", event)
         return
-    es.index(index=service_index_name(service), id=task_id, document=task_event_to_doc(event))
+    index = service_index_name(service)
+    if event.get("no_index"):
+        # ignore_status=404 — a task flagged before it was ever indexed
+        # (or already removed by an earlier no_index event) is a no-op,
+        # not an error.
+        es.options(ignore_status=404).delete(index=index, id=task_id)
+        return
+    es.index(index=index, id=task_id, document=task_event_to_doc(event))
 
 
 def _build_consumer(brokers: str) -> KafkaConsumer:

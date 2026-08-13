@@ -21,15 +21,19 @@ async function findByService(service) {
 // can come back null for an email that isn't (or is no longer) a
 // synced user — callers fall back to the raw email in that case, same
 // pattern project.responsible_user_name already uses.
+// a.account_manager_id (6.3) rides along so the no_index toggle route
+// can check an account-manager caller's ownership (6.2.5) without a
+// second query — same reasoning as models/project.js's getProject.
 async function findById(id) {
   const { rows } = await pool.query(
     `SELECT t.*, c.name AS customer_name, p.name AS project_name,
-            au.name AS assignee_name, ou.name AS owner_name
+            au.name AS assignee_name, ou.name AS owner_name, a.account_manager_id
      FROM tasks t
      LEFT JOIN users c ON c.id = t.customer_id
      LEFT JOIN projects p ON p.id = t.project_id
      LEFT JOIN users au ON au.email = t.assignee
      LEFT JOIN users ou ON ou.email = t.owner
+     LEFT JOIN accounts a ON a.id = t.account_id
      WHERE t.id = $1`,
     [id]
   );
@@ -156,6 +160,18 @@ async function rejectTask(id, reviewerEmail, newAnalystEmail) {
   return rows[0] || null;
 }
 
+// Visibility flag, not a content edit (6.3) — no status-window guard,
+// unlike updateOrderDetails. Settable by an account-manager (their own
+// Account, per 6.2.5) or the owning customer, checked by the route
+// handler before this runs.
+async function setNoIndex(id, noIndex) {
+  const { rows } = await pool.query(
+    `UPDATE tasks SET no_index = $2 WHERE id = $1 RETURNING *`,
+    [id, noIndex]
+  );
+  return rows[0] || null;
+}
+
 async function pollingCounts() {
   const { rows } = await pool.query(`
     SELECT
@@ -180,5 +196,6 @@ module.exports = {
   reassignReviewer,
   approveTask,
   rejectTask,
+  setNoIndex,
   pollingCounts,
 };
