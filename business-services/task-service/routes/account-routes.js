@@ -8,7 +8,7 @@ const {
   listPmsForAccount,
   listProjectsForAccount,
   listAccountsForUser,
-  listAllAccounts,
+  listForAccountManager,
   listUsersForAccount,
   accountEngagement,
   createAccount,
@@ -17,10 +17,12 @@ const {
 // Same "frontend is responsible, unverified claims" trust posture as
 // the rest of task-service, but scoped server-side by role rather than
 // relying on the frontend to only ask for what it should see:
-//  - platform:account-manager — every Account, unscoped (they aren't
-//    tied to specific ones the way a PM or customer is), each one
-//    enriched with its customer contacts ("all accounts and the users
-//    of the accounts").
+//  - platform:account-manager — Accounts this AM owns
+//    (accounts.account_manager_id, 6.2.5 — supersedes the earlier
+//    "unscoped, they aren't tied to specific ones" resolution once a
+//    privacy-sensitive AM-gated action needed real ownership scoping),
+//    each one enriched with its customer contacts ("my accounts and
+//    the users of the accounts").
 //  - platform:project-manager — ownership-scoped via pm_accounts
 //    (unchanged from before this branching existed — ProjectHubPage's
 //    Accounts tab already depends on this exact shape).
@@ -40,7 +42,7 @@ router.get('/accounts', async (req, res) => {
   try {
     let accounts;
     if (isAccountManager) {
-      accounts = await listAllAccounts();
+      accounts = await listForAccountManager(userId);
     } else if (roles.includes('platform:project-manager')) {
       accounts = await listForPm(userId);
     } else if (roles.includes('platform:customer')) {
@@ -80,7 +82,7 @@ router.post('/accounts', async (req, res) => {
   }
 
   try {
-    const account = await createAccount({ type, name: name.trim() });
+    const account = await createAccount({ type, name: name.trim(), accountManagerId: req.claims?.sub });
     res.status(201).json({ ...account, engagement: [], projects: [], customers: [] });
   } catch (err) {
     res.status(500).json({ message: 'Error creating account', error: err.message });
@@ -89,7 +91,11 @@ router.post('/accounts', async (req, res) => {
 
 // Same privacy boundary as task-routes.js's isCustomerOnly — a
 // customer must never see another customer's Account (contacts,
-// projects, task counts).
+// projects, task counts). Same idea for an account-manager (6.2.5) —
+// scoped to the Accounts they own, not every Account, now that GET
+// /accounts itself is ownership-scoped; leaving this route unscoped
+// would let an AM reach any Account directly by id despite the list
+// no longer showing it to them.
 router.get('/accounts/:id', async (req, res) => {
   try {
     const account = await getAccount(req.params.id);
@@ -102,6 +108,9 @@ router.get('/accounts/:id', async (req, res) => {
       if (!myAccounts.some((a) => a.id === account.id)) {
         return res.status(403).json({ message: "Not an Account you belong to" });
       }
+    }
+    if (roles.includes('platform:account-manager') && account.account_manager_id !== req.claims?.sub) {
+      return res.status(403).json({ message: 'Not an Account you own' });
     }
 
     const [pms, projects, customers, engagement] = await Promise.all([

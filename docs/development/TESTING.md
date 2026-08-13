@@ -217,3 +217,69 @@ from app.main import es, TASKS_TEMPLATE_NAME
 print(es.indices.get_index_template(name=TASKS_TEMPLATE_NAME).body)
 "
 ```
+
+---
+
+# Testing — search-service (Branch 6.2, lifecycle-aware indexing consumer)
+
+Scope: `platform-services/search-service/app/kafka_consumer.py` (the
+consumer) and `business-services/task-service/events/kafka-producer.js`
+(the producer). Same CI workflow as 6.1 — no separate job.
+
+## Automated (`pytest`, CI `test` job, `tests/test_kafka_consumer.py`)
+
+Deliberately **no live Kafka broker in CI** — what's actually novel/risky
+here is the event → ES upsert logic (`task_event_to_doc`/
+`index_task_event`), not the third-party `kafka-python-ng` client's wire
+protocol, so these call that logic directly with a fabricated event dict
+against the same real Elasticsearch instance the rest of the suite uses,
+rather than standing up a broker just to round-trip a message through it.
+The real Kafka wiring is exercised manually (below) and was verified live
+against the running `gofeeler` docker-compose stack while building this.
+
+| Test | Covers |
+|---|---|
+| `test_task_event_to_doc_whitelists_fields` | Routing fields (`event`/`task_id`/`service`) don't leak into the ES doc body. |
+| `test_task_event_to_doc_defaults_missing_arrays` | Missing `tags`/`assignee_ids` on the event become `[]`, not `null`. |
+| `test_index_task_event_upserts_by_task_id` | A `task.assigned` event indexes a doc; a later `task.approved` event for the same `task_id` overwrites it in place (`_id = task_id`, 6.1.3) — asserts exactly one document exists after both, not two. |
+| `test_index_task_event_skips_when_missing_task_id_or_service` | Malformed event (no `task_id`/`service`) is a no-op, not a crash — there's nothing to key the upsert on. |
+
+`kafka-python-ng` (pure Python, no C extension) was chosen over `aiokafka`
+specifically because `aiokafka`'s C extension has no prebuilt wheel yet
+for the Python 3.14 this service (and CI) run — building it from source
+needs a C toolchain neither the CI image nor the service's `python:3.14-slim`
+base image has. The consumer runs on a background thread (`threading`,
+not `asyncio`), matching how the synchronous `Elasticsearch` client is
+already called directly from this codebase's `async def` route handlers.
+
+## Manual — end-to-end through the running stack
+
+Needs the full `gofeeler` docker-compose profile up — `microverse-kafka`
+is now in that profile (previously `kafka`-profile-only), so this comes
+up for free:
+
+```
+docker compose --profile gofeeler up -d --build microverse-task-service microverse-search-service
+```
+
+Trigger a real lifecycle transition through task-service's actual API
+(any of `PATCH /tasks/:id`, `/move-to-review`, `/reviewer`, `/approve`,
+`/reject` — see `routes/task-routes.js`), then confirm the doc landed:
+
+```
+docker exec microverse-search-service python -c "
+from app.main import es, service_index_name
+print(es.get(index=service_index_name('gofeeler'), id='<task_id>').body['_source'])
+"
+```
+
+`status`/`assignee_ids` should match the task's new state. Re-run a
+second transition on the same task and confirm `es.count()` on that
+index doesn't grow — same task, same `_id`, overwritten in place.
+
+If nothing shows up, check `docker logs microverse-search-service` for
+`kafka not reachable yet, retrying in 5s` (broker not up yet — the
+consumer thread retries every 5s, no restart needed) and
+`docker logs microverse-task-service` for `Error publishing ... for task
+...` (producer failure — fire-and-forget, so the API call itself still
+succeeds even if this fails).

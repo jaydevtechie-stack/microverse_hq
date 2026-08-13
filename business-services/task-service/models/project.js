@@ -15,9 +15,12 @@ async function listForPm(pmId) {
   return rows;
 }
 
+// account_manager_id (6.2.5) rides along on every getProject call so
+// the AM-gated routes below (approve/pm/deactivate/pm-candidates) can
+// check ownership without a second query.
 async function getProject(id) {
   const { rows } = await pool.query(
-    `SELECT p.*, a.name AS account_name, u.name AS responsible_user_name
+    `SELECT p.*, a.name AS account_name, a.account_manager_id, u.name AS responsible_user_name
      FROM projects p
      JOIN accounts a ON a.id = p.account_id
      LEFT JOIN users u ON u.id = p.responsible_user_id

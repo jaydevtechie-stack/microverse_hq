@@ -30,6 +30,17 @@ function isCustomerOnly(req) {
   return roles.includes('platform:customer') && !roles.includes('platform:project-manager');
 }
 
+// Ownership check for an account-manager (6.2.5) — must own the
+// Project's Account (accounts.account_manager_id, joined into every
+// getProject() call as account_manager_id) to act on it, not just hold
+// the role platform-wide. Every AM-gated route below already fetches
+// the project via getProject before acting (or is retrofitted here to
+// do so), so this is always a free field access, never an extra query.
+function isForeignAccountManager(project, req) {
+  const roles = req.claims?.realm_access?.roles || [];
+  return roles.includes('platform:account-manager') && project.account_manager_id !== req.claims?.sub;
+}
+
 // Shared by every route that hands a Project back to the frontend —
 // ProjectDetail (AccountsProjectsView.js) always reads project.tasks,
 // so every response needs it, not just the original GET. (Pulled out
@@ -127,6 +138,12 @@ router.patch('/projects/:id/approve', async (req, res) => {
   }
 
   try {
+    const existing = await getProject(req.params.id);
+    if (!existing) return res.status(404).json({ message: 'Project not found' });
+    if (isForeignAccountManager(existing, req)) {
+      return res.status(403).json({ message: 'Not an Account you own' });
+    }
+
     const project = await approveProject(req.params.id);
     if (!project) {
       return res.status(409).json({ message: 'Project not found or not pending approval' });
@@ -153,6 +170,9 @@ router.get('/projects/:id/pm-candidates', async (req, res) => {
   try {
     const project = await getProject(req.params.id);
     if (!project) return res.status(404).json({ message: 'Project not found' });
+    if (isForeignAccountManager(project, req)) {
+      return res.status(403).json({ message: 'Not an Account you own' });
+    }
 
     const pms = await listAllPms();
     res.status(200).json(pms.map((pm) => ({ id: pm.id, name: pm.name, email: pm.email })));
@@ -185,6 +205,9 @@ router.patch('/projects/:id/pm', async (req, res) => {
   try {
     const project = await getProject(req.params.id);
     if (!project) return res.status(404).json({ message: 'Project not found' });
+    if (isForeignAccountManager(project, req)) {
+      return res.status(403).json({ message: 'Not an Account you own' });
+    }
 
     const pms = await listAllPms();
     if (!pms.some((pm) => pm.id === pmId)) {
@@ -210,6 +233,12 @@ router.patch('/projects/:id/deactivate', async (req, res) => {
   }
 
   try {
+    const existing = await getProject(req.params.id);
+    if (!existing) return res.status(404).json({ message: 'Project not found' });
+    if (isForeignAccountManager(existing, req)) {
+      return res.status(403).json({ message: 'Not an Account you own' });
+    }
+
     const updated = await deactivateProject(req.params.id);
     if (!updated) return res.status(404).json({ message: 'Project not found' });
     res.status(200).json(await withTasks(await getProject(updated.id), req.claims));

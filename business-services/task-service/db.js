@@ -266,6 +266,38 @@ async function ensureSchema() {
       ('rubykudos', 'RubyKudos', 'Ruby', 'Kudos capture', 'Planned for a future phase; work has not started yet.', 'planned')
     ON CONFLICT (key) DO NOTHING;
   `);
+
+  // Which account-manager owns this Account (6.2.5) — supersedes 4.3's
+  // "no table at all, AM is unscoped by design" resolution, reversed
+  // once a privacy-sensitive AM-gated action (6.3's no_index toggle)
+  // needed real ownership scoping rather than platform-wide access.
+  // Nullable: an account created before this column existed (or in an
+  // environment with no platform:account-manager user yet) is simply
+  // unowned, not an error — the backfill below only ever assigns an
+  // owner, never blocks on one being available.
+  await pool.query(`
+    ALTER TABLE accounts ADD COLUMN IF NOT EXISTS account_manager_id UUID REFERENCES users(id);
+  `);
+  // One-time, idempotent backfill — every pre-existing unowned account
+  // gets assigned to whichever active user currently holds
+  // platform:account-manager. Picks one deterministically (oldest synced
+  // user) rather than splitting accounts across multiple AMs with no
+  // real basis for the split; re-running this is a no-op once accounts
+  // are owned, and a no-op entirely in an environment with no AM user
+  // yet (nothing to assign).
+  await pool.query(`
+    UPDATE accounts SET account_manager_id = (
+      SELECT id FROM users
+      WHERE active = true AND roles @> ARRAY['platform:account-manager']
+      ORDER BY created_at ASC
+      LIMIT 1
+    )
+    WHERE account_manager_id IS NULL
+      AND EXISTS (
+        SELECT 1 FROM users
+        WHERE active = true AND roles @> ARRAY['platform:account-manager']
+      );
+  `);
 }
 
 module.exports = { pool, ensureSchema };

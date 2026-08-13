@@ -43,10 +43,14 @@ async function listProjectsForAccount(accountId) {
 // Accepts an optional client so callers needing atomicity (see
 // models/user.js's ensureAccountForCustomer) can run this inside their
 // own transaction instead of grabbing a fresh connection from the pool.
-async function createAccount({ type, name }, client = pool) {
+// accountManagerId is optional — the 4.2 customer-auto-create-on-first-
+// order path (ensureAccountForCustomer) has no AM in its request context
+// at all, so those accounts stay unowned until db.js's backfill or a
+// manual reassignment (6.2.5).
+async function createAccount({ type, name, accountManagerId }, client = pool) {
   const { rows } = await client.query(
-    'INSERT INTO accounts (type, name) VALUES ($1, $2) RETURNING *',
-    [type, name]
+    'INSERT INTO accounts (type, name, account_manager_id) VALUES ($1, $2, $3) RETURNING *',
+    [type, name, accountManagerId || null]
   );
   return rows[0];
 }
@@ -102,12 +106,16 @@ async function linkPmToAccount(pmId, accountId) {
   );
 }
 
-// account-manager's global view — every Account, unscoped. Distinct
-// from listForPm (ownership-scoped) and listAccountsForUser
-// (membership-scoped) — an account-manager isn't tied to specific
-// Accounts the way a PM or customer is.
-async function listAllAccounts() {
-  const { rows } = await pool.query('SELECT * FROM accounts ORDER BY name');
+// Ownership half of an account-manager's access (6.2.5) — Accounts this
+// AM was assigned as owner of (account_manager_id), same shape as
+// listForPm but simpler: ownership here is 1:1 on the accounts row
+// itself, not a many-to-many join table like pm_accounts, since an
+// Account is only ever created/owned by one AM.
+async function listForAccountManager(amId) {
+  const { rows } = await pool.query(
+    'SELECT * FROM accounts WHERE account_manager_id = $1 ORDER BY name',
+    [amId]
+  );
   return rows;
 }
 
@@ -155,7 +163,7 @@ module.exports = {
   linkUserToAccount,
   listAllPms,
   linkPmToAccount,
-  listAllAccounts,
+  listForAccountManager,
   listUsersForAccount,
   accountEngagement,
 };

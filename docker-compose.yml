@@ -139,7 +139,7 @@ services:
 
 
   microverse-kafka:
-    profiles: ["kafka"]
+    profiles: ["gofeeler", "kafka"]
     image: apache/kafka:latest
     container_name: microverse-kafka
 
@@ -195,9 +195,13 @@ services:
     environment:
       PORT: 8000
       ELASTICSEARCH_URL: http://microverse-elasticsearch:9200
+      # Lifecycle-aware indexing consumer (6.2) — task-service.tasks topic
+      KAFKA_BROKERS: microverse-kafka:9092
     depends_on:
       microverse-elasticsearch:
         condition: service_healthy
+      microverse-kafka:
+        condition: service_started
     networks:
       - microverse-network
 
@@ -397,8 +401,12 @@ services:
     container_name: microverse-task-service
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@microverse-postgis:5432/${POSTGRES_DB}
+      # Lifecycle-aware indexing consumer (6.2) — publishes to
+      # task-service.tasks, consumed by search-service
+      KAFKA_BROKERS: microverse-kafka:9092
     depends_on:
       - microverse-postgis
+      - microverse-kafka
     networks:
       - microverse-network
 
