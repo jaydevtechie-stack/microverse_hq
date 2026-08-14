@@ -6,7 +6,8 @@
     "loading": "Loading tasks…",
     "emptyPm": "No tasks yet.",
     "emptyCustomer": "You haven't submitted any orders yet.",
-    "emptyOther": "No tasks assigned to you right now."
+    "emptyOther": "No tasks assigned to you right now.",
+    "emptyFiltered": "No tasks match this filter."
   },
   "taskDetail": {
     "share": {

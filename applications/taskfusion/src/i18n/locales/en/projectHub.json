@@ -11,5 +11,6 @@
   "unassignedNotLoggedIn": "Unassigned — user hasn’t logged in yet",
   "ordersTasksLabel": "Orders / Tasks",
   "noTasksVisible": "No tasks visible — either none exist yet, or none match a service scope you hold (see ARCHITECTURE.md's Roles and permissions).",
+  "noTasksFiltered": "No tasks match this filter.",
   "assignedPmsLabel": "Assigned PMs"
 }
