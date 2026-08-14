@@ -115,6 +115,7 @@
       "idleFor": "Idle for",
       "currentTasks": "Current tasks",
       "noActiveTasks": "No active tasks.",
+      "noActiveTasksFiltered": "No tasks match this filter.",
       "assigning": "Assigning…",
       "scoutTitle": "Scout",
       "recommendationAgent": "Recommendation agent",
