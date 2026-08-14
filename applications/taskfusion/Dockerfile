@@ -42,10 +42,13 @@ COPY branding/mv-1.0/design-system/themes /tmp/themes-catalog
 #    the *source* catalog can hold all three themes at once; a build
 #    that only ever ships one theme doesn't need it, and stripping it
 #    means the app never has to set data-brand-theme on anything.
-# 2. If (and only if) that theme has its own images/ folder, overwrite
-#    the canonical images/microverse-bg.jpg copied above with whatever
-#    single file is in there — Default has no images/ folder, so it
-#    silently keeps the canonical image, no special-casing needed.
+# 2. If (and only if) that theme has an images/*-bg.* file, overwrite the
+#    canonical images/microverse-bg.jpg copied above with it — matched by
+#    the -bg suffix specifically (not "whatever's in images/") so a
+#    theme's images/ folder can later hold other asset overrides (e.g. a
+#    per-theme logo) without this step mistaking one for the background.
+#    Default has no images/ folder, so it silently keeps the canonical
+#    image, no special-casing needed.
 RUN set -eu; \
     THEME_DIR="/tmp/themes-catalog/${REACT_APP_BRAND_THEME}"; \
     DEST=src/assets/brand/design-system/theme; \
@@ -53,7 +56,7 @@ RUN set -eu; \
     sed "s/\[data-brand-theme=\"${REACT_APP_BRAND_THEME}\"\]/:root/g" "$THEME_DIR/css/light.css" > "$DEST/light.css"; \
     sed "s/\[data-brand-theme=\"${REACT_APP_BRAND_THEME}\"\]/:root/g" "$THEME_DIR/css/dark.css" > "$DEST/dark.css"; \
     if [ -d "$THEME_DIR/images" ]; then \
-      IMG=$(find "$THEME_DIR/images" -maxdepth 1 -type f ! -name '.*' | head -n1); \
+      IMG=$(find "$THEME_DIR/images" -maxdepth 1 -type f -name '*-bg.*' | head -n1); \
       if [ -n "$IMG" ]; then cp "$IMG" src/assets/brand/design-system/images/microverse-bg.jpg; fi; \
     fi; \
     rm -rf /tmp/themes-catalog

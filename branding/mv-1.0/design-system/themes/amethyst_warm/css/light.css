@@ -1,0 +1,53 @@
+/*
+ * Microverse theme: Amethyst Warm — Light ("Split")
+ *
+ * Mode-invariant identity tokens plus the light-mode values for
+ * ../../../tokens.css's --mv-* color tokens, scoped to
+ * [data-brand-theme="amethyst_warm"]. Companion file: ./dark.css, which
+ * only overrides the tokens that actually change in dark mode — the
+ * mode-invariant ones below (secondary/success/danger/avatar) live here
+ * and simply carry through.
+ *
+ * No --mv-bg-image-url override here: each consumer's own build step
+ * (not this file) copies ../images/amethyst-crystal-bg.jpg over the
+ * canonical images/microverse-bg.jpg that --mv-bg-image-url always
+ * points at — see applications/taskfusion/Dockerfile or
+ * infrastructure/keycloak/Dockerfile for the actual mechanism.
+ *
+ * Values match ../../../mock-ups/design-system-amethyst-v2.html.
+ */
+
+[data-brand-theme="amethyst_warm"] {
+  /* mode-invariant */
+  --mv-color-primary-contrast: #ffffff;
+  --mv-color-secondary: #b29b9c; /* quartz */
+  --mv-color-success: #2f9e64; /* shared system success — amethyst has no green of its own */
+  --mv-color-danger: #b8493a; /* shared system danger */
+  --mv-avatar-bg: #7c3f8d;
+  --mv-avatar-text: #ffffff;
+
+  /* light ("Split") values — also the fallback before data-theme is set */
+  --mv-color-primary: #7c3f8d; /* amethyst */
+  --mv-bg: #f8f1ef;
+  --mv-bg-elevated: #fffbf9;
+  --mv-text: #1c0f12;
+  --mv-text-muted: #55413e;
+  --mv-border: #e2cfce;
+  --mv-badge-bg: #2a1b1a; /* swapped with dark.css's value — too close to bg-elevated otherwise */
+  --mv-badge-text: #b29b9c;
+  --mv-shadow-sm: 0 1px 2px rgba(21, 14, 28, 0.08);
+  --mv-shadow: 0 8px 24px rgba(21, 14, 28, 0.14);
+}
+
+[data-brand-theme="amethyst_warm"][data-theme="light"] {
+  --mv-color-primary: #7c3f8d;
+  --mv-bg: #f8f1ef;
+  --mv-bg-elevated: #fffbf9;
+  --mv-text: #1c0f12;
+  --mv-text-muted: #55413e;
+  --mv-border: #e2cfce;
+  --mv-badge-bg: #2a1b1a;
+  --mv-badge-text: #b29b9c;
+  --mv-shadow-sm: 0 1px 2px rgba(21, 14, 28, 0.08);
+  --mv-shadow: 0 8px 24px rgba(21, 14, 28, 0.14);
+}

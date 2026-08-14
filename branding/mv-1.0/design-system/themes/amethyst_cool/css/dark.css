@@ -1,0 +1,39 @@
+/*
+ * Microverse theme: Amethyst Cool — Dark ("Sealed")
+ *
+ * Dark-mode values for ../../../tokens.css's --mv-* color tokens, scoped
+ * to [data-brand-theme="amethyst_cool"]. Mode-invariant tokens (secondary/
+ * success/danger/avatar/primary-contrast/bg-image) live in ./light.css
+ * since they don't change here — this file only overrides what dark
+ * mode actually changes.
+ *
+ * Values match ../../../mock-ups/design-system-amethyst-v1.html.
+ */
+
+@media (prefers-color-scheme: dark) {
+  [data-brand-theme="amethyst_cool"] {
+    --mv-color-primary: #a672d6;
+    --mv-bg: #120b18;
+    --mv-bg-elevated: #1c1224;
+    --mv-text: #ede3f5;
+    --mv-text-muted: #b8a8c4;
+    --mv-border: #33223f;
+    --mv-badge-bg: #ede3f5; /* swapped with light.css's value — too close to bg-elevated otherwise */
+    --mv-badge-text: #6b5c78;
+    --mv-shadow-sm: 0 1px 2px rgba(21, 14, 28, 0.5);
+    --mv-shadow: 0 8px 24px rgba(21, 14, 28, 0.6);
+  }
+}
+
+[data-brand-theme="amethyst_cool"][data-theme="dark"] {
+  --mv-color-primary: #a672d6;
+  --mv-bg: #120b18;
+  --mv-bg-elevated: #1c1224;
+  --mv-text: #ede3f5;
+  --mv-text-muted: #b8a8c4;
+  --mv-border: #33223f;
+  --mv-badge-bg: #ede3f5;
+  --mv-badge-text: #6b5c78;
+  --mv-shadow-sm: 0 1px 2px rgba(21, 14, 28, 0.5);
+  --mv-shadow: 0 8px 24px rgba(21, 14, 28, 0.6);
+}

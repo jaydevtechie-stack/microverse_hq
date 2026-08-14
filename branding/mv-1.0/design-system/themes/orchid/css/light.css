@@ -1,0 +1,52 @@
+/*
+ * Microverse theme: Orchid — Light ("Clear")
+ *
+ * Mode-invariant identity tokens plus the light-mode values for
+ * ../../../tokens.css's --mv-* color tokens, scoped to
+ * [data-brand-theme="orchid"]. Companion file: ./dark.css, which only
+ * overrides the tokens that actually change in dark mode — the
+ * mode-invariant ones below (secondary/success/danger/avatar) live here
+ * and simply carry through.
+ *
+ * No --mv-bg-image-url override here on purpose: Orchid has no image of
+ * its own yet, so it just inherits ../../../tokens.css's bare :root
+ * value (design-system/images/microverse-bg.jpg) — nothing in this
+ * file redeclares that property, so the cascade falls through.
+ *
+ * Values match ../../../mock-ups/design-system-orchid.html.
+ */
+
+[data-brand-theme="orchid"] {
+  /* mode-invariant */
+  --mv-color-primary-contrast: #ffffff;
+  --mv-color-secondary: #bb9793; /* ash */
+  --mv-color-success: #2f9e64; /* shared system success — orchid has no green of its own */
+  --mv-color-danger: #b8493a; /* shared system danger */
+  --mv-avatar-bg: #8a3a73;
+  --mv-avatar-text: #ffffff;
+
+  /* light ("Clear") values — also the fallback before data-theme is set */
+  --mv-color-primary: #8a3a73; /* orchid */
+  --mv-bg: #f9f0ec;
+  --mv-bg-elevated: #fffaf7;
+  --mv-text: #210f0e;
+  --mv-text-muted: #5c3d38;
+  --mv-border: #e5ccc5;
+  --mv-badge-bg: #2e1c19; /* swapped with dark.css's value — too close to bg-elevated otherwise */
+  --mv-badge-text: #bb9793;
+  --mv-shadow-sm: 0 1px 2px rgba(33, 15, 14, 0.08);
+  --mv-shadow: 0 8px 24px rgba(33, 15, 14, 0.14);
+}
+
+[data-brand-theme="orchid"][data-theme="light"] {
+  --mv-color-primary: #8a3a73;
+  --mv-bg: #f9f0ec;
+  --mv-bg-elevated: #fffaf7;
+  --mv-text: #210f0e;
+  --mv-text-muted: #5c3d38;
+  --mv-border: #e5ccc5;
+  --mv-badge-bg: #2e1c19;
+  --mv-badge-text: #bb9793;
+  --mv-shadow-sm: 0 1px 2px rgba(33, 15, 14, 0.08);
+  --mv-shadow: 0 8px 24px rgba(33, 15, 14, 0.14);
+}
