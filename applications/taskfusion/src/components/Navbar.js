@@ -8,6 +8,7 @@ import { useTheme } from '../context/ThemeContext';
 import { avatarColorsForKeycloak } from '../utils/avatarColors';
 import useIsMobile from '../hooks/useIsMobile';
 import useClickOutside from '../hooks/useClickOutside';
+import NavSearch from './NavSearch';
 
 function initialsFor(keycloak) {
   const claims = keycloak.tokenParsed || {};
@@ -347,6 +348,7 @@ const Navbar = ({ keycloak }) => {
           <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginLeft: 20, flex: 1 }}>
             {keycloak.authenticated && navLinks}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginLeft: 'auto' }}>
+              <NavSearch />
               {themeToggleButton}
               <IconBell size={16} color="var(--mv-text-muted)" aria-hidden="true" />
               {avatarMenu}
@@ -386,6 +388,7 @@ const Navbar = ({ keycloak }) => {
               borderTop: '0.5px solid var(--mv-border)',
             }}
           >
+            <NavSearch />
             {themeToggleButton}
             <IconBell size={16} color="var(--mv-text-muted)" aria-hidden="true" />
             {avatarChip}
