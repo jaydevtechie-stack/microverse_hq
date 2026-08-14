@@ -171,15 +171,19 @@
   .btn-secondary{ background:var(--surface-dim); color:var(--text); }
   .btn-ghost{ background:transparent; color:var(--link); border-color:var(--link); }
   .btn-danger{ background:var(--rust); color:var(--white); }
+  .btn-danger-outline{ background:transparent; border-color:var(--rust); color:var(--rust); }
+  .btn-danger-outline:hover{ background:rgba(168,58,46,0.08); }
 
   .badge{ display:inline-flex; align-items:center; gap:6px; font-family:var(--font-mono); font-size:11.5px; font-weight:500; padding:5px 11px; border-radius:var(--radius-full); }
   .badge::before{ content:''; width:6px; height:6px; border-radius:50%; }
-  .badge-active{ background:var(--badge-mint-bg); color:var(--badge-mint-text); }
-  .badge-active::before{ background:var(--savanna); }
+  .badge-active{ background:var(--dawn); color:#412402; }
+  .badge-active::before{ display:none; }
   .badge-idle{ background:var(--badge-neutral-bg); color:var(--badge-neutral-text); }
   .badge-idle::before{ background:var(--dust); }
-  .badge-alert{ background:var(--badge-alert-bg); color:var(--badge-alert-text); }
-  .badge-alert::before{ background:var(--rust); }
+  .badge-alert{ background:var(--rust); color:#FFFFFF; }
+  .badge-alert::before{ display:none; }
+  .badge-success{ background:var(--savanna); color:#FFFFFF; }
+  .badge-success::before{ display:none; }
   .badge-new{ background:var(--badge-gold-bg); color:var(--badge-gold-text); }
   .badge-new::before{ background:var(--dawn); }
 
@@ -215,6 +219,323 @@
   @media (prefers-reduced-motion:reduce){
     .cell{ animation:none; } *{ transition-duration:.01ms !important; }
   }
+  /* ---------- LISTS ---------- */
+  .list-wrap{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-l); overflow:hidden; margin-bottom:var(--sp-5); }
+  .list-toolbar{ display:flex; gap:var(--sp-3); flex-wrap:wrap; align-items:center; padding:var(--sp-4) var(--sp-5); border-bottom:1px solid var(--border); }
+  .list-search{ position:relative; flex:1 1 220px; min-width:180px; }
+  .list-search svg{ position:absolute; left:12px; top:50%; transform:translateY(-50%); width:15px; height:15px; color:var(--text-faint); pointer-events:none; }
+  .list-search input{ width:100%; font-family:var(--font-body); font-size:13.5px; background:var(--surface-dim); color:var(--text); padding:9px 13px 9px 36px; border-radius:var(--radius-s); border:1.5px solid transparent; outline:none; transition:border-color .15s var(--ease); }
+  .list-search input::placeholder{ color:var(--text-faint); }
+  .list-search input:focus{ border-color:var(--link); background:var(--surface); }
+  .list-select{ font-family:var(--font-body); font-size:13px; font-weight:600; background:var(--surface-dim); color:var(--text-muted); border:1.5px solid transparent; border-radius:var(--radius-s); padding:9px 30px 9px 13px; outline:none; cursor:pointer; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239AA7B2' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; transition:border-color .15s var(--ease); }
+  .list-select:focus{ border-color:var(--link); }
+
+  .bulk-bar{ display:flex; align-items:center; justify-content:space-between; gap:var(--sp-3); padding:var(--sp-3) var(--sp-5); background:var(--badge-mint-bg); border-bottom:1px solid var(--border); font-size:13px; font-weight:600; color:var(--badge-mint-text); }
+  .bulk-bar[hidden]{ display:none; }
+  .bulk-actions{ display:flex; gap:var(--sp-2); }
+  .btn-sm{ padding:7px 14px; font-size:12.5px; }
+
+  .list-head{ display:grid; grid-template-columns:32px 1fr 130px 90px; align-items:center; gap:var(--sp-3); padding:var(--sp-3) var(--sp-5); border-bottom:1px solid var(--border); }
+  .list-head span{ font-family:var(--font-mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--text-faint); font-weight:700; }
+
+  .task-row{ display:grid; grid-template-columns:32px 1fr 130px 90px; align-items:center; gap:var(--sp-3); padding:var(--sp-3) var(--sp-5); border-bottom:1px solid var(--border); transition:background .12s var(--ease); }
+  .task-row:last-child{ border-bottom:none; }
+  .task-row:hover{ background:var(--nav-hover); }
+  .task-row.is-hidden{ display:none; }
+  .task-name{ font-size:13.5px; font-weight:600; color:var(--text); }
+  .task-date{ font-family:var(--font-mono); font-size:12px; color:var(--text-faint); }
+  input[type="checkbox"]{ width:16px; height:16px; accent-color:var(--ember); cursor:pointer; }
+  .list-empty{ padding:var(--sp-6) var(--sp-5); text-align:center; font-size:13px; color:var(--text-faint); }
+  .list-empty[hidden]{ display:none; }
+
+  /* ---------- ACCORDION ---------- */
+  .accordion{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-l); overflow:hidden; margin-bottom:var(--sp-5); }
+  .accordion-item{ border-bottom:1px solid var(--border); }
+  .accordion-item:last-child{ border-bottom:none; }
+  .accordion-header{ width:100%; display:flex; align-items:center; gap:var(--sp-3); padding:var(--sp-4) var(--sp-5); background:transparent; border:none; cursor:pointer; text-align:left; font-family:var(--font-body); transition:background .12s var(--ease); }
+  .accordion-header:hover{ background:var(--nav-hover); }
+  .accordion-header:focus-visible{ outline:2px solid var(--link); outline-offset:-2px; }
+  .accordion-header svg{ width:14px; height:14px; color:var(--text-faint); flex:none; transition:transform .2s var(--ease); }
+  .accordion-header[aria-expanded="true"] svg{ transform:rotate(90deg); }
+  .accordion-title{ font-size:14.5px; font-weight:700; color:var(--text); flex:1; }
+  .accordion-meta{ font-family:var(--font-mono); font-size:11.5px; color:var(--text-faint); }
+  .accordion-panel{ max-height:0; overflow:hidden; transition:max-height .25s var(--ease); }
+  .accordion-panel-inner{ padding:0 var(--sp-5) var(--sp-4) calc(var(--sp-5) + 26px); display:flex; flex-direction:column; gap:var(--sp-2); }
+  .project-row{ display:flex; align-items:center; justify-content:space-between; padding:var(--sp-2) var(--sp-3); background:var(--surface-dim); border-radius:var(--radius-s); font-size:13px; color:var(--text-muted); }
+
+  /* ---------- TABS ---------- */
+  .tabs{ display:flex; gap:var(--sp-5); border-bottom:1px solid var(--border); margin-bottom:var(--sp-5); }
+  .tab{ background:none; border:none; cursor:pointer; font-family:var(--font-body); font-size:13.5px; font-weight:600; color:var(--text-faint); padding:0 0 var(--sp-3); border-bottom:2px solid transparent; margin-bottom:-1px; transition:color .15s var(--ease), border-color .15s var(--ease); }
+  .tab:hover{ color:var(--text-muted); }
+  .tab.active{ color:var(--link); border-bottom-color:var(--link); }
+  .tab:focus-visible{ outline:2px solid var(--link); outline-offset:2px; }
+  .tab-panel{ display:none; font-size:13.5px; color:var(--text-muted); line-height:1.6; }
+  .tab-panel.active{ display:block; }
+
+  /* ---------- INFO GRID ---------- */
+  .info-grid{ display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-3); }
+  .info-card{ background:var(--surface-dim); border:1px solid var(--border); border-radius:var(--radius-s); padding:var(--sp-3) var(--sp-4); }
+  .info-label{ font-family:var(--font-mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--text-faint); margin:0 0 4px; }
+  .info-value{ font-size:13.5px; font-weight:600; color:var(--text); margin:0; }
+
+  /* ---------- MASTER-DETAIL ---------- */
+  .md-wrap{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-l); overflow:hidden; margin-bottom:var(--sp-5); }
+  .md-tabs{ display:flex; gap:var(--sp-5); padding:var(--sp-4) var(--sp-5) 0; }
+  .md-tab{ background:none; border:none; font-family:var(--font-body); font-size:13px; font-weight:600; padding:0 0 var(--sp-3); border-bottom:2px solid transparent; cursor:pointer; color:var(--text-faint); }
+  .md-tab.active{ color:var(--link); border-bottom-color:var(--link); }
+  .md-body{ display:flex; height:440px; border-top:1px solid var(--border); }
+  .md-list-pane{ flex:0 0 42%; display:flex; flex-direction:column; border-right:1px solid var(--border); min-width:190px; max-width:70%; }
+  .md-list-header{ padding:var(--sp-3) var(--sp-4); border-bottom:1px solid var(--border); font-size:12px; font-weight:600; color:var(--text-muted); flex:none; }
+  .md-list{ overflow-y:auto; flex:1 1 auto; }
+  .md-row{ display:flex; align-items:center; gap:10px; padding:var(--sp-3) var(--sp-4); border-bottom:1px solid var(--border); cursor:pointer; transition:background .12s var(--ease); }
+  .md-row:hover{ background:var(--nav-hover); }
+  .md-row.selected{ background:var(--nav-hover); }
+  .md-row .dot{ width:7px; height:7px; border-radius:50%; background:var(--ember); flex:none; }
+  .md-row-text{ min-width:0; }
+  .md-row-title{ font-size:13px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .md-row.selected .md-row-title{ color:var(--text); }
+  .md-row-sub{ font-size:11px; color:var(--text-faint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .md-resize{ width:6px; flex:none; cursor:col-resize; background:var(--border); transition:background .12s var(--ease); }
+  .md-resize:hover, .md-resize.dragging{ background:var(--link); }
+  .md-detail{ flex:1 1 auto; overflow-y:auto; padding:var(--sp-5); min-width:220px; }
+  .md-back{ font-size:12px; color:var(--link); cursor:default; margin:0 0 var(--sp-4); font-weight:600; }
+  .md-detail-name{ font-family:var(--font-display); font-size:19px; font-weight:600; color:var(--text); margin:0 0 4px; }
+  .md-detail-account{ font-size:12px; color:var(--text-faint); margin:0 0 var(--sp-4); }
+  .md-detail-account b{ color:var(--link); font-weight:600; }
+  .md-section-label{ font-size:12px; color:var(--text-faint); margin:var(--sp-5) 0 var(--sp-2); }
+  .md-task-row{ display:flex; align-items:center; gap:var(--sp-3); padding:var(--sp-2) 4px; border-bottom:1px solid var(--border); font-size:12.5px; color:var(--text); cursor:pointer; border-radius:var(--radius-s); transition:background .12s var(--ease); }
+  .md-task-row:hover{ background:var(--nav-hover); }
+  .md-task-row:last-child{ border-bottom:none; }
+  .md-task-desc{ font-size:13px; color:var(--text-muted); line-height:1.6; margin:0 0 var(--sp-4); }
+
+  .md-meta{ margin:var(--sp-4) 0 var(--sp-5); }
+  .md-meta-group{ margin-bottom:var(--sp-4); }
+  .md-meta-group:last-child{ margin-bottom:0; }
+  .md-meta-group-label{ font-family:var(--font-mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--text-faint); margin:0 0 8px; }
+  .md-meta-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+
+  .md-task-header{ display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:8px; margin:0 0 var(--sp-3); }
+  .md-task-header-title{ font-family:var(--font-display); font-size:16px; font-weight:600; color:var(--text); margin:0; flex:1 1 220px; }
+  .md-task-header-actions{ display:flex; align-items:center; gap:10px; flex:none; }
+  .md-icon-btn{ background:none; border:none; padding:0; cursor:pointer; color:var(--text-faint); display:flex; align-items:center; gap:4px; font-family:var(--font-mono); font-size:10.5px; }
+  .md-icon-btn:hover{ color:var(--text); }
+  .md-icon-btn svg{ width:15px; height:15px; }
+
+  .md-tags{ display:flex; flex-wrap:wrap; gap:6px; margin:0 0 var(--sp-4); }
+  .md-tag{ background:var(--badge-neutral-bg); color:var(--badge-neutral-text); font-size:11px; padding:3px 10px; border-radius:999px; }
+
+  .md-files-label, .md-thread-label{ font-size:12px; color:var(--text-faint); margin:var(--sp-4) 0 var(--sp-2); }
+  .md-file-row{ display:flex; align-items:center; gap:8px; font-size:12.5px; padding:6px 0; }
+  .md-file-row svg{ width:14px; height:14px; color:var(--text-faint); flex:none; }
+  .md-file-name{ color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .md-file-size{ color:var(--text-faint); font-size:11px; margin-left:auto; flex:none; }
+  .md-files-empty{ font-size:12px; color:var(--text-faint); }
+
+  .md-thread-box{ background:var(--surface-dim); border:1px solid var(--border); border-radius:var(--radius-m); padding:var(--sp-3); margin-bottom:var(--sp-4); }
+  .md-thread-empty{ font-size:12px; color:var(--text-faint); margin:0 0 var(--sp-2); }
+  .md-thread-item{ font-size:12.5px; color:var(--text); line-height:1.5; margin-bottom:var(--sp-2); padding-bottom:var(--sp-2); border-bottom:1px solid var(--border); }
+  .md-thread-item:last-of-type{ border-bottom:none; margin-bottom:0; padding-bottom:0; }
+  .md-thread-textarea{ width:100%; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-s); padding:8px 10px; color:var(--text); font-size:12.5px; font-family:inherit; resize:none; box-sizing:border-box; margin-top:6px; }
+  .md-thread-textarea:focus{ outline:none; border-color:var(--link); }
+  .md-thread-post-row{ display:flex; justify-content:flex-end; margin-top:8px; }
+  .md-thread-post{ padding:6px 14px; background:var(--ember); color:#fff; font-weight:600; font-size:11.5px; border:none; border-radius:6px; cursor:pointer; opacity:.45; pointer-events:none; transition:opacity .15s var(--ease); }
+  .md-thread-post.enabled{ opacity:1; pointer-events:auto; }
+
+  .scout-card{ background:var(--surface-dim); border:1px solid var(--border); border-radius:var(--radius-m); padding:var(--sp-5); text-align:center; margin:var(--sp-5) 0 var(--sp-4); }
+  .scout-avatar{ width:48px; height:48px; border-radius:50%; background:var(--dawn); display:flex; align-items:center; justify-content:center; margin:0 auto 10px; color:#412402; }
+  .scout-avatar svg{ width:22px; height:22px; }
+  .scout-name{ font-family:var(--font-display); font-size:14px; font-weight:600; color:var(--text); margin:0 0 2px; }
+  .scout-role{ font-size:11px; color:var(--brass); margin:0 0 8px; font-weight:600; }
+  .scout-desc{ font-size:12px; color:var(--text-muted); line-height:1.5; margin:0; }
+  .scout-candidates{ display:flex; flex-wrap:wrap; align-items:center; gap:16px; padding:var(--sp-4); background:var(--surface-dim); border:1px solid var(--border); border-radius:var(--radius-m); margin-bottom:8px; }
+  .scout-candidate{ display:flex; align-items:center; gap:6px; cursor:pointer; background:none; border:none; padding:0; font-family:var(--font-body); }
+  .scout-candidate.rank-1 .scout-candidate-name{ color:var(--link); font-size:18px; font-weight:600; }
+  .scout-candidate.rank-2 .scout-candidate-name{ color:var(--text-faint); font-size:14px; }
+  .scout-candidate svg{ width:13px; height:13px; color:var(--text-faint); }
+  .scout-hint{ font-size:11px; color:var(--text-faint); margin:0 0 var(--sp-4); }
+  .scout-manual-label{ font-size:12px; color:var(--text-muted); margin:0 0 6px; }
+  .scout-select{ width:100%; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-s); padding:9px 12px; color:var(--text); font-size:13px; margin-bottom:var(--sp-3); box-sizing:border-box; font-family:var(--font-body); }
+  .scout-assign-btn{ width:100%; padding:10px 0; background:var(--ember); color:#fff; font-weight:600; font-size:13px; border:none; border-radius:var(--radius-s); cursor:pointer; opacity:.45; pointer-events:none; transition:opacity .15s var(--ease); }
+  .scout-assign-btn.enabled{ opacity:1; pointer-events:auto; }
+
+  /* ---------- MASTER-DETAIL: ACCOUNTS (accordion list pane) ---------- */
+  .md-toolbar{ display:flex; justify-content:flex-end; margin-bottom:var(--sp-3); }
+  .md-acc-group{ border-bottom:1px solid var(--border); }
+  .md-acc-header{ display:flex; align-items:center; gap:8px; padding:12px 16px; cursor:pointer; transition:background .12s var(--ease); }
+  .md-acc-header:hover{ background:var(--nav-hover); }
+  .md-acc-header svg{ width:13px; height:13px; color:var(--text-faint); flex:none; transition:transform .18s var(--ease); }
+  .md-acc-header.expanded svg{ transform:rotate(90deg); }
+  .md-acc-name{ font-size:13px; color:var(--text); }
+  .md-acc-type{ font-size:11px; color:var(--text-faint); text-transform:capitalize; }
+  .md-acc-projects{ max-height:0; overflow:hidden; transition:max-height .2s var(--ease); }
+  .md-acc-project-row{ display:flex; flex-direction:column; gap:3px; padding:8px 16px 8px 38px; cursor:pointer; transition:background .12s var(--ease); }
+  .md-acc-project-row:hover{ background:var(--nav-hover); }
+  .md-acc-project-row.selected{ background:var(--surface-dim); }
+  .md-acc-project-name{ font-size:12px; color:var(--text-muted); }
+  .md-acc-project-row.selected .md-acc-project-name{ color:var(--text); }
+  .md-acc-project-status{ display:inline-flex; align-items:center; gap:5px; font-size:11px; color:var(--text-muted); }
+  .md-acc-project-status .dot{ width:6px; height:6px; border-radius:50%; flex:none; }
+
+  .md-detail-status{ display:inline-flex; align-items:center; gap:5px; font-size:11px; color:var(--text-muted); margin-left:8px; }
+  .md-detail-status .dot{ width:6px; height:6px; border-radius:50%; flex:none; }
+  .md-reassign-label{ font-size:12px; color:var(--text-muted); margin:var(--sp-4) 0 6px; }
+  .md-reassign-row{ display:flex; gap:10px; margin-bottom:var(--sp-4); }
+  .md-reassign-row .btn{ flex:1; padding:10px 0; }
+  .md-plain-task-row{ display:flex; align-items:center; gap:10px; padding:8px 4px; border-bottom:1px solid var(--border); font-size:12px; }
+  .md-plain-task-row:last-child{ border-bottom:none; }
+  .md-plain-task-row .task-label{ flex:1; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .md-plain-task-row .task-due{ color:var(--text-faint); font-size:11px; white-space:nowrap; }
+
+  /* ---------- PAGE EXAMPLE: DASHBOARD BOLDER ---------- */
+  .dash-wrap{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-l); padding:var(--sp-7) var(--sp-6); margin-bottom:var(--sp-5); }
+  .dash-greeting{ font-family:var(--font-display); font-size:32px; font-weight:600; color:var(--text); margin:0 0 var(--sp-7); letter-spacing:-0.01em; }
+  .dash-hero{ display:flex; align-items:flex-end; gap:var(--sp-7); flex-wrap:wrap; margin-bottom:var(--sp-7); padding-bottom:var(--sp-7); border-bottom:1px solid var(--border); }
+  .dash-stat-number{ font-family:var(--font-display); font-size:88px; font-weight:600; color:var(--text); line-height:1; letter-spacing:-0.02em; }
+  .dash-stat-of{ font-size:40px; color:var(--text-faint); font-weight:500; }
+  .dash-stat-label{ font-family:var(--font-mono); font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--text-muted); margin:8px 0 0; }
+  .dash-progress-wrap{ flex:1; min-width:220px; padding-bottom:14px; }
+  .dash-progress-label{ display:flex; justify-content:space-between; font-size:13px; color:var(--text-muted); margin:0 0 8px; }
+  .dash-progress-bar{ display:flex; gap:3px; height:10px; border-radius:5px; overflow:hidden; }
+  .dash-progress-bar span{ background:var(--border); }
+  .dash-progress-bar span.filled{ background:var(--savanna); }
+
+  .dash-section-row{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:var(--sp-3); margin-bottom:var(--sp-5); }
+  .dash-section-title{ font-family:var(--font-display); font-size:24px; font-weight:600; color:var(--text); margin:0; }
+  .dash-filters{ display:flex; gap:6px; }
+  .dash-filter{ font-family:var(--font-body); font-size:13px; font-weight:600; padding:7px 16px; border-radius:var(--radius-full); border:1px solid var(--border); background:var(--surface); color:var(--text-muted); cursor:pointer; transition:all .15s var(--ease); }
+  .dash-filter:hover{ color:var(--text); }
+  .dash-filter.active{ background:var(--text); color:var(--surface); border-color:var(--text); }
+
+  .dash-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:var(--sp-4); }
+  .dash-card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-l); overflow:hidden; transition:transform .15s var(--ease), box-shadow .15s var(--ease), border-color .15s var(--ease); text-decoration:none; display:block; }
+  .dash-card:hover{ transform:translateY(-3px); box-shadow:var(--shadow-m); border-color:var(--text-faint); }
+  .dash-card-icon{ height:72px; display:flex; align-items:center; justify-content:center; position:relative; }
+  .dash-card-icon .cell{ width:38px; height:38px; border-radius:12px; animation:none; }
+  .dash-card-status{ position:absolute; top:10px; right:10px; }
+  .dash-card-body{ padding:var(--sp-4); }
+  .dash-card-name{ font-family:var(--font-display); font-size:17px; font-weight:700; color:var(--text); margin:0 0 3px; }
+  .dash-card-lang{ font-family:var(--font-mono); font-size:11.5px; color:var(--text-faint); }
+
+  @media (max-width:640px){
+    .dash-stat-number{ font-size:56px; }
+    .dash-greeting{ font-size:24px; }
+    .dash-section-title{ font-size:20px; }
+  }
+
+  /* ---------- NAVIGATION ---------- */
+  .topnav{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-l); padding:var(--sp-3) var(--sp-4); margin-bottom:var(--sp-5); position:relative; }
+  .topnav-inner{ display:flex; align-items:center; gap:var(--sp-6); }
+  .topnav-brand{ display:flex; align-items:center; gap:8px; text-decoration:none; color:var(--text); flex:none; }
+  .topnav-brand-text{ font-weight:600; font-size:14px; }
+  .topnav-links{ display:flex; align-items:center; gap:var(--sp-5); flex:1; }
+  .topnav-link{ font-size:13px; color:var(--text-muted); text-decoration:none; border-bottom:2px solid transparent; padding-bottom:2px; transition:color .15s var(--ease), border-color .15s var(--ease); }
+  .topnav-link:hover{ color:var(--text); }
+  .topnav-link.active{ color:var(--link); border-bottom-color:var(--link); }
+  .topnav-actions{ display:flex; align-items:center; gap:14px; margin-left:auto; }
+  .topnav-icon-btn{ position:relative; background:none; border:none; padding:0; display:flex; cursor:pointer; color:var(--text-faint); transition:color .15s var(--ease); }
+  .topnav-icon-btn:hover{ color:var(--text); }
+  .topnav-icon-btn svg{ width:17px; height:17px; }
+  .topnav-icon-btn:focus-visible{ outline:2px solid var(--link); outline-offset:3px; border-radius:4px; }
+  .topnav-badge-dot{ position:absolute; top:-4px; right:-6px; min-width:14px; height:14px; padding:0 3px; border-radius:999px; background:#B8493A; color:#fff; font-family:var(--font-mono); font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center; line-height:1; }
+  .topnav-badge-dot[hidden]{ display:none; }
+  .topnav-burger{ display:none; background:none; border:none; padding:0; cursor:pointer; color:var(--text-muted); }
+  .topnav-burger svg{ width:20px; height:20px; }
+
+  .topnav-profile{ position:relative; }
+  .topnav-avatar{ width:26px; height:26px; border-radius:50%; background:var(--ember); border:none; display:flex; align-items:center; justify-content:center; color:var(--white); font-size:11px; font-weight:600; cursor:pointer; flex-shrink:0; }
+  .topnav-avatar:focus-visible{ outline:2px solid var(--link); outline-offset:3px; }
+  .topnav-dropdown{ position:absolute; top:calc(100% + 10px); right:0; width:200px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-m); box-shadow:var(--shadow-m); padding:var(--sp-2); z-index:20; }
+  .topnav-dropdown[hidden]{ display:none; }
+  .topnav-dropdown-email{ font-family:var(--font-mono); font-size:11px; color:var(--text-faint); padding:var(--sp-2) var(--sp-3) var(--sp-3); border-bottom:1px solid var(--border); margin-bottom:var(--sp-2); word-break:break-all; }
+  .topnav-dropdown-item{ display:block; font-size:13px; color:var(--text); text-decoration:none; padding:8px 12px; border-radius:var(--radius-s); transition:background .12s var(--ease); }
+  .topnav-dropdown-item:hover{ background:var(--nav-hover); }
+  .topnav-dropdown-divider{ height:1px; background:var(--border); margin:var(--sp-2) 4px; }
+
+  @media (max-width:640px){
+    .topnav-links{ position:absolute; top:calc(100% + 8px); left:var(--sp-4); right:var(--sp-4); background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-m); box-shadow:var(--shadow-m); flex-direction:column; align-items:stretch; gap:0; padding:var(--sp-2); display:none; z-index:15; }
+    .topnav-links.open{ display:flex; }
+    .topnav-link{ padding:10px 12px; border-bottom:none; border-radius:var(--radius-s); }
+    .topnav-link:hover{ background:var(--nav-hover); }
+    .topnav-link.active{ background:var(--badge-mint-bg); }
+    .topnav-burger{ display:flex; order:1; }
+    .topnav-brand{ order:0; }
+    .topnav-actions{ order:2; margin-left:auto; }
+  }
+
+  /* ---------- NOTIFICATION FLY-IN ---------- */
+  .notif-backdrop{ position:fixed; inset:0; background:rgba(14,22,33,0.35); z-index:29; opacity:0; pointer-events:none; transition:opacity .2s var(--ease); }
+  .notif-backdrop.open{ opacity:1; pointer-events:auto; }
+  .notif-panel{ position:fixed; top:0; right:0; height:100%; width:380px; max-width:88vw; background:var(--surface); border-left:1px solid var(--border); box-shadow:var(--shadow-m); z-index:30; display:flex; flex-direction:column; transform:translateX(100%); transition:transform .28s var(--ease); }
+  .notif-panel.open{ transform:translateX(0); }
+  .notif-header{ display:flex; align-items:center; justify-content:space-between; padding:var(--sp-5); border-bottom:1px solid var(--border); flex:none; }
+  .notif-header span{ font-family:var(--font-display); font-size:17px; font-weight:600; color:var(--text); }
+  .notif-close{ background:none; border:none; cursor:pointer; color:var(--text-faint); font-size:20px; line-height:1; padding:4px; }
+  .notif-close:hover{ color:var(--text); }
+  .notif-list{ flex:1; overflow-y:auto; }
+  .notif-item{ display:flex; gap:var(--sp-3); padding:var(--sp-4) var(--sp-5); border-bottom:1px solid var(--border); position:relative; }
+  .notif-item.unread{ background:var(--nav-hover); }
+  .notif-dot{ width:7px; height:7px; border-radius:50%; background:var(--ember); flex:none; margin-top:5px; opacity:0; }
+  .notif-item.unread .notif-dot{ opacity:1; }
+  .notif-title{ font-size:13px; color:var(--text); margin:0 0 3px; line-height:1.4; }
+  .notif-meta{ font-family:var(--font-mono); font-size:11px; color:var(--text-faint); margin:0; }
+  .notif-footer{ padding:var(--sp-3) var(--sp-5); border-top:1px solid var(--border); flex:none; }
+  .btn-link-sm{ background:none; border:none; padding:0; font-family:var(--font-body); font-size:12.5px; font-weight:600; color:var(--link); cursor:pointer; }
+  .btn-link-sm:hover{ text-decoration:underline; }
+
+  @media (max-width:480px){
+    .notif-panel{ width:100%; max-width:100%; }
+  }
+
+  footer{ padding:var(--sp-6) 0; border-top:1px solid var(--border); font-size:12.5px; color:var(--text-faint); font-family:var(--font-mono); }
+
+  @media (max-width:820px){
+    .layout{ grid-template-columns:1fr; }
+    .sidebar{ position:relative; height:auto; }
+    main{ padding:var(--sp-6); }
+    .swatch-grid{ grid-template-columns:repeat(2,1fr); }
+    .mode-preview{ grid-template-columns:1fr; }
+    .hero h1{ font-size:38px; }
+  }
+  @media (prefers-reduced-motion:reduce){
+    .cell{ animation:none; } *{ transition-duration:.01ms !important; }
+  }
+  /* ---------- SEARCH ---------- */
+  .nav-search{ position:relative; display:flex; align-items:center; height:32px; background:var(--surface-dim); border-radius:var(--radius-full); flex:none; }
+  .nav-search-icon{ width:32px; height:32px; flex:none; background:none; border:none; display:flex; align-items:center; justify-content:center; color:var(--text-faint); cursor:pointer; border-radius:50%; padding:0; }
+  .nav-search-icon svg{ width:15px; height:15px; }
+  .nav-search-icon:hover{ color:var(--text); }
+  .nav-search-input{ width:0; opacity:0; border:none; background:transparent; outline:none; font-size:13px; color:var(--text); font-family:var(--font-body); padding:0; transition:width .22s var(--ease), opacity .15s var(--ease), padding .22s var(--ease); }
+  .nav-search.open .nav-search-input{ width:190px; opacity:1; padding-right:14px; }
+  .nav-search-input::placeholder{ color:var(--text-faint); }
+  .nav-search-dropdown{ position:absolute; top:calc(100% + 8px); left:0; width:290px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-m); box-shadow:var(--shadow-m); z-index:25; overflow:hidden; }
+  .nav-search-dropdown[hidden]{ display:none; }
+  .nsd-item{ display:flex; align-items:center; gap:10px; padding:9px 14px; cursor:pointer; transition:background .12s var(--ease); }
+  .nsd-item:hover, .nsd-item.active{ background:var(--nav-hover); }
+  .nsd-item-icon{ width:26px; height:26px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex:none; background:var(--surface-dim); color:var(--link); }
+  .nsd-item-icon svg{ width:13px; height:13px; }
+  .nsd-item-text{ min-width:0; flex:1; }
+  .nsd-item-name{ font-size:12.5px; color:var(--text); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .nsd-item-context{ font-size:11px; color:var(--text-faint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .nsd-empty{ padding:16px 14px; font-size:12px; color:var(--text-faint); text-align:center; }
+  .nsd-viewall{ display:block; width:100%; text-align:center; padding:10px; font-size:11.5px; font-weight:700; color:var(--link); border-top:1px solid var(--border); background:none; border:none; border-top:1px solid var(--border); cursor:pointer; font-family:var(--font-body); }
+  .nsd-viewall:hover{ background:var(--nav-hover); }
+
+  .search-page-wrap{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-l); padding:var(--sp-6); margin-bottom:var(--sp-5); }
+  .search-page-input-row{ display:flex; align-items:center; gap:10px; background:var(--surface-dim); border-radius:var(--radius-full); padding:12px 18px; margin-bottom:var(--sp-5); }
+  .search-page-input-row svg{ width:17px; height:17px; color:var(--text-faint); flex:none; }
+  .search-page-input-row input{ flex:1; border:none; background:none; outline:none; font-size:15px; color:var(--text); font-family:var(--font-body); min-width:0; }
+  .search-page-tabs{ display:flex; gap:var(--sp-5); border-bottom:1px solid var(--border); margin-bottom:var(--sp-4); flex-wrap:wrap; }
+  .search-page-count{ font-size:12px; color:var(--text-faint); margin:0 0 var(--sp-4); }
+  .sr-item{ display:flex; align-items:center; gap:14px; padding:var(--sp-4) var(--sp-2); border-bottom:1px solid var(--border); }
+  .sr-item:last-child{ border-bottom:none; }
+  .sr-item-icon{ width:38px; height:38px; border-radius:var(--radius-m); display:flex; align-items:center; justify-content:center; flex:none; background:var(--surface-dim); color:var(--link); }
+  .sr-item-icon svg{ width:17px; height:17px; }
+  .sr-item-body{ flex:1; min-width:0; }
+  .sr-item-name{ font-size:14.5px; font-weight:700; color:var(--text); margin:0 0 2px; }
+  .sr-item-context{ font-size:12.5px; color:var(--text-faint); margin:0; }
+  .sr-item-badge{ flex:none; }
+  .sr-empty{ text-align:center; padding:var(--sp-7) 0; color:var(--text-faint); font-size:13px; }
+
 </style>
 </head>
 <body>
@@ -249,6 +570,15 @@
       <a href="#cards">Cards</a>
       <a href="#fields">Fields &amp; controls</a>
       <a href="#notices">Notices</a>
+      <a href="#navigation">Navigation</a>
+      <a href="#lists">Lists</a>
+      <a href="#accordion">Accordion</a>
+      <a href="#tabs">Tabs</a>
+      <a href="#infogrid">Info grid</a>
+      <a href="#masterdetail">Master-detail — Projects</a>
+      <a href="#masterdetailaccounts">Master-detail — Accounts</a>
+      <a href="#dashboardbold">Dashboard — bolder</a>
+      <a href="#searchresults">Search results</a>
     </nav>
   </aside>
 
@@ -401,7 +731,7 @@
         <div class="type-label"><b>Body / 16</b>Manrope 400</div>
       </div>
       <div class="type-row">
-        <div class="type-sample" style="font-family:var(--font-mono); font-size:13px; color:var(--link);">status: active · v1.0.0</div>
+        <div class="type-sample" style="font-family:var(--font-mono); font-size:13px; color:var(--link);">status: active · v2.3.1</div>
         <div class="type-label"><b>Mono / 13</b>JetBrains Mono</div>
       </div>
 
@@ -445,12 +775,13 @@
     <section id="badges">
       <p class="eyebrow">02 — Components</p>
       <h2>Badges</h2>
-      <p class="lede">Status is always a dot plus a word — never color alone. Dawn is reserved for one status only: something that just arrived.</p>
+      <p class="lede">Status colors follow a traffic-light logic: savanna means resolved, dawn means active and worth watching, rust means stopped. Soft badges (a dot plus a tint) are for the waiting states outside that scale — the same dawn is reserved, in its soft form, for one status only: something that just arrived.</p>
       <div class="comp-block">
         <div class="comp-row">
-          <span class="badge badge-active">running</span>
           <span class="badge badge-idle">idle</span>
+          <span class="badge badge-active">running</span>
           <span class="badge badge-alert">failed</span>
+          <span class="badge badge-success">done</span>
           <span class="badge badge-new">new</span>
         </div>
       </div>
@@ -516,9 +847,459 @@
       </div>
     </section>
 
+        <section id="navigation">
+      <p class="eyebrow">02 — Components</p>
+      <h2>Navigation</h2>
+      <p class="lede">Adapted from the real app's top bar: brand, primary links, theme toggle, notifications, and account — collapsing to a menu button under 640px. This is a self-contained preview; it doesn't control the actual page theme.</p>
+      <div class="comp-block" style="padding:0; background:transparent; border:none; overflow:visible;">
+        <nav class="topnav">
+          <div class="topnav-inner">
+            <a href="#" class="topnav-brand" onclick="return false;">
+              <span class="brand-mark"></span>
+              <span class="topnav-brand-text">Microverse</span>
+            </a>
+            <button class="topnav-burger" id="navBurger" aria-label="Open menu" aria-expanded="false" aria-controls="topNavLinks">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+            </button>
+            <div class="topnav-links" id="topNavLinks">
+              <a href="#" class="topnav-link" onclick="return false;">Dashboard</a>
+              <a href="#" class="topnav-link active" onclick="return false;">Projects</a>
+              <a href="#" class="topnav-link" onclick="return false;">Orders</a>
+              <a href="#" class="topnav-link" onclick="return false;">Delivery team</a>
+            </div>
+            <div class="topnav-actions">
+              <div class="nav-search" id="navSearch">
+                <button class="nav-search-icon" id="navSearchIcon" aria-label="Search" aria-expanded="false" aria-controls="navSearchDropdown">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+                </button>
+                <input type="text" class="nav-search-input" id="navSearchInput" placeholder="Search projects, accounts…" autocomplete="off">
+                <div class="nav-search-dropdown" id="navSearchDropdown" hidden></div>
+              </div>
+              <button class="topnav-icon-btn" id="navThemeToggle" aria-label="Toggle theme (preview only)">
+                <svg id="navThemeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/></svg>
+              </button>
+              <button class="topnav-icon-btn" id="navBellBtn" aria-label="Notifications" aria-expanded="false" aria-controls="notifPanel">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 5a2 2 0 1 1 4 0a7 7 0 0 1 4 6v3a4 4 0 0 0 2 3h-16a4 4 0 0 0 2 -3v-3a7 7 0 0 1 4 -6"/><path d="M9 17v1a3 3 0 0 0 6 0v-1"/></svg>
+                <span class="topnav-badge-dot" id="navBellDot">3</span>
+              </button>
+              <div class="topnav-profile">
+                <button class="topnav-avatar" id="navAvatarBtn" aria-label="Account menu" aria-expanded="false" aria-controls="navDropdown">U</button>
+                <div class="topnav-dropdown" id="navDropdown" hidden>
+                  <div class="topnav-dropdown-email">user@microverse.local</div>
+                  <a href="#" class="topnav-dropdown-item" onclick="return false;">Profile</a>
+                  <a href="#" class="topnav-dropdown-item" onclick="return false;">Settings</a>
+                  <div class="topnav-dropdown-divider"></div>
+                  <a href="#" class="topnav-dropdown-item" onclick="return false;">Sign out</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </nav>
+      </div>
+    </section>
+
+    <section id="lists">
+      <p class="eyebrow">02 — Components</p>
+      <h2>Lists</h2>
+      <p class="lede">A filterable, sortable task list with row selection and bulk actions. Filter and status narrow the same set together; sorting re-orders whatever's currently visible.</p>
+      <div class="list-wrap">
+        <div class="list-toolbar">
+          <div class="list-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="text" id="taskFilterText" placeholder="Filter tasks…">
+          </div>
+          <select class="list-select" id="taskFilterStatus">
+            <option value="all">All statuses</option>
+            <option value="todo">To do</option>
+            <option value="progress">In progress</option>
+            <option value="blocked">Blocked</option>
+            <option value="done">Done</option>
+          </select>
+          <select class="list-select" id="taskSort">
+            <option value="name">Sort: Name</option>
+            <option value="status">Sort: Status</option>
+            <option value="date">Sort: Date</option>
+          </select>
+        </div>
+
+        <div class="bulk-bar" id="bulkBar" hidden>
+          <span id="bulkCount">0 selected</span>
+          <div class="bulk-actions">
+            <button class="btn btn-secondary btn-sm" id="bulkEdit">Edit</button>
+            <button class="btn btn-danger btn-sm" id="bulkDelete">Delete</button>
+          </div>
+        </div>
+
+        <div class="list-head">
+          <input type="checkbox" id="selectAll" aria-label="Select all tasks">
+          <span>Task</span>
+          <span>Status</span>
+          <span>Date</span>
+        </div>
+
+        <div id="taskList">
+          <div class="task-row" data-name="Audit onboarding flow" data-status="progress" data-date="2026-08-12">
+            <input type="checkbox" class="task-check">
+            <span class="task-name">Audit onboarding flow</span>
+            <span class="badge badge-active">in progress</span>
+            <span class="task-date">Aug 12</span>
+          </div>
+          <div class="task-row" data-name="Fix pagination bug" data-status="blocked" data-date="2026-08-10">
+            <input type="checkbox" class="task-check">
+            <span class="task-name">Fix pagination bug</span>
+            <span class="badge badge-alert">blocked</span>
+            <span class="task-date">Aug 10</span>
+          </div>
+          <div class="task-row" data-name="Draft Q3 roadmap" data-status="todo" data-date="2026-08-14">
+            <input type="checkbox" class="task-check">
+            <span class="task-name">Draft Q3 roadmap</span>
+            <span class="badge badge-idle">to do</span>
+            <span class="task-date">Aug 14</span>
+          </div>
+          <div class="task-row" data-name="Update design tokens" data-status="done" data-date="2026-08-08">
+            <input type="checkbox" class="task-check">
+            <span class="task-name">Update design tokens</span>
+            <span class="badge badge-success">done</span>
+            <span class="task-date">Aug 8</span>
+          </div>
+          <div class="task-row" data-name="Review PR #482" data-status="progress" data-date="2026-08-13">
+            <input type="checkbox" class="task-check">
+            <span class="task-name">Review PR #482</span>
+            <span class="badge badge-active">in progress</span>
+            <span class="task-date">Aug 13</span>
+          </div>
+          <div class="task-row" data-name="Write release notes" data-status="todo" data-date="2026-08-15">
+            <input type="checkbox" class="task-check">
+            <span class="task-name">Write release notes</span>
+            <span class="badge badge-idle">to do</span>
+            <span class="task-date">Aug 15</span>
+          </div>
+          <div class="task-row" data-name="Migrate auth service" data-status="blocked" data-date="2026-08-09">
+            <input type="checkbox" class="task-check">
+            <span class="task-name">Migrate auth service</span>
+            <span class="badge badge-alert">blocked</span>
+            <span class="task-date">Aug 9</span>
+          </div>
+          <div class="task-row" data-name="Sync with design team" data-status="todo" data-date="2026-08-11">
+            <input type="checkbox" class="task-check">
+            <span class="task-name">Sync with design team</span>
+            <span class="badge badge-idle">to do</span>
+            <span class="task-date">Aug 11</span>
+          </div>
+        </div>
+        <div class="list-empty" id="listEmpty" hidden>No tasks match this filter.</div>
+      </div>
+    </section>
+
+    <section id="accordion">
+      <p class="eyebrow">02 — Components</p>
+      <h2>Accordion</h2>
+      <p class="lede">Accounts expand to reveal their projects. Any number of sections can stay open at once.</p>
+      <div class="accordion" id="accountAccordion">
+        <div class="accordion-item">
+          <button class="accordion-header" aria-expanded="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+            <span class="accordion-title">Account 1</span>
+            <span class="accordion-meta">3 projects</span>
+          </button>
+          <div class="accordion-panel">
+            <div class="accordion-panel-inner">
+              <div class="project-row"><span>Project 1</span></div>
+              <div class="project-row"><span>Project 2</span></div>
+              <div class="project-row"><span>Project 3</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="accordion-item">
+          <button class="accordion-header" aria-expanded="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+            <span class="accordion-title">Account 2</span>
+            <span class="accordion-meta">2 projects</span>
+          </button>
+          <div class="accordion-panel">
+            <div class="accordion-panel-inner">
+              <div class="project-row"><span>Project 1</span></div>
+              <div class="project-row"><span>Project 2</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="accordion-item">
+          <button class="accordion-header" aria-expanded="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+            <span class="accordion-title">Account 3</span>
+            <span class="accordion-meta">4 projects</span>
+          </button>
+          <div class="accordion-panel">
+            <div class="accordion-panel-inner">
+              <div class="project-row"><span>Project 1</span></div>
+              <div class="project-row"><span>Project 2</span></div>
+              <div class="project-row"><span>Project 3</span></div>
+              <div class="project-row"><span>Project 4</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tabs">
+      <p class="eyebrow">02 — Components</p>
+      <h2>Tabs</h2>
+      <p class="lede">Text plus an underline — no pill, no background swap. Adapted from the real Projects view, which uses this exact pattern above its split view.</p>
+      <div class="comp-block">
+        <div class="tabs" id="demoTabs">
+          <button class="tab active" data-tab="overview">Overview</button>
+          <button class="tab" data-tab="activity">Activity</button>
+          <button class="tab" data-tab="settings">Settings</button>
+        </div>
+        <div class="tab-panel active" data-panel="overview">Summary content for the selected item lives here — status, owner, and key dates at a glance.</div>
+        <div class="tab-panel" data-panel="activity">A reverse-chronological feed of changes: status transitions, comments, reassignments.</div>
+        <div class="tab-panel" data-panel="settings">Scoped configuration for this item — notifications, visibility, integration hooks.</div>
+      </div>
+    </section>
+
+    <section id="infogrid">
+      <p class="eyebrow">02 — Components</p>
+      <h2>Info grid</h2>
+      <p class="lede">A label-over-value fact grid, adapted from the metadata boxes in the real Projects detail pane. Two-up by default; reads fine at one column on narrow screens.</p>
+      <div class="comp-block">
+        <div class="info-grid">
+          <div class="info-card">
+            <p class="info-label">Project manager</p>
+            <p class="info-value">Manager 1</p>
+          </div>
+          <div class="info-card">
+            <p class="info-label">Payment terms</p>
+            <p class="info-value">Upfront</p>
+          </div>
+          <div class="info-card">
+            <p class="info-label">Account</p>
+            <p class="info-value">Account 1</p>
+          </div>
+          <div class="info-card">
+            <p class="info-label">Status</p>
+            <p class="info-value">Active</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="masterdetail">
+      <p class="eyebrow">02 — Components</p>
+      <h2>Master-detail</h2>
+      <p class="lede">Adapted directly from the live Projects view: a resizable split pane, a compact list on the left (dot, title, and a muted subtitle for parent context), and a detail pane on the right built from the info grid and badges above. Drag the divider; click a row.</p>
+      <div class="md-wrap">
+        <div class="md-tabs">
+          <button class="md-tab active">Projects</button>
+          <button class="md-tab" id="mdAccountsTab">Accounts</button>
+        </div>
+        <div class="md-body">
+          <div class="md-list-pane" id="mdListPane">
+            <div class="md-list-header">Projects · PM</div>
+            <div class="md-list" id="mdList"></div>
+          </div>
+          <div class="md-resize" id="mdResize" title="Drag to resize"></div>
+          <div class="md-detail" id="mdDetail"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="masterdetailaccounts">
+      <p class="eyebrow">02 — Components</p>
+      <h2>Master-detail — Accounts</h2>
+      <p class="lede">Adapted from the real Accounts view: the account-manager role gets its own list style — accounts collapse to their type (company / individual) and expand to reveal projects, each carrying a live status dot. The detail pane gains two things the PM's Projects view doesn't have: reassigning a project's PM, and deactivating it.</p>
+      <div class="md-wrap">
+        <div class="md-toolbar">
+          <button class="btn btn-primary btn-sm" id="newAccountBtn">+ New account</button>
+        </div>
+        <div class="md-body">
+          <div class="md-list-pane" id="acListPane">
+            <div class="md-list-header">Accounts</div>
+            <div class="md-list" id="acList"></div>
+          </div>
+          <div class="md-resize" id="acResize" title="Drag to resize"></div>
+          <div class="md-detail" id="acDetail"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="dashboardbold">
+      <p class="eyebrow">03 — Page examples</p>
+      <h2>Dashboard — bolder</h2>
+      <p class="lede">Same content as the real dashboard — same seven services, same "1 of 7 online," same greeting — with the type scale that was already specified actually put to use. Nothing above 14px exists on the real page; this uses Display and H2 sizes that have been sitting in the system unused.</p>
+      <div class="dash-wrap">
+        <p class="dash-greeting">Welcome back, Abby Muhoni.</p>
+
+        <div class="dash-hero">
+          <div>
+            <div class="dash-stat-number">1<span class="dash-stat-of">/7</span></div>
+            <p class="dash-stat-label">Services online</p>
+          </div>
+          <div class="dash-progress-wrap">
+            <div class="dash-progress-label"><span>Build tracker</span><span>1 of 7 complete</span></div>
+            <div class="dash-progress-bar">
+              <span class="filled" style="flex:1;"></span>
+              <span style="flex:6;"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="dash-section-row">
+          <h3 class="dash-section-title">All services</h3>
+          <div class="dash-filters">
+            <button class="dash-filter active">All</button>
+            <button class="dash-filter">Online</button>
+            <button class="dash-filter">In progress</button>
+          </div>
+        </div>
+
+        <div class="dash-grid">
+          <a class="dash-card" href="#" onclick="return false;">
+            <div class="dash-card-icon" style="background:#E0F7FC;">
+              <div class="cell" style="background:#0EA5D9;"></div>
+              <span class="dash-card-status"><span class="badge badge-success">online</span></span>
+            </div>
+            <div class="dash-card-body">
+              <p class="dash-card-name">Gofeeler</p>
+              <span class="dash-card-lang">Go</span>
+            </div>
+          </a>
+          <a class="dash-card" href="#" onclick="return false;">
+            <div class="dash-card-icon" style="background:#FBF0DB;">
+              <div class="cell" style="background:#C9A227;"></div>
+              <span class="dash-card-status"><span class="badge badge-idle">basic</span></span>
+            </div>
+            <div class="dash-card-body">
+              <p class="dash-card-name">PyReel</p>
+              <span class="dash-card-lang">Python</span>
+            </div>
+          </a>
+          <a class="dash-card" href="#" onclick="return false;">
+            <div class="dash-card-icon" style="background:#FCEFE3;">
+              <div class="cell" style="background:#A85C1E;"></div>
+              <span class="dash-card-status"><span class="badge badge-idle">basic</span></span>
+            </div>
+            <div class="dash-card-body">
+              <p class="dash-card-name">SpringPix</p>
+              <span class="dash-card-lang">Java</span>
+            </div>
+          </a>
+          <a class="dash-card" href="#" onclick="return false;">
+            <div class="dash-card-icon" style="background:#FBF0DB;">
+              <div class="cell" style="background:#C9A227;"></div>
+              <span class="dash-card-status"><span class="badge badge-active">building</span></span>
+            </div>
+            <div class="dash-card-body">
+              <p class="dash-card-name">Djaboard</p>
+              <span class="dash-card-lang">Python</span>
+            </div>
+          </a>
+          <a class="dash-card" href="#" onclick="return false;">
+            <div class="dash-card-icon" style="background:#EEEDFB;">
+              <div class="cell" style="background:#6B4FBB;"></div>
+              <span class="dash-card-status"><span class="badge badge-idle">designing</span></span>
+            </div>
+            <div class="dash-card-body">
+              <p class="dash-card-name">elixtempo</p>
+              <span class="dash-card-lang">Elixir</span>
+            </div>
+          </a>
+          <a class="dash-card" href="#" onclick="return false;">
+            <div class="dash-card-icon" style="background:#FBECE3;">
+              <div class="cell" style="background:#B34F2E;"></div>
+              <span class="dash-card-status"><span class="badge badge-idle">designing</span></span>
+            </div>
+            <div class="dash-card-body">
+              <p class="dash-card-name">rustledger</p>
+              <span class="dash-card-lang">Rust</span>
+            </div>
+          </a>
+          <a class="dash-card" href="#" onclick="return false;">
+            <div class="dash-card-icon" style="background:#FCEBEB;">
+              <div class="cell" style="background:#C23B3B;"></div>
+              <span class="dash-card-status"><span class="badge badge-idle">planned</span></span>
+            </div>
+            <div class="dash-card-body">
+              <p class="dash-card-name">RubyKudos</p>
+              <span class="dash-card-lang">Ruby</span>
+            </div>
+          </a>
+        </div>
+      </div>
+    </section>
+
+
+        <section id="searchresults">
+      <p class="eyebrow">03 — Page examples</p>
+      <h2>Search results</h2>
+      <p class="lede">Same index the nav search draws from — projects, accounts, tasks, and people. Try the search icon in the Navigation example above: pressing Enter or picking a suggestion jumps here and runs the same query.</p>
+      <div class="search-page-wrap">
+        <div class="search-page-input-row">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" id="srPageInput" placeholder="Search projects, accounts, tasks, people…" value="Project">
+        </div>
+        <div class="search-page-tabs" id="srTabs">
+          <button class="tab active" data-filter="all">All</button>
+          <button class="tab" data-filter="project">Projects</button>
+          <button class="tab" data-filter="account">Accounts</button>
+          <button class="tab" data-filter="task">Tasks</button>
+          <button class="tab" data-filter="person">People</button>
+        </div>
+        <p class="search-page-count" id="srCount"></p>
+        <div id="srList"></div>
+      </div>
+    </section>
     <footer>Uhuru — Microverse's design system. Foundations &amp; components, v1.0</footer>
   </main>
 </div>
+
+<div class="notif-backdrop" id="notifBackdrop"></div>
+<aside class="notif-panel" id="notifPanel" role="dialog" aria-label="Notifications" aria-hidden="true">
+  <div class="notif-header">
+    <span>Notifications</span>
+    <button class="notif-close" id="notifClose" aria-label="Close notifications">&times;</button>
+  </div>
+  <div class="notif-list">
+    <div class="notif-item unread">
+      <span class="notif-dot"></span>
+      <div>
+        <p class="notif-title">Task reassigned to you — Task 2 on Project 3</p>
+        <p class="notif-meta">12m ago</p>
+      </div>
+    </div>
+    <div class="notif-item unread">
+      <span class="notif-dot"></span>
+      <div>
+        <p class="notif-title">New comment on Project 5</p>
+        <p class="notif-meta">48m ago</p>
+      </div>
+    </div>
+    <div class="notif-item unread">
+      <span class="notif-dot"></span>
+      <div>
+        <p class="notif-title">Project 2 moved to blocked</p>
+        <p class="notif-meta">1h ago</p>
+      </div>
+    </div>
+    <div class="notif-item">
+      <span class="notif-dot"></span>
+      <div>
+        <p class="notif-title">Project 4 marked done</p>
+        <p class="notif-meta">Yesterday</p>
+      </div>
+    </div>
+    <div class="notif-item">
+      <span class="notif-dot"></span>
+      <div>
+        <p class="notif-title">Weekly summary is ready</p>
+        <p class="notif-meta">Yesterday</p>
+      </div>
+    </div>
+  </div>
+  <div class="notif-footer">
+    <button class="btn-link-sm" id="notifMarkAll">Mark all as read</button>
+  </div>
+</aside>
+
 
 <script>
 (function(){
@@ -537,6 +1318,795 @@
   });
   var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
   setMode(prefersDark ? 'dark' : 'light');
+})();
+
+// ---------- Lists: filter, sort, select, bulk actions ----------
+(function(){
+  var list = document.getElementById('taskList');
+  if (!list) return;
+  var rows = Array.prototype.slice.call(list.querySelectorAll('.task-row'));
+  var filterText = document.getElementById('taskFilterText');
+  var filterStatus = document.getElementById('taskFilterStatus');
+  var sortSelect = document.getElementById('taskSort');
+  var selectAll = document.getElementById('selectAll');
+  var bulkBar = document.getElementById('bulkBar');
+  var bulkCount = document.getElementById('bulkCount');
+  var bulkDelete = document.getElementById('bulkDelete');
+  var bulkEdit = document.getElementById('bulkEdit');
+  var emptyState = document.getElementById('listEmpty');
+  var statusOrder = { todo: 0, progress: 1, blocked: 2, done: 3 };
+
+  function applyFilter(){
+    var text = filterText.value.trim().toLowerCase();
+    var status = filterStatus.value;
+    var visibleCount = 0;
+    rows.forEach(function(row){
+      var matchesText = row.dataset.name.toLowerCase().indexOf(text) !== -1;
+      var matchesStatus = status === 'all' || row.dataset.status === status;
+      var show = matchesText && matchesStatus;
+      row.classList.toggle('is-hidden', !show);
+      if (show) visibleCount++;
+    });
+    emptyState.hidden = visibleCount !== 0;
+  }
+
+  function applySort(){
+    var by = sortSelect.value;
+    var sorted = rows.slice().sort(function(a, b){
+      if (by === 'name') return a.dataset.name.localeCompare(b.dataset.name);
+      if (by === 'status') return statusOrder[a.dataset.status] - statusOrder[b.dataset.status];
+      if (by === 'date') return a.dataset.date.localeCompare(b.dataset.date);
+      return 0;
+    });
+    sorted.forEach(function(row){ list.appendChild(row); });
+  }
+
+  function updateBulkBar(){
+    var checked = rows.filter(function(row){
+      return row.querySelector('.task-check').checked;
+    });
+    bulkBar.hidden = checked.length === 0;
+    bulkCount.textContent = checked.length + ' selected';
+    selectAll.checked = checked.length === rows.length;
+    selectAll.indeterminate = checked.length > 0 && checked.length < rows.length;
+  }
+
+  filterText.addEventListener('input', applyFilter);
+  filterStatus.addEventListener('change', applyFilter);
+  sortSelect.addEventListener('change', applySort);
+
+  rows.forEach(function(row){
+    row.querySelector('.task-check').addEventListener('change', updateBulkBar);
+  });
+
+  selectAll.addEventListener('change', function(){
+    rows.forEach(function(row){
+      if (!row.classList.contains('is-hidden')) {
+        row.querySelector('.task-check').checked = selectAll.checked;
+      }
+    });
+    updateBulkBar();
+  });
+
+  bulkDelete.addEventListener('click', function(){
+    rows = rows.filter(function(row){
+      if (row.querySelector('.task-check').checked) {
+        row.remove();
+        return false;
+      }
+      return true;
+    });
+    updateBulkBar();
+    applyFilter();
+  });
+
+  bulkEdit.addEventListener('click', function(){
+    var n = rows.filter(function(row){ return row.querySelector('.task-check').checked; }).length;
+    bulkCount.textContent = 'Bulk edit would open here for ' + n + ' task' + (n === 1 ? '' : 's') + '…';
+    setTimeout(updateBulkBar, 2200);
+  });
+})();
+
+// ---------- Accordion ----------
+(function(){
+  var headers = document.querySelectorAll('.accordion-header');
+  headers.forEach(function(header){
+    header.addEventListener('click', function(){
+      var expanded = header.getAttribute('aria-expanded') === 'true';
+      var panel = header.nextElementSibling;
+      header.setAttribute('aria-expanded', !expanded);
+      panel.style.maxHeight = expanded ? '0px' : panel.scrollHeight + 'px';
+    });
+  });
+})();
+
+// ---------- Tabs ----------
+(function(){
+  var wrap = document.getElementById('demoTabs');
+  if (!wrap) return;
+  var tabs = wrap.querySelectorAll('.tab');
+  var panels = wrap.parentElement.querySelectorAll('.tab-panel');
+  tabs.forEach(function(tab){
+    tab.addEventListener('click', function(){
+      tabs.forEach(function(t){ t.classList.toggle('active', t === tab); });
+      panels.forEach(function(p){ p.classList.toggle('active', p.dataset.panel === tab.dataset.tab); });
+    });
+  });
+})();
+
+// ---------- Master-detail ----------
+(function(){
+  var listEl = document.getElementById('mdList');
+  if (!listEl) return;
+  var detailEl = document.getElementById('mdDetail');
+  var listPane = document.getElementById('mdListPane');
+  var resizer = document.getElementById('mdResize');
+  var accountsTab = document.getElementById('mdAccountsTab');
+
+  var badgeClass = { done: 'badge-success', progress: 'badge-active', todo: 'badge-idle', blocked: 'badge-alert' };
+  var badgeLabel = { done: 'done', progress: 'in progress', todo: 'to do', blocked: 'blocked' };
+
+  var projects = [
+    { name: 'Project 1', account: 'Account 1', pm: 'Manager 1', terms: 'Upfront', customer: 'Customer 1', tasks: [
+      { label: 'Task 1', status: 'done', assignee: 'Analyst 1', created: 'Aug 4', due: 'Aug 8', tags: ['internal'], desc: 'Standard pass, no issues found.', files: [{ name: 'summary_export.csv', size: '18.4 KB' }] },
+      { label: 'Task 2', status: 'progress', assignee: 'Analyst 2', created: 'Aug 9', due: 'Aug 16', tags: ['priority'], desc: 'Actively being worked through this week.', files: [] },
+      { label: 'Task 3', status: 'todo', assignee: null, created: 'Aug 12', due: 'Aug 19', tags: ['review needed'], desc: 'Queued for the next available analyst.', files: [] }
+    ]},
+    { name: 'Project 2', account: 'Account 1', pm: 'Manager 2', terms: 'Net 30', customer: 'Customer 1', tasks: [
+      { label: 'Task 1', status: 'blocked', assignee: 'Analyst 3', created: 'Aug 6', due: 'Aug 13', tags: ['external', 'priority'], desc: 'Waiting on a dependency from another team.', files: [{ name: 'blocker_notes.txt', size: '4.1 KB' }] },
+      { label: 'Task 2', status: 'progress', assignee: 'Analyst 2', created: 'Aug 10', due: 'Aug 17', tags: [], desc: 'On track, roughly half complete.', files: [] }
+    ]},
+    { name: 'Project 3', account: 'Account 2', pm: 'Manager 1', terms: 'Net 30', customer: 'Customer 2', tasks: [
+      { label: 'Task 1', status: 'done', assignee: 'Analyst 1', created: 'Jul 29', due: 'Aug 2', tags: ['internal'], desc: 'Closed out and archived.', files: [] },
+      { label: 'Task 2', status: 'done', assignee: 'Analyst 3', created: 'Aug 2', due: 'Aug 6', tags: [], desc: 'Completed ahead of schedule.', files: [{ name: 'final_report.pdf', size: '210 KB' }] },
+      { label: 'Task 3', status: 'todo', assignee: 'Analyst 2', created: 'Aug 13', due: 'Aug 20', tags: ['review needed'], desc: 'Scoped, not yet started.', files: [] }
+    ]},
+    { name: 'Project 4', account: 'Account 2', pm: 'Manager 3', terms: 'Upfront', customer: 'Customer 2', tasks: [
+      { label: 'Task 1', status: 'progress', assignee: 'Analyst 1', created: 'Aug 11', due: 'Aug 18', tags: ['priority'], desc: 'In progress, updated two days ago.', files: [] }
+    ]},
+    { name: 'Project 5', account: 'Account 3', pm: 'Manager 2', terms: 'Net 60', customer: 'Customer 3', tasks: [
+      { label: 'Task 1', status: 'blocked', assignee: 'Analyst 2', created: 'Aug 5', due: 'Aug 12', tags: ['external'], desc: 'Paused pending client feedback.', files: [] },
+      { label: 'Task 2', status: 'todo', assignee: null, created: 'Aug 12', due: 'Aug 21', tags: [], desc: 'Not yet picked up.', files: [] },
+      { label: 'Task 3', status: 'done', assignee: 'Analyst 1', created: 'Jul 31', due: 'Aug 4', tags: ['internal'], desc: 'Verified and closed.', files: [{ name: 'checklist.docx', size: '32.0 KB' }] }
+    ]},
+    { name: 'Project 6', account: 'Account 3', pm: 'Manager 3', terms: 'Net 30', customer: 'Customer 3', tasks: [
+      { label: 'Task 1', status: 'todo', assignee: null, created: 'Aug 13', due: 'Aug 22', tags: ['recurring'], desc: 'Recurring weekly task, awaiting pickup.', files: [] },
+      { label: 'Task 2', status: 'todo', assignee: 'Analyst 1', created: 'Aug 13', due: 'Aug 20', tags: [], desc: 'Assigned, not yet started.', files: [] }
+    ]}
+  ];
+  projects.forEach(function(p){ p.tasks.forEach(function(t){ t.comments = []; t.notes = []; }); });
+
+  var selected = 0;
+
+  function renderList(){
+    listEl.innerHTML = '';
+    projects.forEach(function(p, i){
+      var row = document.createElement('div');
+      row.className = 'md-row' + (i === selected ? ' selected' : '');
+      row.innerHTML = '<span class="dot"></span><div class="md-row-text"><div class="md-row-title">' + p.name + '</div><div class="md-row-sub">' + p.account + '</div></div>';
+      row.addEventListener('click', function(){ selected = i; renderList(); renderDetail(); });
+      listEl.appendChild(row);
+    });
+  }
+
+  function renderDetail(){
+    var p = projects[selected];
+    var tasksHtml = p.tasks.map(function(t, ti){
+      var badge = t.assignee ? '<span class="badge ' + badgeClass[t.status] + '">' + badgeLabel[t.status] + '</span>' : '<span class="badge badge-idle">unassigned</span>';
+      return '<div class="md-task-row" data-task-index="' + ti + '">' + badge + '<span>' + t.label + '</span></div>';
+    }).join('');
+    detailEl.innerHTML =
+      '<div class="md-back">← Back</div>' +
+      '<div class="md-detail-name">' + p.name + '</div>' +
+      '<div class="md-detail-account">Account: <b>' + p.account + '</b></div>' +
+      '<div class="info-grid">' +
+        '<div class="info-card"><p class="info-label">Project manager</p><p class="info-value">' + p.pm + '</p></div>' +
+        '<div class="info-card"><p class="info-label">Payment terms</p><p class="info-value">' + p.terms + '</p></div>' +
+      '</div>' +
+      '<p class="md-section-label">Orders / Tasks</p>' +
+      tasksHtml;
+
+    detailEl.querySelectorAll('.md-task-row').forEach(function(row){
+      row.addEventListener('click', function(){
+        renderTaskDetail(parseInt(row.dataset.taskIndex, 10));
+      });
+    });
+  }
+
+  function fileRowsHtml(files){
+    if (!files.length) return '<p class="md-files-empty">No files attached.</p>';
+    return files.map(function(f){
+      return '<div class="md-file-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 7l-6.5 6.5a1.5 1.5 0 0 0 3 3l6.5 -6.5a3 3 0 0 0 -6 -6l-6.5 6.5a4.5 4.5 0 0 0 9 9l6.5 -6.5"/></svg>' +
+        '<span class="md-file-name">' + f.name + '</span><span class="md-file-size">' + f.size + '</span></div>';
+    }).join('');
+  }
+
+  function threadHtml(items, kind){
+    var itemsHtml = items.length
+      ? items.map(function(c){ return '<div class="md-thread-item">' + c + '</div>'; }).join('')
+      : '<p class="md-thread-empty">No comments yet.</p>';
+    return '<div class="md-thread-box">' + itemsHtml +
+      '<textarea class="md-thread-textarea" rows="2" placeholder="Add a comment…" data-thread="' + kind + '"></textarea>' +
+      '<div class="md-thread-post-row"><button class="md-thread-post" data-thread-post="' + kind + '">Post</button></div>' +
+      '</div>';
+  }
+
+  function wireThread(taskIndex, kind, field){
+    var textarea = detailEl.querySelector('textarea[data-thread="' + kind + '"]');
+    var postBtn = detailEl.querySelector('button[data-thread-post="' + kind + '"]');
+    textarea.addEventListener('input', function(){
+      postBtn.classList.toggle('enabled', textarea.value.trim().length > 0);
+    });
+    postBtn.addEventListener('click', function(){
+      var val = textarea.value.trim();
+      if (!val) return;
+      projects[selected].tasks[taskIndex][field].push(val);
+      renderTaskDetail(taskIndex);
+    });
+  }
+
+  function renderTaskDetail(taskIndex){
+    var p = projects[selected];
+    var t = p.tasks[taskIndex];
+    var badge = t.assignee ? '<span class="badge ' + badgeClass[t.status] + '">' + badgeLabel[t.status] + '</span>' : '<span class="badge badge-idle">unassigned</span>';
+    var tagsHtml = t.tags.map(function(tag){ return '<span class="md-tag">' + tag + '</span>'; }).join('');
+
+    var scoutHtml = '';
+    if (!t.assignee) {
+      scoutHtml =
+        '<div class="scout-card">' +
+          '<div class="scout-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="16" r="3"/><circle cx="17" cy="16" r="3"/><path d="M16.3 9.2l-.7-1.3c-.2-.2-1.1-.2-1.1.1l-.2 1.4"/><path d="M19.8 14.8l-2.8-5.1c-.2-.3-.6-.7-1.4-.7-.8 0-1.5.5-1.5 1v6"/><path d="M7.7 9.2l.7-1.3c.2-.2 1.1-.2 1.1.1l.2 1.4"/><path d="M4.2 14.8l2.8-5.1c.2-.3.6-.7 1.4-.7.8 0 1.5.5 1.5 1v6"/></svg></div>' +
+          '<p class="scout-name">Scout</p>' +
+          '<p class="scout-role">Recommendation agent</p>' +
+          '<p class="scout-desc">Scans the pool for the best-fit analyst, weighing current availability.</p>' +
+        '</div>' +
+        '<div class="scout-candidates">' +
+          '<button class="scout-candidate rank-1" data-assign="Analyst 1"><span class="scout-candidate-name">Analyst 1</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 9h.01M11 12h1v4h1"/></svg></button>' +
+          '<button class="scout-candidate rank-2" data-assign="Analyst 2"><span class="scout-candidate-name">Analyst 2</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 9h.01M11 12h1v4h1"/></svg></button>' +
+        '</div>' +
+        '<p class="scout-hint">Sized by Scout\'s availability ranking — top pick first</p>' +
+        '<p class="scout-manual-label">Or assign directly</p>' +
+        '<select class="scout-select" id="scoutSelect">' +
+          '<option value="" selected>Choose an analyst...</option>' +
+          '<option value="Analyst 1">Analyst 1</option>' +
+          '<option value="Analyst 2">Analyst 2</option>' +
+          '<option value="Analyst 3">Analyst 3</option>' +
+        '</select>' +
+        '<button class="scout-assign-btn" id="scoutAssignBtn">Assign</button>';
+    }
+
+    detailEl.innerHTML =
+      '<div class="md-back" id="mdTaskBack">← Back to ' + p.name + '</div>' +
+      '<div class="md-task-header">' +
+        '<p class="md-task-header-title">' + t.label + '</p>' +
+        '<div class="md-task-header-actions">' + badge +
+          '<button class="md-icon-btn" id="mdCopyLink" title="Copy link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 15l6 -6"/><path d="M11 6l.463 -.536a5 5 0 0 1 7.071 7.072l-.534 .464"/><path d="M13 18l-.397 .534a5.068 5.068 0 0 1 -7.127 0a4.972 4.972 0 0 1 0 -7.071l.524 -.463"/></svg><span id="mdCopyLabel"></span></button>' +
+        '</div>' +
+      '</div>' +
+      (tagsHtml ? '<div class="md-tags">' + tagsHtml + '</div>' : '') +
+      '<p class="md-task-desc">' + t.desc + '</p>' +
+      '<div class="md-meta">' +
+        '<div class="md-meta-group">' +
+          '<p class="md-meta-group-label">Context</p>' +
+          '<div class="md-meta-grid">' +
+            '<div class="info-card"><p class="info-label">Project</p><p class="info-value">' + p.name + '</p></div>' +
+            '<div class="info-card"><p class="info-label">Service</p><p class="info-value">Service 1</p></div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="md-meta-group">' +
+          '<p class="md-meta-group-label">People</p>' +
+          '<div class="md-meta-grid">' +
+            '<div class="info-card"><p class="info-label">Assignee</p><p class="info-value">' + (t.assignee || 'Unassigned') + '</p></div>' +
+            '<div class="info-card"><p class="info-label">Project manager</p><p class="info-value">' + p.pm + '</p></div>' +
+            '<div class="info-card"><p class="info-label">Customer</p><p class="info-value">' + p.customer + '</p></div>' +
+            '<div class="info-card"><p class="info-label">Owner</p><p class="info-value">' + p.customer + '</p></div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="md-meta-group">' +
+          '<p class="md-meta-group-label">Timeline</p>' +
+          '<div class="md-meta-grid">' +
+            '<div class="info-card"><p class="info-label">Created</p><p class="info-value">' + t.created + '</p></div>' +
+            '<div class="info-card"><p class="info-label">Due</p><p class="info-value">' + t.due + '</p></div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<p class="md-files-label">Files</p>' +
+      fileRowsHtml(t.files) +
+      '<p class="md-thread-label">Comments</p>' +
+      threadHtml(t.comments, 'comments') +
+      '<p class="md-thread-label">Notes (visible to customer)</p>' +
+      threadHtml(t.notes, 'notes') +
+      scoutHtml;
+
+    document.getElementById('mdTaskBack').addEventListener('click', renderDetail);
+    wireThread(taskIndex, 'comments', 'comments');
+    wireThread(taskIndex, 'notes', 'notes');
+
+    document.getElementById('mdCopyLink').addEventListener('click', function(){
+      var url = 'https://microverse.local/pm/projects#task-' + taskIndex;
+      var label = document.getElementById('mdCopyLabel');
+      if (navigator.clipboard) { navigator.clipboard.writeText(url).catch(function(){}); }
+      label.textContent = 'Copied';
+      setTimeout(function(){ label.textContent = ''; }, 1500);
+    });
+
+    if (!t.assignee) {
+      detailEl.querySelectorAll('.scout-candidate').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          t.assignee = btn.dataset.assign;
+          renderTaskDetail(taskIndex);
+        });
+      });
+      var select = document.getElementById('scoutSelect');
+      var assignBtn = document.getElementById('scoutAssignBtn');
+      select.addEventListener('change', function(){
+        assignBtn.classList.toggle('enabled', !!select.value);
+      });
+      assignBtn.addEventListener('click', function(){
+        if (!select.value) return;
+        t.assignee = select.value;
+        renderTaskDetail(taskIndex);
+      });
+    }
+  }
+
+  renderList();
+  renderDetail();
+
+  if (accountsTab) {
+    accountsTab.addEventListener('click', function(){
+      detailEl.innerHTML = '<p style="font-size:13px;color:var(--text-muted);">See <a href="#masterdetailaccounts" style="color:var(--link);">Master-detail — Accounts</a> below for the full account-manager version of this pattern, with its own reassign and deactivate actions.</p>';
+      listEl.innerHTML = '';
+      accountsTab.classList.add('active');
+      document.querySelector('.md-tab:not(#mdAccountsTab)').classList.remove('active');
+    });
+  }
+
+  // drag to resize
+  var dragging = false;
+  resizer.addEventListener('mousedown', function(e){
+    dragging = true;
+    resizer.classList.add('dragging');
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', function(e){
+    if (!dragging) return;
+    var body = listPane.parentElement;
+    var rect = body.getBoundingClientRect();
+    var pct = ((e.clientX - rect.left) / rect.width) * 100;
+    pct = Math.max(22, Math.min(70, pct));
+    listPane.style.flex = '0 0 ' + pct + '%';
+  });
+  window.addEventListener('mouseup', function(){
+    dragging = false;
+    resizer.classList.remove('dragging');
+  });
+})();
+
+// ---------- Master-detail: Accounts (accordion list pane) ----------
+(function(){
+  var listEl = document.getElementById('acList');
+  if (!listEl) return;
+  var detailEl = document.getElementById('acDetail');
+  var listPane = document.getElementById('acListPane');
+  var resizer = document.getElementById('acResize');
+  var newAccountBtn = document.getElementById('newAccountBtn');
+
+  var acBadgeClass = { done: 'badge-success', progress: 'badge-active', todo: 'badge-idle', blocked: 'badge-alert' };
+  var acBadgeLabel = { done: 'done', progress: 'in progress', todo: 'to do', blocked: 'blocked' };
+
+  var accounts = [
+    { name: 'Account 1', type: 'company', expanded: true, projects: [
+      { name: 'Project 1', status: 'active', pm: 'Manager 1', terms: 'Net 30', tasks: [
+        { label: 'Task 1', status: 'todo', due: 'Aug 19' }, { label: 'Task 2', status: 'done', due: 'Aug 5' }, { label: 'Task 3', status: 'progress', due: 'Aug 16' }
+      ]},
+      { name: 'Project 2', status: 'active', pm: 'Manager 2', terms: 'Upfront', tasks: [
+        { label: 'Task 1', status: 'blocked', due: 'Aug 13' }
+      ]}
+    ]},
+    { name: 'Account 2', type: 'company', expanded: false, projects: [
+      { name: 'Project 3', status: 'active', pm: 'Manager 1', terms: 'Net 30', tasks: [
+        { label: 'Task 1', status: 'done', due: 'Aug 6' }
+      ]},
+      { name: 'Project 4', status: 'inactive', pm: 'Manager 3', terms: 'Upfront', tasks: [] }
+    ]},
+    { name: 'Account 3', type: 'individual', expanded: false, projects: [
+      { name: 'Project 5', status: 'active', pm: 'Manager 2', terms: 'Net 60', tasks: [
+        { label: 'Task 1', status: 'todo', due: 'Aug 21' }, { label: 'Task 2', status: 'blocked', due: 'Aug 12' }
+      ]}
+    ]}
+  ];
+
+  var selectedAccount = 0, selectedProject = 0;
+
+  function renderAcList(){
+    listEl.innerHTML = '';
+    accounts.forEach(function(acc, ai){
+      var group = document.createElement('div');
+      group.className = 'md-acc-group';
+
+      var header = document.createElement('div');
+      header.className = 'md-acc-header' + (acc.expanded ? ' expanded' : '');
+      header.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6l-6 6"/></svg>' +
+        '<div><div class="md-acc-name">' + acc.name + '</div><div class="md-acc-type">' + acc.type + '</div></div>';
+      header.addEventListener('click', function(){ acc.expanded = !acc.expanded; renderAcList(); });
+      group.appendChild(header);
+
+      var projWrap = document.createElement('div');
+      projWrap.className = 'md-acc-projects';
+      acc.projects.forEach(function(proj, pi){
+        var row = document.createElement('div');
+        var isSelected = ai === selectedAccount && pi === selectedProject;
+        row.className = 'md-acc-project-row' + (isSelected ? ' selected' : '');
+        var dotColor = proj.status === 'active' ? 'var(--savanna)' : 'var(--text-faint)';
+        row.innerHTML = '<span class="md-acc-project-name">' + proj.name + '</span>' +
+          '<span class="md-acc-project-status"><span class="dot" style="background:' + dotColor + '"></span>' + (proj.status === 'active' ? 'Active' : 'Inactive') + '</span>';
+        row.addEventListener('click', function(e){
+          e.stopPropagation();
+          selectedAccount = ai; selectedProject = pi;
+          renderAcList(); renderAcDetail();
+        });
+        projWrap.appendChild(row);
+      });
+      group.appendChild(projWrap);
+      projWrap.style.maxHeight = acc.expanded ? (acc.projects.length * 50 + 10) + 'px' : '0px';
+
+      listEl.appendChild(group);
+    });
+  }
+
+  function renderAcDetail(){
+    var acc = accounts[selectedAccount];
+    var proj = acc.projects[selectedProject];
+    var dotColor = proj.status === 'active' ? 'var(--savanna)' : 'var(--text-faint)';
+
+    var pmOptions = ['Manager 1', 'Manager 2', 'Manager 3'].map(function(m){
+      return '<option value="' + m + '">' + m + '</option>';
+    }).join('');
+
+    var tasksHtml = proj.tasks.length
+      ? proj.tasks.map(function(t){
+          return '<div class="md-plain-task-row"><span class="badge ' + acBadgeClass[t.status] + '">' + acBadgeLabel[t.status] + '</span><span class="task-label">' + t.label + '</span><span class="task-due">' + t.due + '</span></div>';
+        }).join('')
+      : '<p style="font-size:12px;color:var(--text-faint);">No tasks yet.</p>';
+
+    detailEl.innerHTML =
+      '<div class="md-detail-name" style="display:inline;">' + proj.name + '</div>' +
+      '<span class="md-detail-status"><span class="dot" style="background:' + dotColor + '"></span>' + (proj.status === 'active' ? 'Active' : 'Inactive') + '</span>' +
+      '<div class="md-detail-account" style="margin-top:6px;">Account: <b>' + acc.name + '</b></div>' +
+      '<div class="info-grid">' +
+        '<div class="info-card"><p class="info-label">Project manager</p><p class="info-value">' + proj.pm + '</p></div>' +
+        '<div class="info-card"><p class="info-label">Payment terms</p><p class="info-value">' + proj.terms + '</p></div>' +
+      '</div>' +
+      '<p class="md-reassign-label">Assign project manager</p>' +
+      '<select class="scout-select" id="acPmSelect">' +
+        '<option value="" selected>Choose a project manager...</option>' +
+        pmOptions +
+      '</select>' +
+      '<div class="md-reassign-row">' +
+        '<button class="btn btn-secondary" id="acAssignBtn" style="opacity:.5;pointer-events:none;">Assign</button>' +
+        '<button class="btn btn-danger-outline" id="acDeactivateBtn">' + (proj.status === 'active' ? 'Deactivate project' : 'Reactivate project') + '</button>' +
+      '</div>' +
+      '<p class="md-section-label">Tasks</p>' +
+      tasksHtml;
+
+    var select = document.getElementById('acPmSelect');
+    var assignBtn = document.getElementById('acAssignBtn');
+    select.addEventListener('change', function(){
+      var enabled = !!select.value && select.value !== proj.pm;
+      assignBtn.classList.toggle('btn-primary', enabled);
+      assignBtn.style.opacity = enabled ? '1' : '.5';
+      assignBtn.style.pointerEvents = enabled ? 'auto' : 'none';
+    });
+    assignBtn.addEventListener('click', function(){
+      if (!select.value) return;
+      proj.pm = select.value;
+      renderAcDetail();
+    });
+
+    document.getElementById('acDeactivateBtn').addEventListener('click', function(){
+      proj.status = proj.status === 'active' ? 'inactive' : 'active';
+      renderAcList();
+      renderAcDetail();
+    });
+  }
+
+  renderAcList();
+  renderAcDetail();
+
+  if (newAccountBtn) {
+    newAccountBtn.addEventListener('click', function(){
+      detailEl.innerHTML = '<p style="font-size:13px;color:var(--text-muted);">This is where a "create account" form would open — name, type (company / individual), and an initial project manager.</p>';
+    });
+  }
+
+  // drag to resize
+  var acDragging = false;
+  resizer.addEventListener('mousedown', function(e){
+    acDragging = true;
+    resizer.classList.add('dragging');
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', function(e){
+    if (!acDragging) return;
+    var body = listPane.parentElement;
+    var rect = body.getBoundingClientRect();
+    var pct = ((e.clientX - rect.left) / rect.width) * 100;
+    pct = Math.max(22, Math.min(70, pct));
+    listPane.style.flex = '0 0 ' + pct + '%';
+  });
+  window.addEventListener('mouseup', function(){
+    acDragging = false;
+    resizer.classList.remove('dragging');
+  });
+})();
+
+// ---------- Navigation: mobile menu, theme icon, notifications, profile ----------
+(function(){
+  // mobile link menu
+  var burger = document.getElementById('navBurger');
+  var links = document.getElementById('topNavLinks');
+  if (burger) {
+    burger.addEventListener('click', function(){
+      var open = links.classList.toggle('open');
+      burger.setAttribute('aria-expanded', open);
+    });
+  }
+
+  // theme icon toggle — cosmetic preview only, does not re-theme the page
+  var themeBtn = document.getElementById('navThemeToggle');
+  var themeIcon = document.getElementById('navThemeIcon');
+  var sunPath = '<path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/><circle cx="12" cy="12" r="4"/>';
+  var moonPath = '<path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/>';
+  var showingMoon = true;
+  if (themeBtn) {
+    themeBtn.addEventListener('click', function(){
+      showingMoon = !showingMoon;
+      themeIcon.innerHTML = showingMoon ? moonPath : sunPath;
+      themeBtn.setAttribute('aria-label', showingMoon ? 'Switch to dark theme' : 'Switch to light theme');
+    });
+  }
+
+  // notification fly-in
+  var bellBtn = document.getElementById('navBellBtn');
+  var bellDot = document.getElementById('navBellDot');
+  var panel = document.getElementById('notifPanel');
+  var backdrop = document.getElementById('notifBackdrop');
+  var closeBtn = document.getElementById('notifClose');
+  var markAll = document.getElementById('notifMarkAll');
+
+  function openPanel(){
+    panel.classList.add('open');
+    backdrop.classList.add('open');
+    panel.setAttribute('aria-hidden', 'false');
+    bellBtn.setAttribute('aria-expanded', 'true');
+    closeDropdown();
+    closeBtn.focus();
+  }
+  function closePanel(){
+    panel.classList.remove('open');
+    backdrop.classList.remove('open');
+    panel.setAttribute('aria-hidden', 'true');
+    bellBtn.setAttribute('aria-expanded', 'false');
+    bellBtn.focus();
+  }
+  if (bellBtn) {
+    bellBtn.addEventListener('click', function(){
+      panel.classList.contains('open') ? closePanel() : openPanel();
+    });
+    closeBtn.addEventListener('click', closePanel);
+    backdrop.addEventListener('click', closePanel);
+    markAll.addEventListener('click', function(){
+      document.querySelectorAll('.notif-item.unread').forEach(function(item){
+        item.classList.remove('unread');
+      });
+      bellDot.hidden = true;
+    });
+  }
+
+  // profile dropdown
+  var avatarBtn = document.getElementById('navAvatarBtn');
+  var dropdown = document.getElementById('navDropdown');
+  function openDropdown(){
+    dropdown.hidden = false;
+    avatarBtn.setAttribute('aria-expanded', 'true');
+  }
+  function closeDropdown(){
+    dropdown.hidden = true;
+    avatarBtn.setAttribute('aria-expanded', 'false');
+  }
+  if (avatarBtn) {
+    avatarBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      dropdown.hidden ? openDropdown() : closeDropdown();
+    });
+  }
+
+  document.addEventListener('click', function(e){
+    if (dropdown && !dropdown.hidden && !dropdown.contains(e.target) && e.target !== avatarBtn) {
+      closeDropdown();
+    }
+  });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') {
+      if (panel && panel.classList.contains('open')) closePanel();
+      if (dropdown && !dropdown.hidden) closeDropdown();
+    }
+  });
+})();
+// ---------- Search: shared index ----------
+var searchIndex = [
+  { type: 'project', name: 'Project 1', context: 'Account 1' },
+  { type: 'project', name: 'Project 2', context: 'Account 1' },
+  { type: 'project', name: 'Project 3', context: 'Account 2' },
+  { type: 'project', name: 'Project 4', context: 'Account 2' },
+  { type: 'project', name: 'Project 5', context: 'Account 3' },
+  { type: 'project', name: 'Project 6', context: 'Account 3' },
+  { type: 'account', name: 'Account 1', context: 'Company' },
+  { type: 'account', name: 'Account 2', context: 'Company' },
+  { type: 'account', name: 'Account 3', context: 'Individual' },
+  { type: 'task', name: 'Task 1', context: 'Project 1', status: 'done' },
+  { type: 'task', name: 'Task 2', context: 'Project 1', status: 'progress' },
+  { type: 'task', name: 'Task 1', context: 'Project 2', status: 'blocked' },
+  { type: 'task', name: 'Task 3', context: 'Project 3', status: 'todo' },
+  { type: 'task', name: 'Task 1', context: 'Project 4', status: 'progress' },
+  { type: 'task', name: 'Task 1', context: 'Project 5', status: 'blocked' },
+  { type: 'task', name: 'Task 1', context: 'Project 6', status: 'todo' },
+  { type: 'person', name: 'Manager 1', context: 'Project manager' },
+  { type: 'person', name: 'Manager 2', context: 'Project manager' },
+  { type: 'person', name: 'Manager 3', context: 'Project manager' },
+  { type: 'person', name: 'Analyst 1', context: 'Analyst' },
+  { type: 'person', name: 'Analyst 2', context: 'Analyst' },
+  { type: 'person', name: 'Analyst 3', context: 'Analyst' },
+];
+
+var searchTypeIcon = {
+  project: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>',
+  account: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M9 8h1M14 8h1M9 12h1M14 12h1M9 16h1M14 16h1"/></svg>',
+  task: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>',
+  person: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>',
+};
+
+var searchBadgeClass = { done: 'badge-success', progress: 'badge-active', todo: 'badge-idle', blocked: 'badge-alert' };
+var searchBadgeLabel = { done: 'done', progress: 'in progress', todo: 'to do', blocked: 'blocked' };
+
+// ---------- Search: nav autocomplete ----------
+(function(){
+  var wrap = document.getElementById('navSearch');
+  if (!wrap) return;
+  var icon = document.getElementById('navSearchIcon');
+  var input = document.getElementById('navSearchInput');
+  var dropdown = document.getElementById('navSearchDropdown');
+  var activeIndex = -1;
+  var currentMatches = [];
+
+  function openSearch(){
+    wrap.classList.add('open');
+    icon.setAttribute('aria-expanded', 'true');
+    input.focus();
+  }
+  function closeSearch(){
+    wrap.classList.remove('open');
+    icon.setAttribute('aria-expanded', 'false');
+    dropdown.hidden = true;
+    input.value = '';
+    activeIndex = -1;
+  }
+  icon.addEventListener('click', function(){
+    wrap.classList.contains('open') ? closeSearch() : openSearch();
+  });
+
+  function updateActive(){
+    dropdown.querySelectorAll('.nsd-item').forEach(function(el, i){
+      el.classList.toggle('active', i === activeIndex);
+    });
+  }
+
+  function renderDropdown(){
+    var q = input.value.trim().toLowerCase();
+    activeIndex = -1;
+    if (!q) { dropdown.hidden = true; return; }
+    currentMatches = searchIndex.filter(function(item){
+      return item.name.toLowerCase().indexOf(q) !== -1 || item.context.toLowerCase().indexOf(q) !== -1;
+    }).slice(0, 6);
+
+    if (!currentMatches.length) {
+      dropdown.innerHTML = '<div class="nsd-empty">No matches for "' + input.value.trim() + '"</div>';
+    } else {
+      dropdown.innerHTML = currentMatches.map(function(item, i){
+        return '<div class="nsd-item" data-index="' + i + '"><div class="nsd-item-icon">' + searchTypeIcon[item.type] + '</div><div class="nsd-item-text"><div class="nsd-item-name">' + item.name + '</div><div class="nsd-item-context">' + item.context + '</div></div></div>';
+      }).join('') + '<button class="nsd-viewall" id="nsdViewAll">View all results for "' + input.value.trim() + '"</button>';
+
+      dropdown.querySelectorAll('.nsd-item').forEach(function(el){
+        el.addEventListener('click', function(){
+          goToResults(currentMatches[parseInt(el.dataset.index, 10)].name);
+        });
+      });
+      document.getElementById('nsdViewAll').addEventListener('click', function(){
+        goToResults(input.value.trim());
+      });
+    }
+    dropdown.hidden = false;
+  }
+
+  function goToResults(query){
+    closeSearch();
+    if (window.microverseGoToSearch) window.microverseGoToSearch(query);
+  }
+
+  input.addEventListener('input', renderDropdown);
+  input.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') { closeSearch(); return; }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (activeIndex >= 0 && currentMatches[activeIndex]) {
+        goToResults(currentMatches[activeIndex].name);
+      } else if (input.value.trim()) {
+        goToResults(input.value.trim());
+      }
+      return;
+    }
+    if (!currentMatches.length) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      activeIndex = Math.min(activeIndex + 1, currentMatches.length - 1);
+      updateActive();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      activeIndex = Math.max(activeIndex - 1, 0);
+      updateActive();
+    }
+  });
+
+  document.addEventListener('click', function(e){
+    if (wrap.classList.contains('open') && !wrap.contains(e.target)) closeSearch();
+  });
+})();
+
+// ---------- Search: results page ----------
+(function(){
+  var input = document.getElementById('srPageInput');
+  if (!input) return;
+  var list = document.getElementById('srList');
+  var count = document.getElementById('srCount');
+  var tabs = document.querySelectorAll('#srTabs .tab');
+  var activeFilter = 'all';
+
+  function render(){
+    var q = input.value.trim().toLowerCase();
+    var results = searchIndex.filter(function(item){
+      var matchesQuery = !q || item.name.toLowerCase().indexOf(q) !== -1 || item.context.toLowerCase().indexOf(q) !== -1;
+      var matchesFilter = activeFilter === 'all' || item.type === activeFilter;
+      return matchesQuery && matchesFilter;
+    });
+    count.textContent = results.length + ' result' + (results.length === 1 ? '' : 's') + (q ? ' for "' + input.value.trim() + '"' : '');
+    if (!results.length) {
+      list.innerHTML = '<div class="sr-empty">No results for "' + input.value.trim() + '".</div>';
+      return;
+    }
+    list.innerHTML = results.map(function(item){
+      var badge = item.status ? '<span class="badge ' + searchBadgeClass[item.status] + '">' + searchBadgeLabel[item.status] + '</span>' : '';
+      var typeLabel = item.type.charAt(0).toUpperCase() + item.type.slice(1);
+      return '<div class="sr-item"><div class="sr-item-icon">' + searchTypeIcon[item.type] + '</div><div class="sr-item-body"><p class="sr-item-name">' + item.name + '</p><p class="sr-item-context">' + typeLabel + ' · ' + item.context + '</p></div><div class="sr-item-badge">' + badge + '</div></div>';
+    }).join('');
+  }
+
+  input.addEventListener('input', render);
+  tabs.forEach(function(tab){
+    tab.addEventListener('click', function(){
+      tabs.forEach(function(t){ t.classList.toggle('active', t === tab); });
+      activeFilter = tab.dataset.filter;
+      render();
+    });
+  });
+
+  window.microverseGoToSearch = function(query){
+    document.getElementById('searchresults').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    input.value = query;
+    render();
+  };
+
+  render();
 })();
 </script>
 

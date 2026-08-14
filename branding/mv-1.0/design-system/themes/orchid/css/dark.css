@@ -1,0 +1,39 @@
+/*
+ * Microverse theme: Orchid — Dark ("Cloud")
+ *
+ * Dark-mode values for ../../../tokens.css's --mv-* color tokens, scoped
+ * to [data-brand-theme="orchid"]. Mode-invariant tokens (secondary/
+ * success/danger/avatar/primary-contrast/bg-image) live in ./light.css
+ * since they don't change here — this file only overrides what dark
+ * mode actually changes.
+ *
+ * Values match ../../../mock-ups/design-system-orchid.html.
+ */
+
+@media (prefers-color-scheme: dark) {
+  [data-brand-theme="orchid"] {
+    --mv-color-primary: #cd7eae;
+    --mv-bg: #1b100e;
+    --mv-bg-elevated: #261815;
+    --mv-text: #f5e2da;
+    --mv-text-muted: #cba69c;
+    --mv-border: #432a26;
+    --mv-badge-bg: #f1dfd9; /* swapped with light.css's value — too close to bg-elevated otherwise */
+    --mv-badge-text: #836259;
+    --mv-shadow-sm: 0 1px 2px rgba(33, 15, 14, 0.5);
+    --mv-shadow: 0 8px 24px rgba(33, 15, 14, 0.6);
+  }
+}
+
+[data-brand-theme="orchid"][data-theme="dark"] {
+  --mv-color-primary: #cd7eae;
+  --mv-bg: #1b100e;
+  --mv-bg-elevated: #261815;
+  --mv-text: #f5e2da;
+  --mv-text-muted: #cba69c;
+  --mv-border: #432a26;
+  --mv-badge-bg: #f1dfd9;
+  --mv-badge-text: #836259;
+  --mv-shadow-sm: 0 1px 2px rgba(33, 15, 14, 0.5);
+  --mv-shadow: 0 8px 24px rgba(33, 15, 14, 0.6);
+}
