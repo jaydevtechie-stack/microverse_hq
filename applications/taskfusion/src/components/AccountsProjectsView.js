@@ -103,7 +103,7 @@ const AccountAccordion = ({
                   return (
                     <div
                       key={project.id}
-                      onClick={() => onSelectProject(project.id)}
+                      onClick={() => onSelectProject(project.id, account.id)}
                       style={{
                         display: 'flex',
                         flexDirection: 'column',
@@ -169,8 +169,8 @@ const smallOutlineButtonStyle = {
 // but this component only has the flat accounts list in scope, not a
 // per-account PM lookup, so a small dedicated fetch is simpler than
 // threading that through.
-const ProjectDetail = ({ project, canApprove, onApprove, approving, canManageProject, onAssignPm, onDeactivate, onBulkNoIndex, onSelectTask }) => {
-  const { t } = useTranslation('accounts');
+const ProjectDetail = ({ project, canApprove, onApprove, approving, canManageProject, onAssignPm, onDeactivate, onBulkNoIndex, onSelectTask, onBack }) => {
+  const { t } = useTranslation(['accounts', 'common']);
   const [pmCandidates, setPmCandidates] = useState(null);
   const [pmCandidatesError, setPmCandidatesError] = useState(null);
   const [pmPicked, setPmPicked] = useState('');
@@ -264,6 +264,11 @@ const ProjectDetail = ({ project, canApprove, onApprove, approving, canManagePro
 
   return (
   <>
+    {onBack && (
+      <span onClick={onBack} style={{ color: 'var(--mv-color-primary)', fontSize: 12, cursor: 'pointer', display: 'block', marginBottom: 14 }}>
+        {t('common:back')}
+      </span>
+    )}
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 4px' }}>
       <p style={{ color: 'var(--mv-text)', fontSize: 15, fontWeight: 500, margin: 0 }}>{project.name}</p>
       <ProjectStatusBadge status={project.status} />
@@ -775,6 +780,13 @@ const AccountsProjectsView = ({
 
   useEffect(() => {
     if (selection?.type !== 'project' && selection?.type !== 'account') return;
+    // Guard against a stale response landing after a newer one — e.g.
+    // clicking an Account (which now also fetches, canViewAccountDetail)
+    // and then quickly clicking one of its Projects before that first
+    // fetch resolves. Without this, the late account-shaped response
+    // could overwrite the already-loaded project `detail`, and
+    // ProjectDetail would crash on `project.tasks` being undefined.
+    let cancelled = false;
     setDetail(null);
     const url = selection.type === 'project' ? `/api/projects/${selection.id}` : `/api/accounts/${selection.id}`;
     fetch(url, { headers: authHeaders() })
@@ -782,8 +794,15 @@ const AccountsProjectsView = ({
         if (!res.ok) throw new Error(`task-service returned ${res.status}`);
         return res.json();
       })
-      .then(setDetail)
-      .catch((err) => setError(err.message));
+      .then((data) => {
+        if (!cancelled) setDetail(data);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [selection]);
 
   const toggleAccount = (accountId) => {
@@ -937,7 +956,7 @@ const AccountsProjectsView = ({
             expanded={expanded}
             onToggle={toggleAccount}
             selection={selection}
-            onSelectProject={(id) => setSelection({ type: 'project', id })}
+            onSelectProject={(id, accountId) => setSelection({ type: 'project', id, accountId })}
             onNewProject={(accountId) => setSelection({ type: 'newProject', accountId })}
             canCreateProject={canCreateProject}
             canViewAccountDetail={canViewAccountDetail}
@@ -971,7 +990,14 @@ const AccountsProjectsView = ({
                   onAssignPm={handleAssignPm}
                   onDeactivate={handleDeactivate}
                   onBulkNoIndex={handleBulkNoIndex}
-                  onSelectTask={(taskId) => setSelection({ type: 'task', id: taskId, projectId: selection.id })}
+                  onSelectTask={(taskId) =>
+                    setSelection({ type: 'task', id: taskId, projectId: selection.id, accountId: selection.accountId })
+                  }
+                  onBack={
+                    canViewAccountDetail && selection.accountId
+                      ? () => setSelection({ type: 'account', id: selection.accountId })
+                      : undefined
+                  }
                 />
               )
             );
@@ -980,7 +1006,7 @@ const AccountsProjectsView = ({
             return (
               <InlineTaskDetail
                 taskId={selection.id}
-                onBack={() => setSelection({ type: 'project', id: selection.projectId })}
+                onBack={() => setSelection({ type: 'project', id: selection.projectId, accountId: selection.accountId })}
               />
             );
           }
