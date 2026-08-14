@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
-import { IconChevronDown, IconChevronRight } from '@tabler/icons-react';
+import { IconBuilding, IconChevronDown, IconChevronRight } from '@tabler/icons-react';
 import { authHeaders } from '../services/keycloak';
 import SplitView from './SplitView';
 import InlineTaskDetail from './InlineTaskDetail';
@@ -37,7 +37,21 @@ const ProjectStatusBadge = ({ status }) => {
 // Account's Projects. `canCreateProject` shows a "+ New project" link
 // under each Account's project list (customer view only — projects are
 // customer-initiated, see project-routes.js's POST /projects).
-const AccountAccordion = ({ accounts, expanded, onToggle, selection, onSelectProject, onNewProject, canCreateProject }) => {
+// `canViewAccountDetail` (account-manager only) additionally selects
+// the Account itself when its header row is clicked, alongside the
+// expand/collapse toggle — AccountDetail then renders in the split
+// view's right pane, same as clicking a Project already does.
+const AccountAccordion = ({
+  accounts,
+  expanded,
+  onToggle,
+  selection,
+  onSelectProject,
+  onNewProject,
+  canCreateProject,
+  canViewAccountDetail,
+  onSelectAccount,
+}) => {
   const { t } = useTranslation('accounts');
   return (
   <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -47,16 +61,21 @@ const AccountAccordion = ({ accounts, expanded, onToggle, selection, onSelectPro
     <div style={{ overflowY: 'auto', flex: 1 }}>
       {accounts.map((account) => {
         const isOpen = expanded.has(account.id);
+        const isAccountSelected = selection?.type === 'account' && selection.id === account.id;
         return (
           <div key={account.id} style={{ borderBottom: '0.5px solid var(--mv-border)' }}>
             <div
-              onClick={() => onToggle(account.id)}
+              onClick={() => {
+                onToggle(account.id);
+                if (canViewAccountDetail) onSelectAccount(account.id);
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 8,
                 padding: '12px 16px',
                 cursor: 'pointer',
+                background: isAccountSelected ? 'var(--mv-bg)' : 'transparent',
               }}
             >
               {isOpen ? (
@@ -457,6 +476,87 @@ const ProjectDetail = ({ project, canApprove, onApprove, approving, canManagePro
   );
 };
 
+// Account-manager-only (`canViewAccountDetail`) — shows when an
+// Account's own header row is clicked, alongside the accordion
+// expanding to its Projects (AccountAccordion does both from the same
+// click). Fetches GET /accounts/:id fresh rather than reusing the
+// flat `accounts` list's row, since that route additionally returns
+// `pms`/`customers`/`engagement` the list response doesn't carry.
+const AccountDetail = ({ account, onClose }) => {
+  const { t } = useTranslation(['accounts', 'common']);
+  return (
+  <>
+    <span onClick={onClose} style={{ color: 'var(--mv-color-primary)', fontSize: 12, cursor: 'pointer' }}>
+      {t('common:back')}
+    </span>
+
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '14px 0 18px' }}>
+      <div
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 10,
+          background: 'var(--mv-color-primary)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        <IconBuilding size={18} color="var(--mv-color-primary-contrast)" />
+      </div>
+      <div>
+        <p style={{ color: 'var(--mv-text)', fontSize: 15, fontWeight: 500, margin: 0 }}>{account.name}</p>
+        <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '2px 0 0' }}>
+          {account.type === 'company' ? t('newAccountForm.typeCompany') : t('newAccountForm.typeIndividual')}
+        </p>
+      </div>
+    </div>
+
+    <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>{t('accountDetail.assignedPmsLabel')}</p>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 18 }}>
+      {account.pms.length === 0 && (
+        <span style={{ color: 'var(--mv-badge-bg)', fontSize: 12 }}>{t('accountDetail.noPmsYet')}</span>
+      )}
+      {account.pms.map((pm) => (
+        <span
+          key={pm.id}
+          style={{
+            padding: '4px 10px',
+            fontSize: 11,
+            borderRadius: 12,
+            background: 'color-mix(in srgb, var(--mv-color-primary) 15%, transparent)',
+            color: 'var(--mv-color-primary)',
+          }}
+        >
+          {pm.name}
+        </span>
+      ))}
+    </div>
+
+    <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 8px' }}>{t('accountDetail.projectsLabel')}</p>
+    {account.projects.length === 0 && (
+      <p style={{ color: 'var(--mv-badge-bg)', fontSize: 12 }}>{t('noProjectsYet')}</p>
+    )}
+    {account.projects.map((project) => (
+      <div
+        key={project.id}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          padding: '8px 4px',
+          borderBottom: '0.5px solid var(--mv-border)',
+        }}
+      >
+        <span style={{ color: 'var(--mv-text)', fontSize: 12, flex: 1 }}>{project.name}</span>
+        <span style={{ color: 'var(--mv-text-muted)', fontSize: 11 }}>{project.payment_terms || '—'}</span>
+      </div>
+    ))}
+  </>
+  );
+};
+
 const fieldLabelStyle = { color: 'var(--mv-text-muted)', fontSize: 12, display: 'block', marginBottom: 6 };
 const fieldInputStyle = {
   width: '100%',
@@ -649,6 +749,7 @@ const AccountsProjectsView = ({
   canCreateAccount = false,
   canApproveProject = false,
   canManageProject = false,
+  canViewAccountDetail = false,
 }) => {
   const { t } = useTranslation('accounts');
   const [accounts, setAccounts] = useState(null);
@@ -673,9 +774,10 @@ const AccountsProjectsView = ({
   }, []);
 
   useEffect(() => {
-    if (selection?.type !== 'project') return;
+    if (selection?.type !== 'project' && selection?.type !== 'account') return;
     setDetail(null);
-    fetch(`/api/projects/${selection.id}`, { headers: authHeaders() })
+    const url = selection.type === 'project' ? `/api/projects/${selection.id}` : `/api/accounts/${selection.id}`;
+    fetch(url, { headers: authHeaders() })
       .then((res) => {
         if (!res.ok) throw new Error(`task-service returned ${res.status}`);
         return res.json();
@@ -838,6 +940,8 @@ const AccountsProjectsView = ({
             onSelectProject={(id) => setSelection({ type: 'project', id })}
             onNewProject={(accountId) => setSelection({ type: 'newProject', accountId })}
             canCreateProject={canCreateProject}
+            canViewAccountDetail={canViewAccountDetail}
+            onSelectAccount={(id) => setSelection({ type: 'account', id })}
           />
         }
         detailPanel={(() => {
@@ -879,6 +983,9 @@ const AccountsProjectsView = ({
                 onBack={() => setSelection({ type: 'project', id: selection.projectId })}
               />
             );
+          }
+          if (selection.type === 'account') {
+            return detail && <AccountDetail account={detail} onClose={() => setSelection(null)} />;
           }
           return null;
         })()}

@@ -9,13 +9,14 @@ import usePageMeta from '../hooks/usePageMeta';
 // account-managers create Accounts (not Projects, that's
 // customer-initiated), approve the dormant Projects customers propose,
 // and (4.7) assign a Project's responsible PM / deactivate a Project.
-// Renamed from AmCustomersPage (route /am/customers -> /accounts/manage)
-// — "Am" prefix read as an unrelated abbreviation out of context, and
-// the manage/view split now lives in the URL itself rather than the
-// component name.
+// Renamed from AmCustomersPage (route /am/customers -> /accounts/manage
+// -> /projects/manage) — "Am" prefix read as an unrelated abbreviation
+// out of context, and the manage/view split now lives in the URL
+// itself rather than the component name. Later moved under /projects
+// since assigning a Project's PM is the defining action here.
 const AccountsManagePage = () => {
   usePageMeta({ title: 'Microverse - Accounts' });
-  return <AccountsProjectsView canCreateAccount canApproveProject canManageProject />;
+  return <AccountsProjectsView canCreateAccount canApproveProject canManageProject canViewAccountDetail />;
 };
 
 export default AccountsManagePage;

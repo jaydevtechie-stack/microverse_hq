@@ -9,8 +9,8 @@ import usePageMeta from '../hooks/usePageMeta';
 // a new Project under any of them — starts dormant, pending
 // account-manager approval (see AccountsProjectsView). Renamed from
 // CustomerPage (route /customer -> /accounts/view, 4.6) — pairs with
-// AccountsManagePage's /accounts/manage as the two role-scoped views
-// over the same shared component.
+// AccountsManagePage (now at /projects/manage) as the two role-scoped
+// views over the same shared component.
 const AccountsViewPage = () => {
   usePageMeta({ title: 'Microverse - Accounts' });
   return <AccountsProjectsView canCreateProject />;

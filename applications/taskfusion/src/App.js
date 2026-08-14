@@ -211,7 +211,7 @@ const App = () => {
                 ownership + per-task service scope) — see ARCHITECTURE.md.
                 Same gate reused across all of PM's 4.3 nav items below. */}
             <Route
-              path="/pm/projects"
+              path="/projects/list"
               element={
                 <PrivateRoute
                   element={<ProjectHubPage />}
@@ -251,7 +251,7 @@ const App = () => {
                 provisioned in Keycloak, so these routes exist but
                 nobody can reach them until the role is granted. */}
             <Route
-              path="/accounts/manage"
+              path="/projects/manage"
               element={
                 <PrivateRoute
                   element={<AccountsManagePage />}

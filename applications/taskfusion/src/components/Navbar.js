@@ -96,7 +96,7 @@ const Navbar = ({ keycloak }) => {
           docs/architecture/1.0/nav-config.json. */}
       {isPMWithServiceScope && (
         <>
-          <PlatformNavLink to="/pm/projects" active={pathname === '/pm/projects'}>
+          <PlatformNavLink to="/projects/list" active={pathname === '/projects/list'}>
             {t('projects')}
           </PlatformNavLink>
           <PlatformNavLink to="/pm/orders" active={pathname === '/pm/orders'}>
@@ -112,7 +112,7 @@ const Navbar = ({ keycloak }) => {
           moved from Admin, account-manager-scoped. */}
       {isAccountManager && (
         <>
-          <PlatformNavLink to="/accounts/manage" active={pathname === '/accounts/manage'}>
+          <PlatformNavLink to="/projects/manage" active={pathname === '/projects/manage'}>
             {t('accounts')}
           </PlatformNavLink>
           <PlatformNavLink to="/am/billing" active={pathname === '/am/billing'}>
