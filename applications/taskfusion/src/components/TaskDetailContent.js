@@ -189,47 +189,90 @@ const TaskDetailContent = ({ id }) => {
     ? task.project_managers.map((pm) => pm.name).join(', ')
     : null;
 
-  // One compact line, not a stacked table — metadata is context for the
-  // order, not the point of the page. Wraps naturally at narrow widths;
-  // "·" separators instead of borders/rows.
-  const metaFields = [
-    [t('taskDetail.meta.service'), task.service],
-    // customer_name/project_name (4.6) — findById now joins these in;
-    // both can be null (a dummy/seeded task with no real customer_id,
-    // or one never attached to a Project), same '—' fallback as the
-    // other optional fields below.
-    [t('taskDetail.meta.customer'), task.customer_name || '—'],
-    // assignee_name/owner_name (follow-up) — assignee/owner are emails
-    // on the raw task row; findById now joins the matching user's name
-    // by email, falling back to the raw email itself if that lookup
-    // comes back empty (an email that isn't a synced user), same as
-    // the pre-existing 'unassigned'/'—' fallbacks for a null value.
-    [t('taskDetail.meta.assignee'), task.assignee_name || task.assignee || t('taskDetail.meta.unassigned')],
-    [t('taskDetail.meta.owner'), task.owner_name || task.owner || '—'],
-    ...(projectManagerNames ? [[t('taskDetail.meta.projectManager'), projectManagerNames]] : []),
-    ...(task.project_name ? [[t('taskDetail.meta.project'), task.project_name]] : []),
-    [t('taskDetail.meta.due'), task.due_date ? new Date(task.due_date).toLocaleDateString() : '—'],
-    ...(task.closed_at ? [[t('taskDetail.meta.closed'), new Date(task.closed_at).toLocaleDateString()]] : []),
-    [t('taskDetail.meta.created'), new Date(task.created_at).toLocaleDateString()],
+  // Grouped card-grid, not a single compact line — matches the
+  // design-system's updated task metadata area (Context/People/Timeline
+  // groups of info-card label+value pairs, see design-system-orchid.html's
+  // .md-meta/.md-meta-group/.info-card).
+  const metaGroups = [
+    {
+      label: t('taskDetail.meta.groupContext'),
+      fields: [
+        // project_name (4.6) — findById now joins this in; can be null
+        // (a task never attached to a Project), so only shown when set.
+        ...(task.project_name ? [[t('taskDetail.meta.project'), task.project_name]] : []),
+        [t('taskDetail.meta.service'), task.service],
+      ],
+    },
+    {
+      label: t('taskDetail.meta.groupPeople'),
+      fields: [
+        // assignee_name/owner_name (follow-up) — assignee/owner are
+        // emails on the raw task row; findById now joins the matching
+        // user's name by email, falling back to the raw email itself if
+        // that lookup comes back empty (an email that isn't a synced
+        // user), same as the pre-existing 'unassigned'/'—' fallbacks for
+        // a null value.
+        [t('taskDetail.meta.assignee'), task.assignee_name || task.assignee || t('taskDetail.meta.unassigned')],
+        ...(projectManagerNames ? [[t('taskDetail.meta.projectManager'), projectManagerNames]] : []),
+        // customer_name (4.6) — can be null (a dummy/seeded task with no
+        // real customer_id), same '—' fallback as owner below.
+        [t('taskDetail.meta.customer'), task.customer_name || '—'],
+        [t('taskDetail.meta.owner'), task.owner_name || task.owner || '—'],
+      ],
+    },
+    {
+      label: t('taskDetail.meta.groupTimeline'),
+      fields: [
+        [t('taskDetail.meta.created'), new Date(task.created_at).toLocaleDateString()],
+        [t('taskDetail.meta.due'), task.due_date ? new Date(task.due_date).toLocaleDateString() : '—'],
+        ...(task.closed_at ? [[t('taskDetail.meta.closed'), new Date(task.closed_at).toLocaleDateString()]] : []),
+      ],
+    },
   ];
+
+  const metaGroupLabelStyle = {
+    fontSize: 10.5,
+    textTransform: 'uppercase',
+    letterSpacing: '0.07em',
+    color: 'var(--mv-badge-bg)',
+    margin: '0 0 8px',
+  };
 
   return (
     <>
-      <p
-        style={{
-          color: 'var(--mv-text-muted)',
-          fontSize: 12,
-          lineHeight: 1.7,
-          margin: '14px 0 12px',
-        }}
-      >
-        {metaFields.map(([label, value], i) => (
-          <React.Fragment key={label}>
-            {i > 0 && ' · '}
-            {label}: <span style={{ color: 'var(--mv-text)' }}>{value}</span>
-          </React.Fragment>
+      <div style={{ margin: '14px 0 20px' }}>
+        {metaGroups.map((group) => (
+          <div key={group.label} style={{ marginBottom: 14 }}>
+            <p style={metaGroupLabelStyle}>{group.label}</p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              {group.fields.map(([label, value]) => (
+                <div
+                  key={label}
+                  style={{
+                    background: 'var(--mv-bg)',
+                    border: '0.5px solid var(--mv-border)',
+                    borderRadius: 8,
+                    padding: '10px 12px',
+                  }}
+                >
+                  <p
+                    style={{
+                      fontSize: 10.5,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.06em',
+                      color: 'var(--mv-badge-bg)',
+                      margin: '0 0 4px',
+                    }}
+                  >
+                    {label}
+                  </p>
+                  <p style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--mv-text)', margin: 0 }}>{value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         ))}
-      </p>
+      </div>
 
       {canToggleNoIndex && (
         <button
