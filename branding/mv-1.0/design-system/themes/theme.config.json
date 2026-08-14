@@ -9,6 +9,18 @@
       "description": "Base Microverse theme, blue primary. No cultural narrative by design — every other theme starts here and swaps the palette."
     },
     {
+      "id": "default_v1",
+      "label": "Default v1",
+      "modeLabels": { "light": "Light", "dark": "Dark" },
+      "description": "Same palette as \"default\" (Fraunces/Manrope, blue #2B5FD9), canonized under its own explicit id so it can be selected side by side with default_v2."
+    },
+    {
+      "id": "default_v2",
+      "label": "Default v2",
+      "modeLabels": { "light": "Light", "dark": "Dark" },
+      "description": "Alternate default palette matching tokens.css's own :root values directly — Lato instead of Fraunces/Manrope, cyan #0EA5D9 primary."
+    },
+    {
       "id": "vienna",
       "label": "Vienna",
       "modeLabels": { "light": "Day", "dark": "Night" },
