@@ -58,6 +58,11 @@
   },
   "loadError": "Couldn't load accounts: {{error}}",
   "loading": "Loading accounts…",
+  "accountDetail": {
+    "assignedPmsLabel": "Assigned PMs",
+    "noPmsYet": "No PMs assigned yet",
+    "projectsLabel": "Projects"
+  },
   "billingPlaceholder": {
     "title": "Billing",
     "note": "Coming soon — account-manager-scoped billing: contract terms, invoicing status for the Accounts this AM owns."

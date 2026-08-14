@@ -16,7 +16,7 @@ import usePageMeta from '../hooks/usePageMeta';
 // since assigning a Project's PM is the defining action here.
 const AccountsManagePage = () => {
   usePageMeta({ title: 'Microverse - Accounts' });
-  return <AccountsProjectsView canCreateAccount canApproveProject canManageProject />;
+  return <AccountsProjectsView canCreateAccount canApproveProject canManageProject canViewAccountDetail />;
 };
 
 export default AccountsManagePage;
