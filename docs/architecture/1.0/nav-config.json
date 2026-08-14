@@ -9,7 +9,7 @@
           "id": "accounts",
           "label": "Accounts",
           "route": "/accounts/view",
-          "notes": "This item was missing from an earlier draft of this config — Navbar.js already had it. Own Accounts, accordion into each Account's Projects, click through to a Project's Tasks (4.6). Renamed from /customer in 4.6 to pair with account-manager's /accounts/manage over the same AccountsProjectsView component."
+          "notes": "This item was missing from an earlier draft of this config — Navbar.js already had it. Own Accounts, accordion into each Account's Projects, click through to a Project's Tasks (4.6). Renamed from /customer in 4.6 to pair with account-manager's Customers view (now at /projects/manage) over the same AccountsProjectsView component."
         },
         { "id": "services", "label": "Services", "route": "/services" },
         {
@@ -54,8 +54,8 @@
         {
           "id": "projects",
           "label": "Projects",
-          "route": "/pm/projects",
-          "notes": "The contract/delivery unit (see docs/business/1.0/overview.md — 'a Project is the contract unit'). Restored in 4.3; was dropped from an earlier draft of this config in error. Master-detail split view: list of Projects the PM owns (via pm_accounts + service scope), detail shows that Project's Orders/Tasks."
+          "route": "/projects/list",
+          "notes": "The contract/delivery unit (see docs/business/1.0/overview.md — 'a Project is the contract unit'). Restored in 4.3; was dropped from an earlier draft of this config in error. Master-detail split view: list of Projects the PM owns (via pm_accounts + service scope), detail shows that Project's Orders/Tasks. Moved from /pm/projects to /projects/list; dropped the former Accounts tab (same ownership-scoped data as this list, just re-grouped — redundant for a PM)."
         },
         {
           "id": "orders",
@@ -81,8 +81,8 @@
         {
           "id": "customers",
           "label": "Customers",
-          "route": "/accounts/manage",
-          "notes": "Account-level view — contacts, services engaged, cross-sell/upsell visibility (see docs/business/1.0/overview.md's Account management section). Master-detail split view: list of Accounts, detail shows that Account's engagement history. Renamed from /am/customers (AmCustomersPage) in 4.6 — pairs with platform:customer's /accounts/view over the same AccountsProjectsView component."
+          "route": "/projects/manage",
+          "notes": "Account-level view — contacts, services engaged, cross-sell/upsell visibility (see docs/business/1.0/overview.md's Account management section). Master-detail split view: list of Accounts, detail shows that Account's engagement history. Renamed from /am/customers (AmCustomersPage) in 4.6, then /accounts/manage -> /projects/manage — assigning a Project's PM is the defining account-manager action here, hence the /projects prefix even though the list itself starts from Accounts."
         },
         {
           "id": "billing",
