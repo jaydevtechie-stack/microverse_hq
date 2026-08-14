@@ -4,11 +4,9 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { IconSearch } from '@tabler/icons-react';
 import { authHeaders } from '../services/keycloak';
-import { STATUS_STYLE } from '../components/TaskStatusBadge';
 import usePageMeta from '../hooks/usePageMeta';
 
 const PAGE_SIZE = 10;
-const STATUS_KEYS = Object.keys(STATUS_STYLE);
 
 // Search results page (6.6) — same scoped GET /api/search endpoint as
 // the navbar's suggest dropdown (6.5) and 6.4 itself, just with a full
@@ -23,7 +21,6 @@ const SearchResultsPage = () => {
 
   const urlQuery = searchParams.get('q') || '';
   const [inputValue, setInputValue] = useState(urlQuery);
-  const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
   const [result, setResult] = useState(null); // { hits, total, page, size }
   const [error, setError] = useState(null);
@@ -46,7 +43,6 @@ const SearchResultsPage = () => {
       page: String(page),
       size: String(PAGE_SIZE),
     });
-    if (status) params.set('status', status);
 
     fetch(`/api/search?${params.toString()}`, { headers: authHeaders() })
       .then((res) => {
@@ -58,7 +54,7 @@ const SearchResultsPage = () => {
         setError(null);
       })
       .catch((err) => setError(err.message));
-  }, [urlQuery, status, page]);
+  }, [urlQuery, page]);
 
   const submitQuery = (e) => {
     e.preventDefault();
@@ -108,33 +104,6 @@ const SearchResultsPage = () => {
           }}
         />
       </form>
-
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
-        {['', ...STATUS_KEYS].map((key) => {
-          const isActive = status === key;
-          return (
-            <button
-              key={key || 'all'}
-              type="button"
-              onClick={() => {
-                setStatus(key);
-                setPage(1);
-              }}
-              style={{
-                padding: '5px 12px',
-                fontSize: 12,
-                borderRadius: 'var(--mv-radius)',
-                border: '0.5px solid var(--mv-border)',
-                background: isActive ? 'var(--mv-bg)' : 'transparent',
-                color: isActive ? 'var(--mv-text)' : 'var(--mv-text-muted)',
-                cursor: 'pointer',
-              }}
-            >
-              {key || t('resultsPage.statusAll')}
-            </button>
-          );
-        })}
-      </div>
 
       {!urlQuery.trim() && (
         <p style={{ color: 'var(--mv-text-muted)', fontSize: 13 }}>{t('resultsPage.prompt')}</p>

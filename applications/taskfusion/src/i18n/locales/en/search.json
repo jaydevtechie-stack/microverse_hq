@@ -13,7 +13,6 @@
     "empty": "No results for \"{{query}}\".",
     "prompt": "Type a query above to search.",
     "loadError": "Couldn't search: {{error}}",
-    "statusAll": "All statuses",
     "prev": "Previous",
     "next": "Next",
     "pageOf": "Page {{page}} of {{totalPages}}"
