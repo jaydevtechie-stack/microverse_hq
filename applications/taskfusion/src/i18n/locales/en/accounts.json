@@ -17,6 +17,7 @@
     "paymentTermsLabel": "Payment terms",
     "tasksLabel": "Tasks",
     "noTasksYet": "No tasks under this project yet.",
+    "noTasksFiltered": "No tasks match this filter.",
     "noDueDate": "No due date",
     "assignPmLabel": "Assign project manager",
     "loadingPmCandidates": "Loading project managers…",

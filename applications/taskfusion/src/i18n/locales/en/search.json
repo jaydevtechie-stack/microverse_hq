@@ -1,0 +1,20 @@
+{
+  "navSearch": {
+    "ariaLabel": "Search",
+    "placeholder": "Search tasks…",
+    "empty": "No matches for \"{{query}}\"",
+    "viewAll": "View all results for \"{{query}}\""
+  },
+  "resultsPage": {
+    "placeholder": "Search tasks…",
+    "count_zero": "No results",
+    "count_one": "{{count}} result for \"{{query}}\"",
+    "count_other": "{{count}} results for \"{{query}}\"",
+    "empty": "No results for \"{{query}}\".",
+    "prompt": "Type a query above to search.",
+    "loadError": "Couldn't search: {{error}}",
+    "prev": "Previous",
+    "next": "Next",
+    "pageOf": "Page {{page}} of {{totalPages}}"
+  }
+}

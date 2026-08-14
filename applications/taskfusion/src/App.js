@@ -23,6 +23,7 @@ import PmOrdersPage from './pages/PmOrdersPage';
 import DeliveryTeamPage from './pages/DeliveryTeamPage';
 import AccountsManagePage from './pages/AccountsManagePage';
 import AmBillingPage from './pages/AmBillingPage';
+import SearchResultsPage from './pages/SearchResultsPage';
 
 // microverse.local carries everything platform-side (landing page,
 // /dashboard, /accounts/view — path-based). Domain services get
@@ -171,6 +172,16 @@ const App = () => {
             <Route
               path="/profile"
               element={<PrivateRoute element={<MyProfilePage />} keycloak={keycloak} />}
+            />
+
+            {/* 6.5/6.6 — global search, reachable from any host/role.
+                No roles/customCheck: 6.4's endpoint is itself the
+                permission boundary (discovery-scoped per caller's
+                service:* roles, platform:admin fails closed to no
+                scope), so this route only needs "logged in". */}
+            <Route
+              path="/search"
+              element={<PrivateRoute element={<SearchResultsPage />} keycloak={keycloak} />}
             />
 
             <Route

@@ -5,6 +5,15 @@
   "close": "Close",
   "dragToResize": "Drag to resize",
   "fileUploadFailed": "File upload failed",
+  "taskStatusFilter": {
+    "all": "All",
+    "unassigned": "Unassigned",
+    "analyst": "Analyst",
+    "reviewer": "Reviewer",
+    "done": "Done",
+    "paid": "Paid",
+    "closed": "Closed"
+  },
   "scrim": {
     "title": "Your account is deactivated",
     "note": "You can view content but can't take any action. Contact your project manager if this seems wrong.",

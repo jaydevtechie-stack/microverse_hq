@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { IconBinoculars, IconInfoCircle } from '@tabler/icons-react';
 import { authHeaders } from '../services/keycloak';
 import TaskStatusBadge from './TaskStatusBadge';
+import TaskStatusFilter from './TaskStatusFilter';
 
 const WORD_SIZES = [20, 16, 14, 13, 12];
 
@@ -31,6 +32,11 @@ const statBox = {
 
 const CandidateProfile = ({ candidate, onBack, onConfirm, confirming, confirmingText, confirmToText }) => {
   const { t } = useTranslation('gofeeler');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const filteredTasks =
+    statusFilter === 'all'
+      ? candidate.active_tasks
+      : candidate.active_tasks.filter((task) => task.status === statusFilter);
   return (
   <div>
     <span onClick={onBack} style={{ color: 'var(--mv-color-primary)', fontSize: 12, cursor: 'pointer' }}>
@@ -88,7 +94,15 @@ const CandidateProfile = ({ candidate, onBack, onConfirm, confirming, confirming
     {candidate.active_tasks.length === 0 && (
       <p style={{ color: 'var(--mv-badge-bg)', fontSize: 12 }}>{t('panels.pmAssign.noActiveTasks')}</p>
     )}
-    {candidate.active_tasks.map((task) => (
+    {candidate.active_tasks.length > 0 && (
+      <div style={{ margin: '0 0 12px' }}>
+        <TaskStatusFilter active={statusFilter} onChange={setStatusFilter} />
+      </div>
+    )}
+    {candidate.active_tasks.length > 0 && filteredTasks.length === 0 && (
+      <p style={{ color: 'var(--mv-badge-bg)', fontSize: 12 }}>{t('panels.pmAssign.noActiveTasksFiltered')}</p>
+    )}
+    {filteredTasks.map((task) => (
       // Full navigation, not an in-place swap — unlike AccountsProjectsView/
       // ProjectHubPage's own task rows, this panel isn't a split view (it's
       // embedded in the current Task's own detail view), so there's no

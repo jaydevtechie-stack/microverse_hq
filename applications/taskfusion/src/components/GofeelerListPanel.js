@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getKeycloak, authHeaders } from '../services/keycloak';
 import TaskStatusBadge from './TaskStatusBadge';
+import TaskStatusFilter from './TaskStatusFilter';
 
 // The master list — shared by the old full-page Gofeeler landing (now
 // retired in favor of GofeelerSplitView) and the split view's list
@@ -23,6 +24,7 @@ const GofeelerListPanel = ({ selectedId, refreshKey }) => {
 
   const [tasks, setTasks] = useState(null);
   const [error, setError] = useState(null);
+  const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
     fetch('/api/tasks?service=gofeeler', { headers: authHeaders() })
@@ -43,6 +45,9 @@ const GofeelerListPanel = ({ selectedId, refreshKey }) => {
     : tasks?.filter((task) =>
         isCustomer ? task.customer_id === userId : task.assignee === username
       );
+
+  const filteredTasks =
+    statusFilter === 'all' ? visibleTasks : visibleTasks?.filter((task) => task.status === statusFilter);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -76,6 +81,12 @@ const GofeelerListPanel = ({ selectedId, refreshKey }) => {
         )}
       </div>
 
+      {visibleTasks && visibleTasks.length > 0 && (
+        <div style={{ padding: '10px 16px', borderBottom: '0.5px solid var(--mv-border)' }}>
+          <TaskStatusFilter active={statusFilter} onChange={setStatusFilter} />
+        </div>
+      )}
+
       <div style={{ overflowY: 'auto', flex: 1 }}>
         {error && (
           <p style={{ color: 'var(--mv-color-danger)', fontSize: 13, padding: '12px 16px' }}>
@@ -99,7 +110,13 @@ const GofeelerListPanel = ({ selectedId, refreshKey }) => {
           </p>
         )}
 
-        {visibleTasks?.map((task) => {
+        {visibleTasks && visibleTasks.length > 0 && filteredTasks.length === 0 && (
+          <p style={{ color: 'var(--mv-text-muted)', fontSize: 13, padding: '12px 16px' }}>
+            {t('listPanel.emptyFiltered')}
+          </p>
+        )}
+
+        {filteredTasks?.map((task) => {
           const isSelected = String(task.id) === String(selectedId);
           return (
             <Link

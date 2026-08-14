@@ -6,6 +6,7 @@ import SplitView from './SplitView';
 import InlineTaskDetail from './InlineTaskDetail';
 import { ActionButtonRow, OutlineDangerButton } from './ActionButtons';
 import TaskStatusBadge from './TaskStatusBadge';
+import TaskStatusFilter from './TaskStatusFilter';
 
 const PROJECT_STATUS_STYLE = {
   active: { bg: 'var(--mv-color-success, #2f9e64)', labelKey: 'projectStatus.active' },
@@ -161,6 +162,7 @@ const ProjectDetail = ({ project, canApprove, onApprove, approving, canManagePro
   const [selectedTaskIds, setSelectedTaskIds] = useState(new Set());
   const [bulkWorking, setBulkWorking] = useState(false);
   const [bulkNoIndexError, setBulkNoIndexError] = useState(null);
+  const [statusFilter, setStatusFilter] = useState('all');
 
   // ProjectDetail doesn't remount between different Projects (no `key`
   // upstream) — reset the selection when the viewed Project itself
@@ -169,7 +171,11 @@ const ProjectDetail = ({ project, canApprove, onApprove, approving, canManagePro
   useEffect(() => {
     setSelectedTaskIds(new Set());
     setBulkNoIndexError(null);
+    setStatusFilter('all');
   }, [project.id]);
+
+  const filteredTasks =
+    statusFilter === 'all' ? project.tasks : project.tasks.filter((task) => task.status === statusFilter);
 
   useEffect(() => {
     if (!canManageProject) return;
@@ -220,7 +226,7 @@ const ProjectDetail = ({ project, canApprove, onApprove, approving, canManagePro
 
   const toggleSelectAll = () => {
     setSelectedTaskIds((prev) =>
-      prev.size === project.tasks.length ? new Set() : new Set(project.tasks.map((t) => t.id))
+      prev.size === filteredTasks.length ? new Set() : new Set(filteredTasks.map((t) => t.id))
     );
   };
 
@@ -353,11 +359,11 @@ const ProjectDetail = ({ project, canApprove, onApprove, approving, canManagePro
 
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 8px' }}>
       <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: 0 }}>{t('projectDetail.tasksLabel')}</p>
-      {canManageProject && project.tasks.length > 0 && (
+      {canManageProject && filteredTasks.length > 0 && (
         <label style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--mv-text-muted)', fontSize: 11, cursor: 'pointer' }}>
           <input
             type="checkbox"
-            checked={selectedTaskIds.size === project.tasks.length}
+            checked={selectedTaskIds.size === filteredTasks.length}
             onChange={toggleSelectAll}
           />
           {t('projectDetail.selectAll')}
@@ -366,6 +372,14 @@ const ProjectDetail = ({ project, canApprove, onApprove, approving, canManagePro
     </div>
     {project.tasks.length === 0 && (
       <p style={{ color: 'var(--mv-badge-bg)', fontSize: 12 }}>{t('projectDetail.noTasksYet')}</p>
+    )}
+    {project.tasks.length > 0 && (
+      <div style={{ margin: '0 0 12px' }}>
+        <TaskStatusFilter active={statusFilter} onChange={setStatusFilter} />
+      </div>
+    )}
+    {project.tasks.length > 0 && filteredTasks.length === 0 && (
+      <p style={{ color: 'var(--mv-badge-bg)', fontSize: 12 }}>{t('projectDetail.noTasksFiltered')}</p>
     )}
 
     {/* Reconciling an existing task set with a changed Project-level
@@ -401,7 +415,7 @@ const ProjectDetail = ({ project, canApprove, onApprove, approving, canManagePro
       </p>
     )}
 
-    {project.tasks.map((task) => (
+    {filteredTasks.map((task) => (
       <div
         key={task.id}
         onClick={() => onSelectTask(task.id)}

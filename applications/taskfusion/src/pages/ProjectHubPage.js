@@ -5,6 +5,7 @@ import SplitView from '../components/SplitView';
 import InlineTaskDetail from '../components/InlineTaskDetail';
 import { authHeaders } from '../services/keycloak';
 import TaskStatusBadge from '../components/TaskStatusBadge';
+import TaskStatusFilter from '../components/TaskStatusFilter';
 import usePageMeta from '../hooks/usePageMeta';
 
 const TAB_IDS = ['projects', 'accounts'];
@@ -109,6 +110,18 @@ const infoBox = { background: 'var(--mv-bg)', border: '0.5px solid var(--mv-bord
 
 const ProjectDetail = ({ project, onClose, onSelectTask }) => {
   const { t } = useTranslation(['projectHub', 'accounts', 'common']);
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  // ProjectDetail doesn't remount between different Projects (no `key`
+  // upstream) — reset the filter when the viewed Project changes, so a
+  // stale filter from a previous Project can't hide its tasks.
+  useEffect(() => {
+    setStatusFilter('all');
+  }, [project.id]);
+
+  const filteredTasks =
+    statusFilter === 'all' ? project.tasks : project.tasks.filter((task) => task.status === statusFilter);
+
   return (
   <>
     <span onClick={onClose} style={{ color: 'var(--mv-color-primary)', fontSize: 12, cursor: 'pointer' }}>
@@ -143,7 +156,15 @@ const ProjectDetail = ({ project, onClose, onSelectTask }) => {
         {t('noTasksVisible')}
       </p>
     )}
-    {project.tasks.map((task) => (
+    {project.tasks.length > 0 && (
+      <div style={{ margin: '0 0 12px' }}>
+        <TaskStatusFilter active={statusFilter} onChange={setStatusFilter} />
+      </div>
+    )}
+    {project.tasks.length > 0 && filteredTasks.length === 0 && (
+      <p style={{ color: 'var(--mv-badge-bg)', fontSize: 12 }}>{t('noTasksFiltered')}</p>
+    )}
+    {filteredTasks.map((task) => (
       <div
         key={task.id}
         onClick={() => onSelectTask(task.id)}
