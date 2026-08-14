@@ -3,12 +3,12 @@ import React from 'react';
 // Mirrors ARCHITECTURE.md's task workflow:
 // unassigned -> analyst -> reviewer -> done -> paid -> closed
 export const STATUS_STYLE = {
-  unassigned: { bg: 'var(--mv-badge-bg)', fg: 'var(--mv-badge-text)' },
+  unassigned: { bg: 'var(--mv-status-neutral-bg, var(--mv-badge-bg))', fg: 'var(--mv-status-neutral-text, var(--mv-badge-text))' },
   analyst: { bg: 'var(--mv-color-info)', fg: '#ffffff' },
   reviewer: { bg: 'var(--mv-color-warning)', fg: '#ffffff' },
-  done: { bg: 'var(--mv-color-success)', fg: '#ffffff' },
+  done: { bg: 'var(--mv-color-success)', fg: 'var(--mv-color-success-contrast, #ffffff)' },
   paid: { bg: 'var(--mv-color-primary)', fg: 'var(--mv-color-primary-contrast)' },
-  closed: { bg: 'var(--mv-badge-bg)', fg: 'var(--mv-badge-text)' },
+  closed: { bg: 'var(--mv-status-neutral-bg, var(--mv-badge-bg))', fg: 'var(--mv-status-neutral-text, var(--mv-badge-text))' },
 };
 
 const TaskStatusBadge = ({ status }) => {

@@ -19,7 +19,7 @@ const ROLE_COLORS = {
   },
   'platform:reviewer': { bg: 'var(--mv-color-warning)', fg: '#ffffff' },
   'platform:analyst': { bg: 'var(--mv-color-info)', fg: '#ffffff' },
-  'platform:customer': { bg: 'var(--mv-color-success)', fg: '#ffffff' },
+  'platform:customer': { bg: 'var(--mv-color-success)', fg: 'var(--mv-color-success-contrast, #ffffff)' },
   'platform:ai-agent': { bg: 'var(--mv-color-secondary)', fg: '#ffffff' },
 };
 

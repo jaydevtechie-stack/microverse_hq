@@ -25,7 +25,7 @@ const TaskStatusFilter = ({ active, onChange }) => {
               padding: '4px 10px',
               fontSize: 11,
               borderRadius: 'var(--mv-radius)',
-              border: '0.5px solid var(--mv-border)',
+              border: isActive ? '1.5px solid var(--mv-color-primary)' : '0.5px solid var(--mv-border)',
               background: isActive ? 'var(--mv-bg-elevated)' : 'transparent',
               color: isActive ? 'var(--mv-text)' : 'var(--mv-text-muted)',
               cursor: 'pointer',
