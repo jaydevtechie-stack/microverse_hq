@@ -17,6 +17,9 @@
       "shareTitle": "Share"
     },
     "meta": {
+      "groupContext": "Context",
+      "groupPeople": "People",
+      "groupTimeline": "Timeline",
       "service": "Service",
       "customer": "Customer",
       "assignee": "Assignee",
