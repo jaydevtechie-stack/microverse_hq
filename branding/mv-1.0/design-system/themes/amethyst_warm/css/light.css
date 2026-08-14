@@ -22,6 +22,7 @@
   --mv-color-primary-contrast: #ffffff;
   --mv-color-secondary: #b29b9c; /* quartz */
   --mv-color-success: #2f9e64; /* shared system success — amethyst has no green of its own */
+  --mv-color-success-contrast: #1c0f12; /* white text falls short of AA on this green — badges/avatars need a dark fg here */
   --mv-color-danger: #b8493a; /* shared system danger */
   --mv-avatar-bg: #7c3f8d;
   --mv-avatar-text: #ffffff;
@@ -33,8 +34,10 @@
   --mv-text: #1c0f12;
   --mv-text-muted: #55413e;
   --mv-border: #e2cfce;
-  --mv-badge-bg: #2a1b1a; /* swapped with dark.css's value — too close to bg-elevated otherwise */
-  --mv-badge-text: #b29b9c;
+  --mv-status-neutral-bg: #2a1b1a; /* TaskStatusBadge's neutral pill only — needs to read against bg-elevated in either mode, unlike the generic --mv-badge-bg below */
+  --mv-status-neutral-text: #b29b9c;
+  --mv-badge-bg: var(--mv-border);
+  --mv-badge-text: var(--mv-text-muted);
   --mv-shadow-sm: 0 1px 2px rgba(21, 14, 28, 0.08);
   --mv-shadow: 0 8px 24px rgba(21, 14, 28, 0.14);
 }
@@ -46,8 +49,10 @@
   --mv-text: #1c0f12;
   --mv-text-muted: #55413e;
   --mv-border: #e2cfce;
-  --mv-badge-bg: #2a1b1a;
-  --mv-badge-text: #b29b9c;
+  --mv-status-neutral-bg: #2a1b1a;
+  --mv-status-neutral-text: #b29b9c;
+  --mv-badge-bg: var(--mv-border);
+  --mv-badge-text: var(--mv-text-muted);
   --mv-shadow-sm: 0 1px 2px rgba(21, 14, 28, 0.08);
   --mv-shadow: 0 8px 24px rgba(21, 14, 28, 0.14);
 }

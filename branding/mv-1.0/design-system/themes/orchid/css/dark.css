@@ -18,8 +18,10 @@
     --mv-text: #f5e2da;
     --mv-text-muted: #cba69c;
     --mv-border: #432a26;
-    --mv-badge-bg: #f1dfd9; /* swapped with light.css's value — too close to bg-elevated otherwise */
-    --mv-badge-text: #836259;
+    --mv-status-neutral-bg: #f1dfd9; /* TaskStatusBadge's neutral pill only — needs to read against bg-elevated in either mode, unlike the generic --mv-badge-bg below */
+    --mv-status-neutral-text: #836259;
+    --mv-badge-bg: var(--mv-border);
+    --mv-badge-text: var(--mv-text-muted);
     --mv-shadow-sm: 0 1px 2px rgba(33, 15, 14, 0.5);
     --mv-shadow: 0 8px 24px rgba(33, 15, 14, 0.6);
   }
@@ -32,8 +34,10 @@
   --mv-text: #f5e2da;
   --mv-text-muted: #cba69c;
   --mv-border: #432a26;
-  --mv-badge-bg: #f1dfd9;
-  --mv-badge-text: #836259;
+  --mv-status-neutral-bg: #f1dfd9;
+  --mv-status-neutral-text: #836259;
+  --mv-badge-bg: var(--mv-border);
+  --mv-badge-text: var(--mv-text-muted);
   --mv-shadow-sm: 0 1px 2px rgba(33, 15, 14, 0.5);
   --mv-shadow: 0 8px 24px rgba(33, 15, 14, 0.6);
 }

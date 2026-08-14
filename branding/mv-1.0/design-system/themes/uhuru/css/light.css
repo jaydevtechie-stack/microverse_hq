@@ -24,6 +24,7 @@
   --mv-color-primary-contrast: #ffffff;
   --mv-color-secondary: #a99a85; /* dust */
   --mv-color-success: #1c8c4b; /* savanna — live/active status accent */
+  --mv-color-success-contrast: #14100d; /* dark fg reads better than white on this mid-tone green — badges/avatars */
   --mv-color-danger: #a83a2e; /* rust, distinct from ember on purpose */
   --mv-avatar-bg: #c1272d;
   --mv-avatar-text: #ffffff;
@@ -35,8 +36,10 @@
   --mv-text: #14100d;
   --mv-text-muted: #4a3e33;
   --mv-border: #dccfb8;
-  --mv-badge-bg: #241a14; /* swapped with dark.css's value — too close to bg-elevated otherwise */
-  --mv-badge-text: #a99a85;
+  --mv-status-neutral-bg: #241a14; /* TaskStatusBadge's neutral pill only — needs to read against bg-elevated in either mode, unlike the generic --mv-badge-bg below */
+  --mv-status-neutral-text: #a99a85;
+  --mv-badge-bg: var(--mv-border);
+  --mv-badge-text: var(--mv-text-muted);
   --mv-shadow-sm: 0 1px 2px rgba(20, 16, 13, 0.08);
   --mv-shadow: 0 8px 24px rgba(20, 16, 13, 0.16);
 }
@@ -48,8 +51,10 @@
   --mv-text: #14100d;
   --mv-text-muted: #4a3e33;
   --mv-border: #dccfb8;
-  --mv-badge-bg: #241a14;
-  --mv-badge-text: #a99a85;
+  --mv-status-neutral-bg: #241a14;
+  --mv-status-neutral-text: #a99a85;
+  --mv-badge-bg: var(--mv-border);
+  --mv-badge-text: var(--mv-text-muted);
   --mv-shadow-sm: 0 1px 2px rgba(20, 16, 13, 0.08);
   --mv-shadow: 0 8px 24px rgba(20, 16, 13, 0.16);
 }

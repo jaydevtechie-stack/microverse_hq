@@ -21,6 +21,7 @@
   --mv-color-primary-contrast: #ffffff;
   --mv-color-secondary: #bb9793; /* ash */
   --mv-color-success: #2f9e64; /* shared system success — orchid has no green of its own */
+  --mv-color-success-contrast: #210f0e; /* white text falls short of AA on this green — badges/avatars need a dark fg here */
   --mv-color-danger: #b8493a; /* shared system danger */
   --mv-avatar-bg: #8a3a73;
   --mv-avatar-text: #ffffff;
@@ -32,8 +33,10 @@
   --mv-text: #210f0e;
   --mv-text-muted: #5c3d38;
   --mv-border: #e5ccc5;
-  --mv-badge-bg: #2e1c19; /* swapped with dark.css's value — too close to bg-elevated otherwise */
-  --mv-badge-text: #bb9793;
+  --mv-status-neutral-bg: #2e1c19; /* TaskStatusBadge's neutral pill only — needs to read against bg-elevated in either mode, unlike the generic --mv-badge-bg below */
+  --mv-status-neutral-text: #bb9793;
+  --mv-badge-bg: var(--mv-border);
+  --mv-badge-text: var(--mv-text-muted);
   --mv-shadow-sm: 0 1px 2px rgba(33, 15, 14, 0.08);
   --mv-shadow: 0 8px 24px rgba(33, 15, 14, 0.14);
 }
@@ -45,8 +48,10 @@
   --mv-text: #210f0e;
   --mv-text-muted: #5c3d38;
   --mv-border: #e5ccc5;
-  --mv-badge-bg: #2e1c19;
-  --mv-badge-text: #bb9793;
+  --mv-status-neutral-bg: #2e1c19;
+  --mv-status-neutral-text: #bb9793;
+  --mv-badge-bg: var(--mv-border);
+  --mv-badge-text: var(--mv-text-muted);
   --mv-shadow-sm: 0 1px 2px rgba(33, 15, 14, 0.08);
   --mv-shadow: 0 8px 24px rgba(33, 15, 14, 0.14);
 }

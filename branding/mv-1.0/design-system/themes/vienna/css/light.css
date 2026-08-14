@@ -23,6 +23,7 @@
   --mv-color-primary-contrast: #ffffff;
   --mv-color-secondary: #a8b5a0; /* sage */
   --mv-color-success: #7fd858; /* spring — live/active status accent */
+  --mv-color-success-contrast: #0f1a14; /* this bright spring green fails white-text contrast badly (~1.8:1) — badges/avatars need a dark fg here */
   --mv-color-danger: #b8493a;
   --mv-avatar-bg: #1f6e4a;
   --mv-avatar-text: #ffffff;
@@ -34,8 +35,10 @@
   --mv-text: #0f1a14;
   --mv-text-muted: #2e4034;
   --mv-border: #dce3d8;
-  --mv-badge-bg: #1b2a21; /* swapped with dark.css's value — too close to bg-elevated otherwise */
-  --mv-badge-text: #a8b5a0;
+  --mv-status-neutral-bg: #1b2a21; /* TaskStatusBadge's neutral pill only — needs to read against bg-elevated in either mode, unlike the generic --mv-badge-bg below */
+  --mv-status-neutral-text: #a8b5a0;
+  --mv-badge-bg: var(--mv-border);
+  --mv-badge-text: var(--mv-text-muted);
   --mv-shadow-sm: 0 1px 2px rgba(15, 26, 20, 0.08);
   --mv-shadow: 0 8px 24px rgba(15, 26, 20, 0.14);
 }
@@ -47,8 +50,10 @@
   --mv-text: #0f1a14;
   --mv-text-muted: #2e4034;
   --mv-border: #dce3d8;
-  --mv-badge-bg: #1b2a21;
-  --mv-badge-text: #a8b5a0;
+  --mv-status-neutral-bg: #1b2a21;
+  --mv-status-neutral-text: #a8b5a0;
+  --mv-badge-bg: var(--mv-border);
+  --mv-badge-text: var(--mv-text-muted);
   --mv-shadow-sm: 0 1px 2px rgba(15, 26, 20, 0.08);
   --mv-shadow: 0 8px 24px rgba(15, 26, 20, 0.14);
 }

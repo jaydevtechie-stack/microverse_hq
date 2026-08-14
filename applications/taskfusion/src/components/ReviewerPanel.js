@@ -192,7 +192,7 @@ const ReviewerPanel = ({ task, onTaskUpdated }) => {
             flex: 1,
             padding: '10px 0',
             background: 'var(--mv-color-success)',
-            color: '#0b1a00',
+            color: 'var(--mv-color-success-contrast, #0b1a00)',
             fontWeight: 500,
             fontSize: 13,
             border: 'none',
