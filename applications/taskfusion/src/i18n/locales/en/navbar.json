@@ -16,5 +16,8 @@
   "closeMenu": "Close menu",
   "notifications.ariaLabel": "Notifications",
   "notifications.empty": "No notifications yet",
-  "notifications.unreadAriaLabel": "{{count}} unread notifications"
+  "notifications.unreadAriaLabel": "{{count}} unread notifications",
+  "notifications.title": "Notifications",
+  "notifications.close": "Close notifications",
+  "notifications.markAllRead": "Mark all as read"
 }

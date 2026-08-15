@@ -39,4 +39,15 @@ async function markRead(id, email) {
   return rows[0] || null;
 }
 
-module.exports = { createNotification, listForRecipient, unreadCountForRecipient, markRead };
+// The fly-in panel's footer action (design-system mock-up) — one round
+// trip rather than the frontend looping a PATCH per unread row.
+async function markAllRead(email) {
+  const { rows } = await pool.query(
+    `UPDATE notifications SET read = true
+     WHERE recipient_email = $1 AND read = false RETURNING id`,
+    [email]
+  );
+  return rows.length;
+}
+
+module.exports = { createNotification, listForRecipient, unreadCountForRecipient, markRead, markAllRead };

@@ -4,7 +4,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const { ensureSchema } = require('./db');
 const { syncClaims, claimsFromSocketToken } = require('./middleware/auth');
-const { listForRecipient, unreadCountForRecipient, markRead } = require('./models/notification');
+const { listForRecipient, unreadCountForRecipient, markRead, markAllRead } = require('./models/notification');
 const { startConsumer } = require('./events/kafka-consumer');
 
 const app = express();
@@ -33,6 +33,20 @@ app.get('/notifications', async (req, res) => {
     res.json({ notifications, unreadCount });
   } catch (err) {
     res.status(500).json({ message: 'Error fetching notifications', error: err.message });
+  }
+});
+
+// Registered ahead of the /:id route below — Express would otherwise
+// match "read-all" as an :id param first.
+app.patch('/notifications/read-all', async (req, res) => {
+  const email = req.claims?.email;
+  if (!email) return res.status(401).json({ message: 'Missing or unparseable Authorization token' });
+
+  try {
+    const updated = await markAllRead(email);
+    res.json({ updated });
+  } catch (err) {
+    res.status(500).json({ message: 'Error updating notifications', error: err.message });
   }
 });
 
