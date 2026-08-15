@@ -372,7 +372,7 @@ services:
 
 
   microverse-email-service:
-    profiles: ["email-service"]
+    profiles: ["gofeeler", "email-service"]
     build:
       context: ./platform-services/email-service
     container_name: microverse-email-service
@@ -385,11 +385,23 @@ services:
       - microverse-network
 
 
+  # Branch 7 — Kafka-driven notification pipeline (task-service.tasks,
+  # second consumer group alongside search-service's) + its own
+  # notifications table on the shared microverse-postgis instance.
   microverse-notification-service:
-    profiles: ["notification-service"]
+    profiles: ["gofeeler", "notification-service"]
     build:
       context: ./platform-services/notification-service
     container_name: microverse-notification-service
+    environment:
+      PORT: 4001
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@microverse-postgis:5432/${POSTGRES_DB}
+      KAFKA_BROKERS: microverse-kafka:9092
+      EMAIL_SERVICE_URL: http://microverse-email-service:3000
+    depends_on:
+      - microverse-postgis
+      - microverse-kafka
+      - microverse-email-service
     networks:
       - microverse-network
 
