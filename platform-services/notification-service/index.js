@@ -6,6 +6,7 @@ const { ensureSchema } = require('./db');
 const { syncClaims, claimsFromSocketToken } = require('./middleware/auth');
 const { listForRecipient, unreadCountForRecipient, markRead, markAllRead } = require('./models/notification');
 const { startConsumer } = require('./events/kafka-consumer');
+const { emailsForRecipient } = require('./services/mailhog');
 
 const app = express();
 const server = http.createServer(app);
@@ -63,6 +64,21 @@ app.patch('/notifications/:id', async (req, res) => {
     res.json(notification);
   } catch (err) {
     res.status(500).json({ message: 'Error updating notification', error: err.message });
+  }
+});
+
+// "My Emails" (Profile page) — reads back what email-service actually
+// sent this user via MailHog. See services/mailhog.js for why the
+// access boundary lives here rather than trusting MailHog itself.
+app.get('/emails', async (req, res) => {
+  const email = req.claims?.email;
+  if (!email) return res.status(401).json({ message: 'Missing or unparseable Authorization token' });
+
+  try {
+    const emails = await emailsForRecipient(email);
+    res.json({ emails });
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching emails', error: err.message });
   }
 });
 

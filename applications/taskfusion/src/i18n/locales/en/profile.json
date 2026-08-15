@@ -4,5 +4,8 @@
   "editProfile": "Edit profile",
   "changePassword": "Change password",
   "keycloakNote": "Both open Keycloak's account console — not handled in-app.",
-  "nothingElseHere": "Nothing else here yet"
+  "myEmails.title": "My Emails",
+  "myEmails.loading": "Loading…",
+  "myEmails.empty": "No emails yet",
+  "myEmails.loadError": "Couldn't load emails: {{error}}"
 }

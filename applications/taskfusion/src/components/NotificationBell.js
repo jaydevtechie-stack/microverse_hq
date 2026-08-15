@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { io } from 'socket.io-client';
 import { IconBell, IconX } from '@tabler/icons-react';
 import { authHeaders } from '../services/keycloak';
+import timeAgo from '../utils/timeAgo';
 
 // Branch 7 — real bell replacing the static placeholder icon that used
 // to sit here. Fetch-on-mount pattern mirrors AnalystPicker.js.
@@ -28,18 +29,6 @@ import { authHeaders } from '../services/keycloak';
 // GET /api/notifications is the source of truth (unread count
 // included); the socket connection is additive — a live push while
 // this tab is open, merged into the same list rather than replacing it.
-function timeAgo(dateString) {
-  const minutes = Math.floor((Date.now() - new Date(dateString).getTime()) / 60000);
-  if (minutes < 1) return 'just now';
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days === 1) return 'Yesterday';
-  if (days < 7) return `${days}d ago`;
-  return new Date(dateString).toLocaleDateString();
-}
-
 const NotificationBell = ({ keycloak }) => {
   const { t } = useTranslation('navbar');
   const navigate = useNavigate();
