@@ -319,3 +319,25 @@ Doc `_id = task_id` (REFERENCES `task-service`'s `tasks.id`, cross-service refer
 **Object storage** — no schema, one shared bucket
 
 Object keys only: `{service}/{account_id}/{order_id}/{version}/{filename}`. No dedicated Postgres metadata table (stateless-first — see [docs/roadmap/1.0/platform-services.md](roadmap/1.0/platform-services.md) Proposals); relies on MinIO's native `ListObjects` prefix listing and custom object metadata headers instead.
+
+---
+
+# notification-service database
+
+**PostgreSQL** — same shared instance as `task-service`/`rustledger`/`springpix` (`microverse-postgis`), by the same decision noted at the top of this file.
+
+## notifications — ✅ live (Branch 7)
+
+```sql
+CREATE TABLE notifications (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  recipient_email  TEXT NOT NULL,
+  type             TEXT NOT NULL,   -- 'task.created' | 'task.assigned'
+  task_id          UUID NOT NULL,   -- REFERENCES task-service's tasks.id, cross-service, not FK-enforced
+  message          TEXT NOT NULL,
+  read             BOOLEAN NOT NULL DEFAULT false,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+Keyed by `recipient_email`, not a `users.id` FK — matches `task-service.tasks.assignee`'s own "Keycloak usernames stand in" MVP posture, and lets both the WebSocket handshake and the REST reads key off the same unverified JWT `email` claim without notification-service needing a `users` lookup of its own for the common case. See [docs/roadmap/1.0/domain-services.md](roadmap/1.0/domain-services.md)'s Branch 7 for how rows get created (a second Kafka consumer group on `task-service.tasks`) and read (`GET`/`PATCH /notifications`, both scoped to the caller's own `recipient_email`).

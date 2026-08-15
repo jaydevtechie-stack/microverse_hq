@@ -339,3 +339,78 @@ a caller who neither owns the Account nor the order gets a 403, and
 that PM/analyst/reviewer/admin tokens can't reach the route at all
 (gated at `requireAnyRealmRole('platform:account-manager',
 'platform:customer')` before the ownership check ever runs).
+
+# Testing — notification-service (Branch 7, Notifications & messaging)
+
+Scope: `platform-services/notification-service` end to end (Kafka
+consumer, Postgres persistence, REST, WebSocket push, email hand-off) and
+`business-services/task-service/routes/task-routes.js`'s new
+`task.created` publish on `POST /tasks`.
+
+## Automated (`node --test`, `middleware/auth.test.js`)
+
+Deliberately narrow — the JWT-claims decode helpers
+(`claimsFromHeader`/`claimsFromSocketToken`) are pure functions with no
+Postgres/Kafka/socket dependency, so they're the one piece covered by a
+fast unit test. Everything downstream of "who is this request/socket
+from" (recipient resolution, persistence, live push, email hand-off) is
+only exercised manually below, against the real stack — same honesty
+posture as the rest of this doc: reflects what's actually built, not an
+aspirational CI job.
+
+| Test | Covers |
+|---|---|
+| `claimsFromHeader decodes a Bearer JWT payload` | Happy path — same base64url-payload decode as every other service's unverified claim extraction. |
+| `claimsFromHeader returns null without a Bearer prefix` / `for missing/malformed header` | Fails closed rather than throwing on a missing/garbled `Authorization` header. |
+| `claimsFromSocketToken decodes the same shape as a raw token` / `returns null for an unparseable token` | Same decode applied to socket.io's `handshake.auth.token` — no `Bearer ` prefix to strip, since a connecting client has no header to attach it to. |
+
+## Manual — end-to-end through the running stack
+
+```
+docker compose --profile gofeeler up -d --build microverse-task-service microverse-notification-service microverse-email-service
+```
+
+**PM path (`task.created`):** as a customer (`platform:customer` +
+`service:gofeeler`), submit an order via `POST /api/tasks`. Confirm a row
+landed for the account's PM:
+
+```
+docker exec microverse-postgis psql -U <user> -d <db> -c \
+  "SELECT recipient_email, type, message, read FROM notifications ORDER BY created_at DESC LIMIT 5;"
+```
+
+With that PM's browser session open (bell popover visible), the same row
+should appear live via WebSocket without a page refresh — the unread
+badge increments and the popup lists the new message.
+
+**Analyst path (`task.assigned`):** as that PM, assign the order to an
+analyst (`PATCH /api/tasks/:id`). Same check — a second `notifications`
+row for the analyst's email, live-pushed if they're connected.
+
+**Read/navigate:** click a notification in the popup — confirm it
+navigates to `/task/:id` and the row's `read` flips to `true`
+(`PATCH /api/notifications/:id`), and that a *different* user's
+notification id 404s rather than silently succeeding (`markRead`'s
+`WHERE id = $1 AND recipient_email = $2`).
+
+**Email hand-off:** check the MailHog UI (`http://localhost:8025` by
+default) — both the PM's and the analyst's notification should have
+produced an email via `email-service`, sent as
+`"GoFeeler" <no-reply@microverse.local>` using its plain `default`
+template (`platform-services/email-service/src/templates/default/`) —
+dedicated notification-specific templates are a separate, not-yet-scoped
+design pass, not part of this branch.
+
+**Retry-on-broker-down:** stop `microverse-kafka` mid-flow, confirm
+`docker logs microverse-notification-service` shows `kafka consumer ...,
+retrying in 5s` rather than the container exiting, and that consuming
+resumes once Kafka's back up — same posture as search-service's 6.2
+consumer, verified the same way.
+
+**Non-triggering events:** confirm task-service's other lifecycle events
+(`task.moved-to-review`, `task.reviewer-reassigned`, `task.approved`,
+`task.rejected`, `task.no-index-changed`) don't produce any
+`notifications` rows — this consumer only acts on `task.created`/
+`task.assigned`, everything else on the topic is consumed and ignored by
+design (Branch 8's audit trail is the intended home for "notify on every
+transition").
