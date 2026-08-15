@@ -13,5 +13,8 @@
   "switchToDarkTheme": "Switch to dark theme",
   "accountMenu": "Account menu",
   "openMenu": "Open menu",
-  "closeMenu": "Close menu"
+  "closeMenu": "Close menu",
+  "notifications.ariaLabel": "Notifications",
+  "notifications.empty": "No notifications yet",
+  "notifications.unreadAriaLabel": "{{count}} unread notifications"
 }
