@@ -1,18 +1,44 @@
 # notification-service
 
-**Status:** partial. Node/Express + Socket.IO, real but minimal.
+**Status:** live (Branch 7 — Notifications & messaging).
 
-Intended purpose: decide who needs to know what, and push it to them —
-"you have a new notification" over WebSocket for now, real-time UI
-updates.
+Decides who needs to know what, and pushes it to them — the middle leg of
+`messaging` (popup + newsfeed + email, `docs/architecture/1.0/platform-services.md`).
+Node/Express + Socket.IO, backed by its own `notifications` table on the
+shared `microverse-postgis` instance (same shared-DB-by-decision precedent
+as rustledger/springpix).
 
-What's actually running (`index.js`) is a demo: it broadcasts a canned
-"you have a new notification!" message to all connected sockets every 5
-seconds, nothing event-driven yet. `controllers/` and `services/` contain
-an earlier, more complete-looking attempt (create a notification record,
-send an email via `email-service`) but aren't wired into `index.js` at
-all, and reference files that don't exist (`models/notification`,
-`services/emailService`) — dead code, left as found rather than silently
-deleted or finished. Wiring real events in (e.g. from task-service, or
-elixtempo/rustledger via tracking-service/billing-service) is future
-work, not this branch.
+## How it works
+
+A second, independent Kafka consumer group (`notification-service-tasks`)
+on task-service's existing `task-service.tasks` topic — standard fan-out,
+no change to search-service's own indexing consumer. Two event types
+trigger a notification:
+
+- `task.created` — the new order's account's PM(s), resolved via a
+  read-only `pm_accounts`/`users` join (mirrors task-service's own
+  `projectManagersFor`).
+- `task.assigned` — the new assignee, already present in the event's
+  `assignee_ids`.
+
+Every other lifecycle event on that topic is consumed and ignored —
+notifying on every transition is Branch 8's audit-trail territory, not
+this service's job.
+
+For each resolved recipient (keyed by email, same "Keycloak usernames
+stand in" posture as `assignee`): a `notifications` row is persisted,
+pushed live over WebSocket to that email's room if they're connected, and
+handed off to `email-service` (fire-and-forget, best-effort — a failed
+email never fails the notification itself).
+
+## API
+
+- `GET /notifications` — the caller's own notifications (by JWT `email`
+  claim), newest first, capped at 20, plus `unreadCount`.
+- `PATCH /notifications/:id` — `{ read: true }`, scoped to the caller's
+  own notifications.
+- WebSocket: connect with `io(url, { auth: { token } })`; joins a room
+  keyed by the token's `email` claim, receives `notification` events live.
+
+Same unverified-JWT-decode trust posture as every other service in the
+stack (no JWKS signature check yet).
