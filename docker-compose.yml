@@ -364,7 +364,7 @@ services:
 
 
   microverse-mailhog:
-    profiles: ["mailhog"]
+    profiles: ["gofeeler", "mailhog"]
     image: mailhog/mailhog:latest
     container_name: microverse-mailhog
     networks:
