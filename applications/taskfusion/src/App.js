@@ -13,7 +13,6 @@ import Dashboard from './pages/Dashboard';  // Example protected page
 import AccountsViewPage from './pages/AccountsViewPage';
 import GofeelerSplitView from './pages/GofeelerSplitView';
 import CreateOrderPage from './pages/CreateOrderPage';
-import TaskDetailPage from './pages/TaskDetailPage';
 import AdminPage from './pages/AdminPage';
 import ProjectHubPage from './pages/ProjectHubPage';
 import MyProfilePage from './pages/MyProfilePage';
@@ -267,11 +266,11 @@ const App = () => {
               }
             />
 
-            {/* On the gofeeler microsite, /create and /task/:id render
-                inside the same split-view shell as "/" (a panel next to
-                the list, not a whole new page) — elsewhere they're
-                standalone full pages, e.g. CustomerPage's "+ New order"
-                link on the platform host */}
+            {/* On the gofeeler microsite, /create renders inside the same
+                split-view shell as "/" (a panel next to the list, not a
+                whole new page) — elsewhere it's a standalone full page,
+                e.g. CustomerPage's "+ New order" link on the platform
+                host */}
             <Route
               path="/create"
               element={
@@ -283,19 +282,17 @@ const App = () => {
               }
             />
 
-            {/* Only gofeeler tasks exist right now, so this is gated the
-                same as the gofeeler task list itself — will need to key
-                off the fetched task's own `service` field once other
-                domain services have tasks too */}
+            {/* Always the split view (list + detail), regardless of host
+                or how the viewer arrived — a notification, an email
+                link, or a bookmark should land the same as clicking a
+                row from the list itself, not a bare detail panel with no
+                list beside it. Only gofeeler tasks exist right now, so
+                this is gated the same as the gofeeler task list itself —
+                will need to key off the fetched task's own `service`
+                field once other domain services have tasks too. */}
             <Route
               path="/task/:id"
-              element={
-                <PrivateRoute
-                  element={isGofeelerHost ? <GofeelerSplitView /> : <TaskDetailPage />}
-                  keycloak={keycloak}
-                  roles={['service:gofeeler']}
-                />
-              }
+              element={<PrivateRoute element={<GofeelerSplitView />} keycloak={keycloak} roles={['service:gofeeler']} />}
             />
           </Routes>
         </div>
