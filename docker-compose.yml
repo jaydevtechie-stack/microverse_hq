@@ -279,10 +279,15 @@ services:
       # container-to-container URL, not the public storage.microverse.local
       # host (see asset-service's own S3_ENDPOINT comment above for why).
       ASSET_SERVICE_URL: http://microverse-asset-service:8080
+      # Branch 8: sentiment.analyzed publisher (events/kafka.go) — its own
+      # topic, not task-service.tasks (see docs/schema.md's audit-service
+      # section for why).
+      KAFKA_BROKERS: microverse-kafka:9092
     depends_on:
       - microverse-mongodb
       - microverse-postgis
       - microverse-asset-service
+      - microverse-kafka
     networks:
       - microverse-network
 
@@ -406,6 +411,25 @@ services:
       - microverse-kafka
       - microverse-email-service
       - microverse-mailhog
+    networks:
+      - microverse-network
+
+
+  microverse-audit-service:
+    profiles: ["gofeeler", "audit-service"]
+    build:
+      context: ./platform-services/audit-service
+    container_name: microverse-audit-service
+    environment:
+      PORT: 4002
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@microverse-postgis:5432/${POSTGRES_DB}
+      # Third independent consumer group on task-service.tasks (Branch 8),
+      # alongside search-service's indexer and notification-service's
+      # notifier — plus gofeeler.sentiment, gofeeler's own new topic.
+      KAFKA_BROKERS: microverse-kafka:9092
+    depends_on:
+      - microverse-postgis
+      - microverse-kafka
     networks:
       - microverse-network
 
