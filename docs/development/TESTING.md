@@ -414,3 +414,85 @@ consumer, verified the same way.
 `task.assigned`, everything else on the topic is consumed and ignored by
 design (Branch 8's audit trail is the intended home for "notify on every
 transition").
+
+# Testing — audit-service (Branch 8, Auditing & efficiency)
+
+Scope: `platform-services/audit-service` end to end (dual-topic Kafka
+consumer, Postgres persistence, REST) and GoFeeler's new Kafka producer
+(`domain-services/gofeeler/app/events/kafka.go`).
+
+## Manual — end-to-end through the running stack
+
+```
+docker compose --profile gofeeler up -d --build microverse-gofeeler microverse-audit-service microverse-task-service microverse-nginx
+```
+
+Drive a task through create → assign → analyze using real bearer tokens
+(a Keycloak login, or — since every service in this stack decodes claims
+unverified, see `middleware/auth.js` — an unsigned `header.payload.sig`
+JWT with the right `sub`/`email`/`realm_access.roles`, same approach as
+the no-index checklist above but against `platform:customer`/
+`platform:project-manager`/`platform:analyst`):
+
+```
+POST /api/tasks              (platform:customer + service:gofeeler)
+PATCH /api/tasks/:id         (platform:project-manager, {"assigneeId": "<analyst's synced user id>"})
+POST /api/gofeeler/analyze   (any authenticated caller, {"text": "...", "taskId": "<id>"})
+```
+
+Confirm rows landed for all three:
+
+```
+docker exec microverse-postgis psql -U <user> -d <db> -c \
+  "SELECT event, task_id, status, owner, assignee, duration_ms, occurred_at FROM audit_log ORDER BY occurred_at DESC LIMIT 5;"
+```
+
+Expect `task.created` (status `unassigned`), `task.assigned` (status
+`analyst`, owner/assignee the analyst's email), and `sentiment.analyzed`
+(status/owner/assignee all null, `duration_ms` a real non-negative
+number) — confirms both the existing `task-service.tasks` topic and
+GoFeeler's new `gofeeler.sentiment` topic are landing in the same table
+via `audit-service`'s single dual-topic consumer group
+(`audit-service-events`).
+
+**Endpoints + access control:**
+
+```
+GET /api/audit/tasks/:taskId              -> timeline, time_in_status via LEAD()
+GET /api/audit/metrics/processing-time    -> avg/p50/p95 duration_ms off sentiment.analyzed
+GET /api/audit/metrics/reaction-time      -> avg/p50 gap from task.assigned to the next event
+```
+
+All three should 200 for `platform:admin` or `platform:project-manager`
+tokens and 403 for anything else (no token, `platform:customer`,
+`platform:analyst`) — gated by `requireAnyRealmRole` before any route
+handler runs, same pattern as task-service's reviewer routes.
+
+**No cross-topic corruption:** after an `/analyze` call, spot-check
+search-service's index for the same task is unaffected —
+`gofeeler.sentiment` is a separate topic from `task-service.tasks`
+specifically so search-service's blind full-state-upsert consumer (6.2)
+never sees a `sentiment.analyzed` message:
+
+```
+docker exec microverse-search-service python -c "
+from app.main import es, service_index_name
+print(es.get(index=service_index_name('gofeeler'), id='<task_id>').body['_source'])
+"
+```
+
+Confirm the task's `title`/`context`/`status`/etc. are all still intact,
+not blanked or partially overwritten.
+
+**Retry-on-broker-down:** stop `microverse-kafka` mid-flow, confirm
+`docker logs microverse-audit-service` shows `kafka consumer ...,
+retrying in 5s` rather than the container exiting, and that both topics
+resume consuming once Kafka's back up — same posture as
+notification-service's and search-service's own consumers.
+
+**Replay on first boot:** a fresh `audit-service` container (or one
+pointed at a new consumer group id) subscribes `fromBeginning: true`, so
+it backfills the entire `task-service.tasks` history on first connect —
+expect `audit_log` to immediately contain rows for every task lifecycle
+event ever published, not just ones that happen after audit-service
+started.

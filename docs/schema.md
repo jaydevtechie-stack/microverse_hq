@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS tasks (
 CREATE INDEX IF NOT EXISTS idx_tasks_tags ON tasks USING GIN (tags);
 ```
 
-**`assigned_at` — set once, on assignment, not a general status-transition log.** Scout's recommendation query (`models/scout.js`) uses it as a proxy for analyst availability: no active task → fully available; among analysts with one, the longer since `assigned_at`, the more available they're assumed to be. This is explicitly a starting signal, not real response-time measurement — there's no `completed_at` or first-action timestamp anywhere yet to compute that from. Real response-time tracking is Branch 8's job (event-bus-driven audit log).
+**`assigned_at` — set once, on assignment, not a general status-transition log.** Scout's recommendation query (`models/scout.js`) uses it as a proxy for analyst availability: no active task → fully available; among analysts with one, the longer since `assigned_at`, the more available they're assumed to be. This is explicitly a starting signal, not real response-time measurement — there's no `completed_at` or first-action timestamp on `tasks` itself. Real response-time tracking is the `audit_log` table below (Branch 8) — it doesn't need a new `tasks` column, since `task.assigned`'s own Kafka event timestamp becomes the reaction-time baseline.
 
 **Tags — reconciled with the Elasticsearch `tags` index (search-service):** the two stores do different jobs, on purpose. Elasticsearch's `tags` index is the shared *vocabulary* — what exists, fuzzy-matched for autocomplete while someone's typing. `tasks.tags` stores which tag *names* are actually applied to this specific task — plain strings in a Postgres array, not a join table. A handful of short tag names per task doesn't need its own relational identity the way `task_comments` does; storing the name directly (not a numeric tag ID) also matches how ES already treats tag identity via `name.keyword` — the tag *is* its name, there's no separate ID anywhere in the design that Postgres would need to reference. The GIN index makes `tags @> ARRAY['Negative']`-style lookups cheap once you want "show me every task tagged Urgency."
 
@@ -341,3 +341,32 @@ CREATE TABLE notifications (
 ```
 
 Keyed by `recipient_email`, not a `users.id` FK — matches `task-service.tasks.assignee`'s own "Keycloak usernames stand in" MVP posture, and lets both the WebSocket handshake and the REST reads key off the same unverified JWT `email` claim without notification-service needing a `users` lookup of its own for the common case. See [docs/roadmap/1.0/domain-services.md](roadmap/1.0/domain-services.md)'s Branch 7 for how rows get created (a second Kafka consumer group on `task-service.tasks`) and read (`GET`/`PATCH /notifications`, both scoped to the caller's own `recipient_email`).
+
+---
+
+# audit-service database
+
+**PostgreSQL** — same shared instance as `task-service`/`notification-service` (`microverse-postgis`).
+
+## audit_log — ✅ live (Branch 8)
+
+```sql
+CREATE TABLE audit_log (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  task_id      UUID NOT NULL,   -- task-service tasks.id, cross-service, not FK-enforced
+  service      TEXT NOT NULL,   -- 'gofeeler' only for this PoC
+  event        TEXT NOT NULL,   -- 'task.created' | ... | 'task.no-index-changed' | 'sentiment.analyzed'
+  status       TEXT,            -- task status after this event; null for sentiment.analyzed
+  owner        TEXT,
+  assignee     TEXT,
+  duration_ms  INTEGER,         -- sentiment.analyzed only
+  occurred_at  TIMESTAMPTZ NOT NULL,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+A third independent Kafka consumer group (`audit-service-events`) on `task-service`'s existing `task-service.tasks` topic — standard fan-out, same as notification-service's own addition in Branch 7, no change needed to that topic's other consumers. Every row is written verbatim off whichever event arrives, with no diffing against a "previous" row and no extra state lookup: the event name already encodes the transition semantics (`task.assigned` is always `unassigned`→`analyst`, etc — see `task-service`'s `kafka-producer.js`), and each event already carries its own post-transition `status`/`owner`/`assignee_ids` (full snapshot). "Time-in-status" and "how fast an analyst reacts to a new assignment" are both derived at query time via `LEAD()` window functions over consecutive rows per `task_id`, not stored — the roadmap's own framing, "audit trail is built from this stream, not a separate write path."
+
+`sentiment.analyzed` — GoFeeler's own new event, published from a Kafka producer added directly to GoFeeler's Go backend (`domain-services/gofeeler/app/events/kafka.go`) — deliberately lands on a **separate** topic, `gofeeler.sentiment`, not `task-service.tasks`: `search-service`'s indexing consumer treats every message on that topic as a full task-state upsert with no event-name filtering (Branch 6.2), and a `sentiment.analyzed` payload (`task_id`/`sentiment`/`confidence`/`engine_used`/`duration_ms`/`analyzed_at`) shares none of `taskToEvent`'s fields — landing it there would blank real Elasticsearch documents on the next re-index. `audit-service` subscribes to both topics from the same consumer group, dispatching on Kafka's `topic` field per message. `duration_ms` is GoFeeler's own processing-time efficiency metric, measured at the source (wrapping the existing `eng.Analyze` call) rather than inferred later from two separate events — this is also how Branch 8's open question ("does the analyze step need its own persisted task status?") got resolved: no, the frontend's loading state stays UI-only, and the real timing lives on this event instead.
+
+`GET /audit/tasks/:taskId` (timeline), `GET /audit/metrics/processing-time`, `GET /audit/metrics/reaction-time` — all gated `platform:admin` OR `platform:project-manager` (see roadmap's 4.3 resolution, which already earmarked the eventual audit log as Admin's cross-account visibility tool). Backend-only for this branch — no frontend page yet, an explicit documented gap matching this codebase's established backend-ahead-of-frontend pattern. See [docs/roadmap/1.0/domain-services.md](roadmap/1.0/domain-services.md)'s Branch 8 and its Proposals entry.
