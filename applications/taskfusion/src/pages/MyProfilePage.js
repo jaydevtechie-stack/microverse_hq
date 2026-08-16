@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { IconUserEdit, IconLock } from '@tabler/icons-react';
 import { getKeycloak, authHeaders, keycloakAccountUrl } from '../services/keycloak';
 import usePageMeta from '../hooks/usePageMeta';
+import MyEmails from '../components/MyEmails';
 
 const initials = (name) =>
   (name || '?')
@@ -140,8 +141,8 @@ const MyProfilePage = () => {
         </p>
       </div>
 
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ color: 'var(--mv-badge-bg)', fontSize: 12 }}>{t('nothingElseHere')}</p>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '24px 18px' }}>
+        <MyEmails />
       </div>
     </div>
   );

@@ -152,6 +152,11 @@ router.post('/tasks', async (req, res) => {
       // the task's own no_index is independent from here on.
       noIndex: project?.no_index || false,
     });
+    // Branch 7 — first event task-service publishes on creation, not just
+    // on later transitions (6.2's list). notification-service consumes
+    // this as a second, independent consumer group on the same topic to
+    // notify the account's PM(s) a new order needs an analyst.
+    await publishTaskEvent('task.created', task);
     res.status(201).json(task);
   } catch (err) {
     res.status(500).json({ message: 'Error creating task', error: err.message });

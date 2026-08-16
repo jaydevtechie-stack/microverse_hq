@@ -2,13 +2,14 @@
 import React, { useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { IconBell, IconSun, IconMoon, IconMenu2, IconX, IconUser, IconLogout } from '@tabler/icons-react';
+import { IconSun, IconMoon, IconMenu2, IconX, IconUser, IconLogout } from '@tabler/icons-react';
 import { logout, landingUrl, hostUrlForSubdomain, isOnMicrosite } from '../services/keycloak';
 import { useTheme } from '../context/ThemeContext';
 import { avatarColorsForKeycloak } from '../utils/avatarColors';
 import useIsMobile from '../hooks/useIsMobile';
 import useClickOutside from '../hooks/useClickOutside';
 import NavSearch from './NavSearch';
+import NotificationBell from './NotificationBell';
 
 function initialsFor(keycloak) {
   const claims = keycloak.tokenParsed || {};
@@ -350,7 +351,7 @@ const Navbar = ({ keycloak }) => {
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginLeft: 'auto' }}>
               <NavSearch />
               {themeToggleButton}
-              <IconBell size={16} color="var(--mv-text-muted)" aria-hidden="true" />
+              <NotificationBell keycloak={keycloak} />
               {avatarMenu}
             </div>
           </div>
@@ -390,7 +391,7 @@ const Navbar = ({ keycloak }) => {
           >
             <NavSearch />
             {themeToggleButton}
-            <IconBell size={16} color="var(--mv-text-muted)" aria-hidden="true" />
+            <NotificationBell keycloak={keycloak} />
             {avatarChip}
             <span style={{ color: 'var(--mv-text-muted)', fontSize: 13 }}>
               {keycloak.tokenParsed.preferred_username}

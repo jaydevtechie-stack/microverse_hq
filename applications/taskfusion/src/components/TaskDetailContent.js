@@ -110,8 +110,9 @@ const ShareIconGroup = ({ task }) => {
   );
 };
 
-// The task info + role-specific action panel — shared by the standalone
-// TaskDetailPage and GofeelerSplitView's embedded detail panel.
+// The task info + role-specific action panel — rendered inside
+// GofeelerSplitView's embedded detail panel (the only place /task/:id
+// renders now, on every host — see App.js).
 const TaskDetailContent = ({ id }) => {
   const { t } = useTranslation('gofeeler');
   const keycloak = getKeycloak();
