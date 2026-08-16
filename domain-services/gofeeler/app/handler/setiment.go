@@ -11,6 +11,7 @@ import (
 
 	"gofeeler/assetclient"
 	"gofeeler/engine"
+	"gofeeler/events"
 	"gofeeler/model"
 	"gofeeler/store"
 )
@@ -32,10 +33,11 @@ type SentimentHandler struct {
 	engines map[string]engine.SentimentEngine
 	results *store.Results
 	assets  *assetclient.Client
+	events  *events.Publisher
 }
 
-func NewSentimentHandler(engines map[string]engine.SentimentEngine, results *store.Results, assets *assetclient.Client) *SentimentHandler {
-	return &SentimentHandler{engines: engines, results: results, assets: assets}
+func NewSentimentHandler(engines map[string]engine.SentimentEngine, results *store.Results, assets *assetclient.Client, eventsPublisher *events.Publisher) *SentimentHandler {
+	return &SentimentHandler{engines: engines, results: results, assets: assets, events: eventsPublisher}
 }
 
 // @Summary Analyze sentiment
@@ -94,11 +96,13 @@ func (h *SentimentHandler) AnalyzeSentiment(c *gin.Context) {
 		return
 	}
 
+	start := time.Now()
 	result, err := eng.Analyze(c.Request.Context(), req.Text, opts)
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 		return
 	}
+	durationMs := time.Since(start).Milliseconds()
 
 	// Fire-and-forget: persistence failures never fail the /analyze
 	// response, and this runs past the request's own context lifetime.
@@ -109,6 +113,37 @@ func (h *SentimentHandler) AnalyzeSentiment(c *gin.Context) {
 			defer cancel()
 			if err := h.results.Save(ctx, taskID, text, result); err != nil {
 				log.Printf("saving sentiment result: %v", err)
+			}
+		}()
+
+		// Branch 8: the audit-service's processing-time efficiency metric
+		// is measured here, at the source, rather than inferred later from
+		// two separate events — same fire-and-forget/TaskID-gated posture
+		// as the Mongo save above.
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			ev := events.SentimentAnalyzedEvent{
+				Event:      "sentiment.analyzed",
+				TaskID:     taskID,
+				Service:    service,
+				Sentiment:  result.Sentiment,
+				Confidence: result.Confidence,
+				EngineUsed: result.EngineUsed,
+				DurationMs: durationMs,
+				AnalyzedAt: time.Now().UTC(),
+			}
+			if result.TemplateID != "" {
+				ev.TemplateID = &result.TemplateID
+			}
+			if result.LLMProvider != "" {
+				ev.LLMProvider = &result.LLMProvider
+			}
+			if result.ModelVersion != "" {
+				ev.ModelVersion = &result.ModelVersion
+			}
+			if err := h.events.PublishSentimentAnalyzed(ctx, ev); err != nil {
+				log.Printf("publishing sentiment.analyzed: %v", err)
 			}
 		}()
 	}
