@@ -458,6 +458,7 @@ via `audit-service`'s single dual-topic consumer group
 **Endpoints + access control:**
 
 ```
+GET /api/audit/events                     -> recent activity feed, newest first, ?limit=
 GET /api/audit/tasks/:taskId              -> timeline, time_in_status via LEAD()
 GET /api/audit/metrics/processing-time    -> avg/p50/p95 duration_ms off sentiment.analyzed
 GET /api/audit/metrics/reaction-time      -> avg/p50 gap from task.assigned to the next event
@@ -496,3 +497,37 @@ it backfills the entire `task-service.tasks` history on first connect —
 expect `audit_log` to immediately contain rows for every task lifecycle
 event ever published, not just ones that happen after audit-service
 started.
+
+## Manual — Admin GUI (`AdminAuditLogPage.js`)
+
+```
+docker compose --profile gofeeler up -d --build microverse-audit-service microverse-taskfusion
+```
+
+Log in as a `platform:admin` holder (e.g. `debbie@microverse.local` in
+this environment's seeded Keycloak users), go to **Admin → Audit log**
+(`/admin/audit-log` — the Subnav tab `nav-config.json` reserved for this
+since 4.3, previously a `PlaceholderPage`). Confirm:
+
+- Two metric cards render at the top (GoFeeler processing time, Analyst
+  reaction time), each showing average/median and a sample-size count —
+  `{ "avg": "…", "sampleSize": 0 }`-shaped responses (no data yet) render
+  a "Not enough data yet" message rather than `NaN`/blank.
+- The list panel below shows a recent-activity feed (`GET /audit/events`),
+  newest first, each row showing the event name, a relative timestamp
+  (`timeAgo`), and the owner/assignee.
+- Clicking a row opens the `SplitView`'s detail panel with that task's
+  full timeline (`GET /audit/tasks/:taskId`) — each step shows
+  status/owner and either "took Xms" (`sentiment.analyzed`) or "in status
+  for Xs" (derived via `LEAD()`, the last step has neither).
+- `platform:project-manager` tokens can reach the same tab's data (same
+  `requireAnyRealmRole` gate as the backend); a role with neither gets a
+  403 from every `/api/audit/*` call the page makes, surfaced as the
+  page's own `loadError` message rather than a silent blank state.
+
+Verified 2026-08-17 end-to-end via a real Keycloak login (Playwright,
+headless Chromium) against the live `gofeeler` stack — zero console
+errors, all three fetches (`/events`, both `/metrics/*`) resolved, and
+the timeline drill-down rendered a real task's `task.created` →
+`task.assigned` → `sentiment.analyzed` sequence with correct
+time-in-status/duration values.
