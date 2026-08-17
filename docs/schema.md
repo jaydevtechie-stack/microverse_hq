@@ -238,9 +238,14 @@ Older versions aren't deleted — they're just not what this query returns, whic
 
 # rustledger database
 
-**PostgreSQL** — `${POSTGRES_DB}` on `microverse-postgis` (shared instance with `task-service`/`springpix`, by decision)
+**PostgreSQL** — `${POSTGRES_DB}` on `microverse-postgis` (shared instance with `task-service`/`springpix`, by decision), own `rustledger` schema namespace
 
-Not yet designed. Will need at minimum an `invoices` table and a way to consume elixtempo's `time_entry.completed` events off the Kafka scroll — see [docs/architecture/1.0/core.md](architecture/1.0/core.md)'s Kafka vs RabbitMQ section.
+Two tables, two different flows — analyst payout (existing) and customer billing (Branch 9), not opposite sides of the same one (see [docs/business/1.0/overview.md](business/1.0/overview.md)'s Payouts section on why):
+
+- `line_items` — one row per completed elixtempo tracked-work session, consumed off `elixtempo.sessions`' `session.stopped` events (`id`, `session_id` UNIQUE, `analyst_id`, `quest_id`, `elapsed_seconds`, `rate_cents_per_hour`, `amount_cents`, `currency`, `created_at`). Flat rate from `DEFAULT_HOURLY_RATE_CENTS`/`DEFAULT_CURRENCY` env vars — real per-analyst/contract rates are a follow-up. This is payout-basis groundwork only; there's no Stripe Connect disbursement yet, and no PM payout equivalent — both remain the open question flagged in Branch 9.
+- `bills` (Branch 9) — one row per customer bill, one bill per `task_id` (`UNIQUE`): `id`, `task_id`, `customer_id`, `amount_cents`, `currency`, `status` (`unpaid`/`paid`), `stripe_checkout_session_id`, `stripe_payment_intent_id`, `created_at`, `paid_at`. `task_id`/`customer_id` are cross-service references (task-service's `tasks.id`/`tasks.customer_id`), not FK-enforced — same posture as `audit_log.task_id`. Amount is entered manually by the PM at bill-creation time; no price/rate field exists on `tasks`/`projects` to compute it from.
+
+`billing-service` ([platform-services/billing-service](../platform-services/billing-service)) is stateless middleware in front of this — it owns the Stripe integration (Checkout Sessions, webhook verification), rustledger just persists bill state. Built Node.js, not the Python originally spec'd in [docs/architecture/1.0/platform-services.md](architecture/1.0/platform-services.md) (predates that doc's Python note, corrected alongside this table).
 
 ---
 
