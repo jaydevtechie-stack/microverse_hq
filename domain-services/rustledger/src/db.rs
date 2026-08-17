@@ -38,5 +38,32 @@ async fn ensure_schema(pool: &PgPool) -> Result<(), sqlx::Error> {
     .execute(pool)
     .await?;
 
+    sqlx::query(
+        r#"
+        CREATE TABLE IF NOT EXISTS rustledger.bills (
+            id                          UUID PRIMARY KEY,
+            task_id                     UUID NOT NULL,
+            customer_id                 UUID NOT NULL,
+            amount_cents                BIGINT NOT NULL,
+            currency                    TEXT NOT NULL,
+            status                      TEXT NOT NULL DEFAULT 'unpaid',
+            stripe_checkout_session_id  TEXT,
+            stripe_payment_intent_id    TEXT,
+            created_at                  TIMESTAMPTZ NOT NULL DEFAULT now(),
+            paid_at                     TIMESTAMPTZ
+        )
+        "#,
+    )
+    .execute(pool)
+    .await?;
+
+    // one bill per task — same idempotency-guard shape as line_items above
+    sqlx::query(
+        "CREATE UNIQUE INDEX IF NOT EXISTS bills_task_id_key \
+         ON rustledger.bills (task_id)",
+    )
+    .execute(pool)
+    .await?;
+
     Ok(())
 }

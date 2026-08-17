@@ -36,3 +36,17 @@ pub struct AnalystTotal {
     pub total_cents: i64,
     pub currency: String,
 }
+
+#[derive(Debug, Serialize, sqlx::FromRow)]
+pub struct Bill {
+    pub id: Uuid,
+    pub task_id: Uuid,
+    pub customer_id: Uuid,
+    pub amount_cents: i64,
+    pub currency: String,
+    pub status: String,
+    pub stripe_checkout_session_id: Option<String>,
+    pub stripe_payment_intent_id: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub paid_at: Option<DateTime<Utc>>,
+}
