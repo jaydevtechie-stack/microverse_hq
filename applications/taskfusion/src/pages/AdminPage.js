@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import AdminUsersPage from './AdminUsersPage';
+import AdminAuditLogPage from './AdminAuditLogPage';
 import PlaceholderPage from '../components/PlaceholderPage';
 import Subnav from '../components/Subnav';
 import SplitView from '../components/SplitView';
@@ -136,8 +137,9 @@ const ServiceDetail = ({ service, onClose, onEdit, onToggleActive, toggling }) =
   );
 };
 
-// platform:admin-gated shell — Users (4.0.1, real data) and Services
-// (read-only stub) subnav tabs, plus 4.3's Settings/Audit log stubs.
+// platform:admin-gated shell — Users (4.0.1), Services, and Audit log
+// (Branch 8, AdminAuditLogPage.js, reads platform-services/audit-service)
+// are real; Settings stays a 4.3 stub.
 // Mockup: platform_projects_hub_and_admin.html — Admin is a plain
 // top-nav link (Navbar.js), this in-page Subnav is the actual
 // sub-level nav, not a navbar dropdown. Tab is URL-driven (route is
@@ -237,9 +239,7 @@ const AdminPage = () => {
       {tab === 'settings' && (
         <PlaceholderPage title={t('settingsPlaceholder.title')} note={t('settingsPlaceholder.note')} />
       )}
-      {tab === 'audit-log' && (
-        <PlaceholderPage title={t('auditLogPlaceholder.title')} note={t('auditLogPlaceholder.note')} />
-      )}
+      {tab === 'audit-log' && <AdminAuditLogPage />}
     </div>
   );
 };
