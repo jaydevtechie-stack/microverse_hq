@@ -39,9 +39,23 @@
     "title": "Settings",
     "note": "Coming soon — platform-wide admin settings."
   },
-  "auditLogPlaceholder": {
-    "title": "Audit log",
-    "note": "Coming soon — built from the event-bus stream (Branch 8), not a separate write path. Also the likely fallback for Admin's cross-Account Orders/Billing visibility now that both moved out of Admin in 4.3 — see the open question in ROADMAP.md's 4.3 entry."
+  "auditLog": {
+    "headerTitle": "Recent activity · audit log",
+    "loadError": "Couldn't load audit data: {{error}}",
+    "loading": "Loading…",
+    "empty": "No audit events yet.",
+    "noData": "Not enough data yet.",
+    "noOwner": "—",
+    "processingTimeTitle": "GoFeeler processing time",
+    "reactionTimeTitle": "Analyst reaction time",
+    "avgLabel": "average",
+    "p50Label": "median",
+    "sampleCountAnalyses_one": "{{count}} analysis",
+    "sampleCountAnalyses_other": "{{count}} analyses",
+    "sampleCountAssignments_one": "{{count}} assignment",
+    "sampleCountAssignments_other": "{{count}} assignments",
+    "tookLabel": "took {{duration}}",
+    "timeInStatusLabel": "in status for {{duration}}"
   },
   "users": {
     "headerTitle": "Users · admin",

@@ -1,6 +1,6 @@
 // platform-services/audit-service/routes/audit-routes.js
 const express = require('express');
-const { timelineForTask, processingTimeMetrics, reactionTimeMetrics } = require('../models/audit');
+const { recentEvents, timelineForTask, processingTimeMetrics, reactionTimeMetrics } = require('../models/audit');
 
 const router = express.Router();
 
@@ -12,6 +12,12 @@ function parseWindow(req) {
   const to = req.query.to ? new Date(req.query.to) : new Date();
   return { from, to };
 }
+
+router.get('/events', async (req, res) => {
+  const limit = Math.min(Number(req.query.limit) || 50, 200);
+  const rows = await recentEvents(limit);
+  res.json(rows);
+});
 
 router.get('/tasks/:taskId', async (req, res) => {
   const rows = await timelineForTask(req.params.taskId);

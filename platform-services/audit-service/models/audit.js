@@ -1,6 +1,18 @@
 // platform-services/audit-service/models/audit.js
 const { pool } = require('../db');
 
+// Recent activity feed for the Admin audit-log page — newest first,
+// capped the same way notification-service's /notifications caps its
+// popup list (a browse view, not a paginated history).
+async function recentEvents(limit = 50) {
+  const { rows } = await pool.query(
+    `SELECT task_id, service, event, status, owner, assignee, duration_ms, occurred_at
+     FROM audit_log ORDER BY occurred_at DESC LIMIT $1`,
+    [limit]
+  );
+  return rows;
+}
+
 async function insertEvent({ taskId, service, event, status, owner, assignee, durationMs, occurredAt }) {
   const { rows } = await pool.query(
     `INSERT INTO audit_log (task_id, service, event, status, owner, assignee, duration_ms, occurred_at)
@@ -56,4 +68,4 @@ async function reactionTimeMetrics({ from, to }) {
   return rows[0];
 }
 
-module.exports = { insertEvent, timelineForTask, processingTimeMetrics, reactionTimeMetrics };
+module.exports = { insertEvent, recentEvents, timelineForTask, processingTimeMetrics, reactionTimeMetrics };
