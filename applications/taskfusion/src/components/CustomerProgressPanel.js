@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IconCheck, IconLock } from '@tabler/icons-react';
+import { authHeaders } from '../services/keycloak';
 
 const STEP_KEYS = ['submitted', 'analysed', 'reviewed', 'paid'];
 
@@ -16,6 +17,60 @@ const CustomerProgressPanel = ({ task }) => {
   const { t } = useTranslation('gofeeler');
   const done = completedCount(task.status);
   const unlocked = task.status === 'paid' || task.status === 'closed';
+  const [working, setWorking] = useState(false);
+  const [error, setError] = useState(null);
+
+  // "View invoice" — creates (or reuses) a Stripe Checkout Session for
+  // this task's bill and redirects the browser there. A 404 here means
+  // the PM hasn't created the bill yet (PmBillPanel.js) — surfaced as a
+  // distinct message rather than a generic error.
+  const payInvoice = async () => {
+    setWorking(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/billing/bills/by-task/${task.id}/checkout-session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      });
+      const body = await res.json();
+      if (res.status === 404) throw new Error(t('panels.customerProgress.notYetInvoiced'));
+      if (!res.ok) throw new Error(body.message || `billing-service returned ${res.status}`);
+      window.location.href = body.url;
+    } catch (err) {
+      setError(err.message);
+      setWorking(false);
+    }
+  };
+
+  // "Download results" — lists the task's files (asset-service, same
+  // endpoint TaskFilesList.js reads) then resolves + opens each one's
+  // presigned download-url. asset-service itself re-checks status ===
+  // paid/closed server-side (api.rs's download_url) — this call would
+  // 403 if it somehow ran before that were true.
+  const downloadResults = async () => {
+    setWorking(true);
+    setError(null);
+    try {
+      const listRes = await fetch(`/api/assets/${task.id}?service=${task.service}`, { headers: authHeaders() });
+      const files = await listRes.json();
+      if (!listRes.ok) throw new Error(files.message || `asset-service returned ${listRes.status}`);
+      if (files.length === 0) throw new Error(t('panels.customerProgress.noFiles'));
+
+      for (const file of files) {
+        const urlRes = await fetch(
+          `/api/assets/${task.id}/download-url?filename=${encodeURIComponent(file.filename)}&service=${task.service}`,
+          { headers: authHeaders() }
+        );
+        const urlBody = await urlRes.json();
+        if (!urlRes.ok) throw new Error(urlBody.message || `asset-service returned ${urlRes.status}`);
+        window.open(urlBody.download_url, '_blank', 'noopener,noreferrer');
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setWorking(false);
+    }
+  };
 
   return (
     <div>
@@ -75,6 +130,8 @@ const CustomerProgressPanel = ({ task }) => {
 
       <button
         type="button"
+        onClick={unlocked ? downloadResults : payInvoice}
+        disabled={working}
         style={{
           width: '100%',
           padding: '10px 0',
@@ -84,11 +141,20 @@ const CustomerProgressPanel = ({ task }) => {
           fontSize: 13,
           border: 'none',
           borderRadius: 8,
-          cursor: 'pointer',
+          cursor: working ? 'default' : 'pointer',
+          opacity: working ? 0.6 : 1,
         }}
       >
-        {unlocked ? t('panels.customerProgress.downloadResults') : t('panels.customerProgress.viewInvoice')}
+        {working
+          ? t('panels.customerProgress.working')
+          : unlocked
+            ? t('panels.customerProgress.downloadResults')
+            : t('panels.customerProgress.viewInvoice')}
       </button>
+
+      {error && (
+        <p style={{ color: 'var(--mv-color-danger)', fontSize: 12, margin: '8px 0 0' }}>{error}</p>
+      )}
     </div>
   );
 };

@@ -43,7 +43,7 @@ function actionPanelFor({ task, isPM, isAnalyst, isReviewer, isCustomer, usernam
     return <PmAssignPanel task={task} onAssigned={onTaskUpdated} />;
   }
   if (isPM && task.status === 'done' && task.owner === username) {
-    return <PmBillPanel />;
+    return <PmBillPanel task={task} onBilled={onTaskUpdated} />;
   }
   if (isAnalyst && task.status === 'analyst' && task.assignee === username) {
     return <AnalysisPanel task={task} onTaskUpdated={onTaskUpdated} />;

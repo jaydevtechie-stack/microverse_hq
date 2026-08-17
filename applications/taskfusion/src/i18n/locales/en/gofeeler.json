@@ -135,9 +135,12 @@
     "pmBill": {
       "analysisApproved": "Analysis approved and complete",
       "readyToBill": "Ready to bill the customer for this order.",
+      "amountPlaceholder": "0.00",
       "createBill": "Create bill",
+      "billing": "Creating bill…",
       "billCreated": "Bill created",
-      "billCreatedNote": "Bill created — order will move to \"paid\" status once the customer pays"
+      "billCreatedNote": "Bill created — order will move to \"paid\" status once the customer pays",
+      "billError": "Could not create bill: {{error}}"
     },
     "customerProgress": {
       "steps": {
@@ -151,7 +154,10 @@
       "invoicePaid": "Your invoice has been paid",
       "downloadUnlocks": "Download unlocks once your invoice is paid",
       "downloadResults": "Download results",
-      "viewInvoice": "View invoice"
+      "viewInvoice": "View invoice",
+      "working": "Working…",
+      "notYetInvoiced": "Invoice not ready yet — check back soon",
+      "noFiles": "No result files found for this order"
     }
   },
   "tagInput": {
