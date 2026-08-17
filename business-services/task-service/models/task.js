@@ -165,6 +165,19 @@ async function rejectTask(id, reviewerEmail, newAnalystEmail) {
   return rows[0] || null;
 }
 
+// done -> paid, on billing-service's bill.paid Kafka event (Branch 9) —
+// see events/kafka-consumer.js, task-service's first ever consumer.
+// WHERE status = 'done' makes this idempotent the same way approveTask's
+// WHERE guard does: a redelivered event just no-ops (rows[0] is null)
+// rather than double-applying.
+async function markPaid(id) {
+  const { rows } = await pool.query(
+    `UPDATE tasks SET status = 'paid' WHERE id = $1 AND status = 'done' RETURNING *`,
+    [id]
+  );
+  return rows[0] || null;
+}
+
 // Visibility flag, not a content edit (6.3) — no status-window guard,
 // unlike updateOrderDetails. Settable by an account-manager (their own
 // Account, per 6.2.5) or the owning customer, checked by the route
@@ -201,6 +214,7 @@ module.exports = {
   reassignReviewer,
   approveTask,
   rejectTask,
+  markPaid,
   setNoIndex,
   pollingCounts,
 };

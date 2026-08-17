@@ -10,6 +10,7 @@ const serviceRoutes = require('./routes/service-routes');
 const { initPolling } = require('./cron/task-polling');
 const { ensureSchema } = require('./db');
 const { syncUser } = require('./middleware/auth');
+const { startConsumer } = require('./events/kafka-consumer');
 
 const app = express();
 
@@ -35,6 +36,7 @@ ensureSchema()
   .then(() => {
     console.log('Connected to Postgres, tasks table ready');
     initPolling(); // Start task polling logic
+    startConsumer(); // Branch 9 — bill.paid off billing-service.bills
   })
   .catch((error) => {
     console.error('Postgres connection error:', error);
