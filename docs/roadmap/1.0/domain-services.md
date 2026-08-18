@@ -132,9 +132,22 @@ GoFeeler stays one service, one analyst-facing interface — the LLM upgrade is 
 - ✅ Admin GUI (`AdminAuditLogPage.js`) — closes the "backend-only, no frontend page yet" gap this branch originally shipped with. Fills in `nav-config.json`'s `/admin/audit-log` Subnav tab (previously a `PlaceholderPage`, reserved since 4.3), following the same list+detail `SplitView` pattern as Admin's Users/Services tabs: two metric cards (processing time, reaction time) above a recent-activity feed (new `GET /audit/events`, since none of the three original endpoints supported "browse without a known task id") that drills into a task's full timeline on click (`GET /audit/tasks/:taskId`). No new access-control decision needed — same `platform:admin`/`platform:project-manager` gate the backend already enforced.
 
 **Branch 9 — Billing & payouts**
-- 🟡 PM approval → bill creation handoff to rustledger
-- 🟡 Billing button + customer payment workflow (billing-service/Stripe collection)
-- ⚪ *Open question, bigger scope than originally captured:* PMs and analysts also need to get paid, not just customers billed. This is a new direction for rustledger/billing-service — collecting money (customer → Microverse) and paying it out (Microverse → analyst/PM) are different flows with different tooling (Stripe Connect for payouts is the obvious candidate, but nothing here is designed yet). Needs its own design pass before Branch 9 work starts, not just an extra bullet. See [docs/business/1.0/overview.md](../../business/1.0/overview.md)'s Payouts section.
+
+Customer billing/collection only (scope decision: payouts split out below, deferred). On `feature/gofeeler-billing-collection-9`, not yet merged:
+
+- ✅ rustledger: new `bills` table (one row per task) + `POST /api/bills`, `GET /api/bills/by-task/:id`, `PATCH /api/bills/:id/mark-paid` — `cargo check` clean
+- ✅ New `platform-services/billing-service` (Node/Express/kafkajs, matching audit-service/notification-service — corrects [docs/architecture/1.0/platform-services.md](../../architecture/1.0/platform-services.md)'s stale "Python" spec, written before those two services established the convention) — stateless middleware in front of rustledger, owns Stripe Checkout Session creation + webhook verification
+- ✅ task-service's first-ever Kafka consumer (`events/kafka-consumer.js`) — `bill.paid` off billing-service's new `billing-service.bills` topic → task `done → paid` → republishes existing `task.paid` so audit-service/search-service/notification-service pick it up unchanged
+- ✅ Frontend: `PmBillPanel.js` (PM types the bill amount — no price/rate field exists on tasks/projects yet) and `CustomerProgressPanel.js` (Stripe Checkout redirect when unpaid, presigned download links once paid) wired to real APIs, off dead stubs
+- 🟡 **Not yet verified live** — no Stripe test key has been exercised this branch; the Checkout Session → webhook → `bill.paid` → task `paid` chain has never actually fired
+- ⚪ Todo before merge: run the flow with a Stripe test key end to end (PM approves → bills → customer pays via Stripe test card → task flips to `paid` → shows up in `GET /api/audit/tasks/:id` unchanged), then flip the bullets above and merge
+
+*Open question, bigger scope than originally captured — Payouts (PMs and analysts), deferred out of this branch entirely:* collecting money (customer → Microverse) and paying it out (Microverse → analyst/PM) are different flows with different tooling. See [docs/business/1.0/overview.md](../../business/1.0/overview.md)'s Payouts section.
+
+- ⚪ Payout mechanism — Stripe Connect is the assumed candidate, unconfirmed, nothing built
+- ⚪ Payout basis — hourly off elixtempo's tracked time (rustledger's existing `line_items` already prices a flat-rate v1 of this for analysts) vs. a per-task flat rate vs. something else
+- ⚪ Timing dependency — is a payout gated on the customer's bill actually clearing, or decoupled on Microverse's own schedule? Materially affects cash-flow risk, not a default to pick casually
+- ⚪ Needs its own design pass before this work starts, not just an extra bullet
 
 ## Up next (not yet planned in detail)
 
