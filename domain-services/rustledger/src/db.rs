@@ -50,6 +50,7 @@ async fn ensure_schema(pool: &PgPool) -> Result<(), sqlx::Error> {
             stripe_checkout_session_id  TEXT,
             stripe_payment_intent_id    TEXT,
             created_at                  TIMESTAMPTZ NOT NULL DEFAULT now(),
+            created_by_email            TEXT,
             published_at                TIMESTAMPTZ,
             paid_at                     TIMESTAMPTZ
         )
@@ -72,6 +73,15 @@ async fn ensure_schema(pool: &PgPool) -> Result<(), sqlx::Error> {
     // CREATE TABLE above).
     sqlx::query(
         "ALTER TABLE rustledger.bills ADD COLUMN IF NOT EXISTS published_at TIMESTAMPTZ",
+    )
+    .execute(pool)
+    .await?;
+
+    // Same follow-up-ALTER shape as published_at just above — scopes a
+    // PM's own view of GET /api/billing/bills (models.rs's Bill doc
+    // comment).
+    sqlx::query(
+        "ALTER TABLE rustledger.bills ADD COLUMN IF NOT EXISTS created_by_email TEXT",
     )
     .execute(pool)
     .await?;

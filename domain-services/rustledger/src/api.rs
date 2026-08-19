@@ -19,7 +19,7 @@ use crate::task_client;
 // Every other service in this stack (task-routes.js, audit-routes.js,
 // asset-service's api.rs) returns `{ "message": "..." }` on error — a
 // bare (StatusCode, String) renders as text/plain via axum's built-in
-// IntoResponse, which broke every frontend call site here (PmBillPanel.js/
+// IntoResponse, which broke every frontend call site here (CreateBillPanel.js/
 // CustomerProgressPanel.js both do `const body = await res.json()`
 // unconditionally, which throws parsing a text/plain error body before
 // the intended message or status-specific handling is ever reached).
@@ -78,7 +78,7 @@ pub fn router(pool: PgPool, kafka_producer: kafka_producer::Producer) -> Router 
         .route("/health", get(health))
         .route("/api/line-items", get(list_line_items))
         .route("/api/analysts/{analyst_id}/total", get(analyst_total))
-        .route("/api/billing/bills", post(create_bill))
+        .route("/api/billing/bills", post(create_bill).get(list_bills))
         .route("/api/billing/bills/by-task/{task_id}", get(get_bill_by_task))
         .route("/api/billing/bills/by-task/{task_id}/publish", post(publish_bill))
         .route(
@@ -166,11 +166,15 @@ struct CreateBillBody {
     currency: String,
 }
 
-// Shared by create_bill and publish_bill — both are PM actions gated on
-// the same thing: the task must be 'done', and the caller must be its
-// owner (or platform:admin, which bypasses the ownership match entirely
-// — an admin isn't the task's owner and shouldn't need to be, same as
-// every other admin escape hatch in this file).
+// create_bill's authorization — the task must be 'done', and the caller
+// must be its owner (or platform:admin, which bypasses the ownership
+// match entirely — an admin isn't the task's owner and shouldn't need to
+// be, same as every other admin escape hatch in this file). publish_bill
+// used to share this (an earlier pass had the PM both create and
+// publish), but publishing moved to the account manager — an AM's reach
+// is unscoped by design (matching platform:account-manager everywhere
+// else in this stack), so there's no per-task ownership to check there
+// anymore, and no task-service round trip needed for that route either.
 async fn authorize_pm_for_task(claims: &Claims, task_id: Uuid) -> Result<task_client::Task, ApiError> {
     let task = task_client::fetch_task(&task_id.to_string())
         .await
@@ -228,6 +232,7 @@ async fn create_bill(
             customer_id,
             amount_cents: body.amount_cents,
             currency: body.currency.to_uppercase(),
+            created_by_email: claims.email().map(String::from),
         },
     )
     .await
@@ -250,20 +255,22 @@ async fn create_bill(
     })
 }
 
-// The extra step the user asked for: creating a bill and releasing it to
-// the customer are two separate PM actions, not one — this is where the
-// customer actually finds out (email + in-app notification, via
+// Creating a bill and releasing it to the customer are two separate
+// actions by two different roles, not one — the PM creates it
+// (create_bill above), the account manager publishes it. This is where
+// the customer actually finds out (email + in-app notification, via
 // notification-service consuming bill.published off rustledger.bills)
 // and where the bill becomes visible/payable to them at all
 // (fetch_authorized_bill below gates GET/checkout-session on
-// published_at being set, for anyone who isn't staff).
+// published_at being set, for anyone who isn't staff). No task-ownership
+// check here — an AM's reach is unscoped by design, same as every other
+// AM-gated endpoint in this stack (e.g. GET /accounts elsewhere).
 async fn publish_bill(
     State(state): State<AppState>,
     headers: HeaderMap,
     Path(task_id): Path<Uuid>,
 ) -> Result<Json<Bill>, ApiError> {
-    let claims = require_any_role(&headers, &["platform:project-manager", "platform:admin"])?;
-    authorize_pm_for_task(&claims, task_id).await?;
+    require_any_role(&headers, &["platform:account-manager", "platform:admin"])?;
 
     let bill = bills::publish_bill(&state.pool, task_id)
         .await
@@ -275,12 +282,43 @@ async fn publish_bill(
     Ok(Json(bill))
 }
 
-fn is_staff(claims: &Claims) -> bool {
-    claims.has_role("platform:project-manager") || claims.has_role("platform:admin")
+// GET /api/billing/bills — the shared /bills page (BillsPage.js) calls
+// this for both roles; the frontend never picks a different path or
+// query per role, this handler decides scope from the caller's own
+// claims. A PM sees only bills they created (created_by_email); an AM
+// (or admin) sees every bill across every service, matching AM's
+// unscoped reach everywhere else in this stack.
+async fn list_bills(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Json<Vec<Bill>>, ApiError> {
+    let claims = require_any_role(
+        &headers,
+        &["platform:project-manager", "platform:account-manager", "platform:admin"],
+    )?;
+
+    let result = if claims.has_role("platform:account-manager") || claims.has_role("platform:admin") {
+        bills::list_all_bills(&state.pool).await
+    } else {
+        let caller_email = claims
+            .email()
+            .ok_or_else(|| ApiError::new(StatusCode::UNAUTHORIZED, "token has no email"))?;
+        bills::list_bills_for_email(&state.pool, caller_email).await
+    };
+
+    result
+        .map(Json)
+        .map_err(|err| ApiError::new(StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))
 }
 
-// A customer may only ever touch their own bill — PM/admin can see any
-// bill. Compares parsed UUIDs, not string formatting.
+fn is_staff(claims: &Claims) -> bool {
+    claims.has_role("platform:project-manager")
+        || claims.has_role("platform:account-manager")
+        || claims.has_role("platform:admin")
+}
+
+// A customer may only ever touch their own bill — PM/AM/admin can see
+// any bill. Compares parsed UUIDs, not string formatting.
 fn forbidden_for_customer(claims: &Claims, bill: &Bill) -> bool {
     if is_staff(claims) {
         return false;

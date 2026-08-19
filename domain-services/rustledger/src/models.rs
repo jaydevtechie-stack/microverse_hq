@@ -48,10 +48,17 @@ pub struct Bill {
     pub stripe_checkout_session_id: Option<String>,
     pub stripe_payment_intent_id: Option<String>,
     pub created_at: DateTime<Utc>,
-    // NULL = still a PM-only draft, invisible/unpayable to the customer
-    // (api.rs's fetch_authorized_bill gates on this). Set by publish_bill
-    // — the PM's explicit "release this to the customer" action, distinct
-    // from create_bill.
+    // The creating PM's email — scopes a PM's own view of GET
+    // /api/billing/bills (api.rs's list_bills) without a task-service
+    // round trip per bill. Nullable since it's a later addition (see
+    // db.rs's ALTER) and an admin-created bill may have no email claim.
+    pub created_by_email: Option<String>,
+    // NULL = still a draft, invisible/unpayable to the customer (api.rs's
+    // fetch_authorized_bill gates on this). Set by publish_bill — the
+    // account manager's explicit "release this to the customer" action,
+    // distinct from create_bill (a PM action). Moved from PM to AM after
+    // this branch's first pass — see docs/roadmap/1.0/domain-services.md's
+    // Branch 9 for why.
     pub published_at: Option<DateTime<Utc>>,
     pub paid_at: Option<DateTime<Utc>>,
 }
