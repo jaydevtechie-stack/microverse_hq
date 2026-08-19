@@ -20,8 +20,28 @@ const BillsPage = () => {
   const isAccountManager = keycloak?.hasRealmRole('platform:account-manager');
 
   const [bills, setBills] = useState(null);
+  const [taskTitles, setTaskTitles] = useState({});
   const [error, setError] = useState(null);
   const [publishingId, setPublishingId] = useState(null);
+
+  // rustledger only knows task_id, not the task's title — that's
+  // task-service's data. Resolved here client-side, in parallel, rather
+  // than rustledger reaching into task-service for every list request;
+  // a failed/missing lookup (e.g. a deleted task) just falls back to
+  // showing the raw id, not an error for the whole page.
+  const resolveTaskTitles = (billList) => {
+    const uniqueIds = [...new Set(billList.map((bill) => bill.task_id))];
+    Promise.all(
+      uniqueIds.map((taskId) =>
+        fetch(`/api/tasks/${taskId}`, { headers: authHeaders() })
+          .then((res) => (res.ok ? res.json() : null))
+          .then((task) => [taskId, task?.title])
+          .catch(() => [taskId, undefined])
+      )
+    ).then((entries) => {
+      setTaskTitles(Object.fromEntries(entries.filter(([, title]) => title)));
+    });
+  };
 
   const refetch = () => {
     setError(null);
@@ -30,7 +50,10 @@ const BillsPage = () => {
         if (!res.ok) throw new Error(`rustledger returned ${res.status}`);
         return res.json();
       })
-      .then(setBills)
+      .then((billList) => {
+        setBills(billList);
+        resolveTaskTitles(billList);
+      })
       .catch((err) => setError(err.message));
   };
 
@@ -99,7 +122,7 @@ const BillsPage = () => {
                 <tr key={bill.id}>
                   <td style={cellStyle}>
                     <Link to={`/task/${bill.task_id}`} style={{ color: 'var(--mv-color-primary)' }}>
-                      {bill.task_id}
+                      {taskTitles[bill.task_id] || bill.task_id}
                     </Link>
                   </td>
                   <td style={cellStyle}>
