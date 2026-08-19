@@ -25,4 +25,13 @@ async function nameForEmail(email) {
   return rows[0]?.name || email;
 }
 
-module.exports = { pmsForAccountAndService, nameForEmail };
+// Branch 9's bill.created/bill.paid events (rustledger) carry customer_id
+// (a users.id UUID, matching tasks.customer_id), not an email — every
+// recipient elsewhere in this file is already resolved to an email, so
+// this is the one lookup that goes the other direction.
+async function emailForUserId(userId) {
+  const { rows } = await pool.query('SELECT email FROM users WHERE id = $1', [userId]);
+  return rows[0]?.email || null;
+}
+
+module.exports = { pmsForAccountAndService, nameForEmail, emailForUserId };

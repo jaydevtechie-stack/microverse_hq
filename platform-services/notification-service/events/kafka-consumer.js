@@ -1,14 +1,17 @@
 // platform-services/notification-service/events/kafka-consumer.js
 //
-// Second, independent consumer group on task-service's existing
-// task-service.tasks topic (kafka-producer.js) — standard Kafka fan-out,
-// no change needed to search-service's own indexing consumer (6.2).
+// Independent consumer group across two topics — task-service's existing
+// task-service.tasks (kafka-producer.js, standard Kafka fan-out, no
+// change needed to search-service's own indexing consumer, 6.2) and
+// rustledger's rustledger.bills (Branch 9's bill.published/bill.paid),
+// same multi-topic shape as audit-service's consumer.
 const { Kafka } = require('kafkajs');
-const { pmsForAccountAndService, nameForEmail } = require('../models/recipients');
+const { pmsForAccountAndService, nameForEmail, emailForUserId } = require('../models/recipients');
 const { createNotification } = require('../models/notification');
 const { sendNotificationEmail } = require('../services/email');
 
-const TOPIC = 'task-service.tasks';
+const TASK_TOPIC = 'task-service.tasks';
+const BILLS_TOPIC = 'rustledger.bills';
 const GROUP_ID = 'notification-service-tasks';
 
 const kafka = new Kafka({
@@ -18,11 +21,16 @@ const kafka = new Kafka({
 
 // Recipient resolution per event type this branch cares about —
 // task.created notifies the account's PM(s), task.assigned notifies the
-// new assignee. Every other lifecycle event on this topic (moved-to-
-// review, reviewer-reassigned, approved, rejected, no-index-changed) is
-// consumed and ignored: generalizing to "notify on every transition" is
-// Branch 8's audit-trail territory, not this branch's two roadmap
-// bullets.
+// new assignee, bill.published notifies the task's customer (the first
+// customer-facing trigger this service has ever had — every recipient
+// elsewhere here is internal staff). bill.published fires when the PM
+// explicitly releases a bill (rustledger's publish_bill), a separate
+// action from creating it — a draft bill notifies nobody. Every other
+// lifecycle event on task-service.tasks (moved-to-review, reviewer-
+// reassigned, approved, rejected, no-index-changed) and bill.paid on
+// rustledger.bills is consumed and ignored: generalizing to "notify on
+// every transition" is Branch 8's audit-trail territory, not this
+// branch's roadmap bullets.
 async function recipientsFor(event) {
   if (event.event === 'task.created') {
     if (!event.account_id) return [];
@@ -31,12 +39,21 @@ async function recipientsFor(event) {
   if (event.event === 'task.assigned') {
     return event.assignee_ids || [];
   }
+  if (event.event === 'bill.published') {
+    if (!event.customer_id) return [];
+    const email = await emailForUserId(event.customer_id);
+    return email ? [email] : [];
+  }
   return [];
 }
 
 function messageFor(event) {
   if (event.event === 'task.created') {
     return `New order "${event.title}" needs an analyst assigned.`;
+  }
+  if (event.event === 'bill.published') {
+    const amount = (event.amount_cents / 100).toFixed(2);
+    return `Your bill for ${amount} ${event.currency} is ready — view and pay it from your order.`;
   }
   return `You've been assigned "${event.title}".`;
 }
@@ -91,7 +108,7 @@ function startConsumer(io) {
   (async () => {
     try {
       await consumer.connect();
-      await consumer.subscribe({ topic: TOPIC, fromBeginning: true });
+      await consumer.subscribe({ topics: [TASK_TOPIC, BILLS_TOPIC], fromBeginning: true });
       await consumer.run({
         eachMessage: async ({ message }) => {
           let event;

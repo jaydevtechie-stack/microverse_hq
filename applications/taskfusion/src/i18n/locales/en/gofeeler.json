@@ -133,14 +133,18 @@
       "assignTo": "Assign to {{name}}"
     },
     "createBill": {
+      "loading": "Checking for an existing bill…",
       "analysisApproved": "Analysis approved and complete",
       "readyToBill": "Ready to bill the customer for this order.",
       "amountPlaceholder": "0.00",
       "createBill": "Create bill",
       "billing": "Creating bill…",
-      "billCreated": "Bill created",
-      "billCreatedNote": "Bill created — order will move to \"paid\" status once the customer pays",
-      "billError": "Could not create bill: {{error}}"
+      "draftNote": "Bill created for ${{amount}} {{currency}} — not published yet. The customer can't see it or pay until you publish it.",
+      "publishBill": "Publish bill",
+      "publishing": "Publishing…",
+      "billPublishedNote": "Bill published — the customer has been notified and can now pay. Order will move to \"paid\" once they do.",
+      "billError": "Could not create bill: {{error}}",
+      "publishError": "Could not publish bill: {{error}}"
     },
     "customerProgress": {
       "steps": {

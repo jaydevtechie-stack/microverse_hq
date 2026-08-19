@@ -243,7 +243,7 @@ Older versions aren't deleted — they're just not what this query returns, whic
 Two tables, two different flows — analyst payout (existing) and customer billing (Branch 9), not opposite sides of the same one (see [docs/business/1.0/overview.md](business/1.0/overview.md)'s Payouts section on why):
 
 - `line_items` — one row per completed elixtempo tracked-work session, consumed off `elixtempo.sessions`' `session.stopped` events (`id`, `session_id` UNIQUE, `analyst_id`, `quest_id`, `elapsed_seconds`, `rate_cents_per_hour`, `amount_cents`, `currency`, `created_at`). Flat rate from `DEFAULT_HOURLY_RATE_CENTS`/`DEFAULT_CURRENCY` env vars — real per-analyst/contract rates are a follow-up. This is payout-basis groundwork only; there's no Stripe Connect disbursement yet, and no PM payout equivalent — both remain the open question flagged in Branch 9.
-- `bills` (Branch 9) — one row per customer bill, one bill per `task_id` (`UNIQUE`): `id`, `task_id`, `customer_id`, `amount_cents`, `currency`, `status` (`unpaid`/`paid`), `stripe_checkout_session_id`, `stripe_payment_intent_id`, `created_at`, `paid_at`. `task_id`/`customer_id` are cross-service references (task-service's `tasks.id`/`tasks.customer_id`), not FK-enforced — same posture as `audit_log.task_id`. Amount is entered manually by the PM at bill-creation time; no price/rate field exists on `tasks`/`projects` to compute it from.
+- `bills` (Branch 9) — one row per customer bill, one bill per `task_id` (`UNIQUE`): `id`, `task_id`, `customer_id`, `amount_cents`, `currency`, `status` (`unpaid`/`paid`), `stripe_checkout_session_id`, `stripe_payment_intent_id`, `created_at`, `published_at`, `paid_at`. `task_id`/`customer_id` are cross-service references (task-service's `tasks.id`/`tasks.customer_id`), not FK-enforced — same posture as `audit_log.task_id`. Amount is entered manually by the PM at bill-creation time; no price/rate field exists on `tasks`/`projects` to compute it from. `published_at` is `NULL` until the PM explicitly publishes the bill (a separate action from creating it, `POST /api/billing/bills/by-task/:id/publish`) — a draft bill is invisible and unpayable to the customer (`api.rs`'s `fetch_authorized_bill` gates on this for any non-staff caller), and publishing is what triggers `bill.published` on Kafka, notification-service's first-ever customer-facing (rather than internal-staff) notification.
 
 rustledger owns Stripe collection directly — Checkout Session creation and webhook verification (`async-stripe` crate) live in `domain-services/rustledger/src/stripe_client.rs`, alongside the ledger itself. An earlier iteration split that into a separate stateless `platform-services/billing-service` Node middleware in front of rustledger; folded back in since rustledger already owned the billing domain by name and by `line_items`. The original "Python (Stripe SDK)" spec for a standalone billing-service in [docs/architecture/1.0/platform-services.md](architecture/1.0/platform-services.md) no longer applies — that row has been removed, there is no billing-service anymore.
 
@@ -337,7 +337,7 @@ Object keys only: `{service}/{account_id}/{order_id}/{version}/{filename}`. No d
 CREATE TABLE notifications (
   id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   recipient_email  TEXT NOT NULL,
-  type             TEXT NOT NULL,   -- 'task.created' | 'task.assigned'
+  type             TEXT NOT NULL,   -- 'task.created' | 'task.assigned' | 'bill.published'
   task_id          UUID NOT NULL,   -- REFERENCES task-service's tasks.id, cross-service, not FK-enforced
   message          TEXT NOT NULL,
   read             BOOLEAN NOT NULL DEFAULT false,
@@ -345,7 +345,7 @@ CREATE TABLE notifications (
 );
 ```
 
-Keyed by `recipient_email`, not a `users.id` FK — matches `task-service.tasks.assignee`'s own "Keycloak usernames stand in" MVP posture, and lets both the WebSocket handshake and the REST reads key off the same unverified JWT `email` claim without notification-service needing a `users` lookup of its own for the common case. See [docs/roadmap/1.0/domain-services.md](roadmap/1.0/domain-services.md)'s Branch 7 for how rows get created (a second Kafka consumer group on `task-service.tasks`) and read (`GET`/`PATCH /notifications`, both scoped to the caller's own `recipient_email`).
+Keyed by `recipient_email`, not a `users.id` FK — matches `task-service.tasks.assignee`'s own "Keycloak usernames stand in" MVP posture, and lets both the WebSocket handshake and the REST reads key off the same unverified JWT `email` claim without notification-service needing a `users` lookup of its own for the common case, for `task.created`/`task.assigned`. `bill.published` (Branch 9) is the exception — the first customer-facing (not internal-staff) trigger, off rustledger's own `rustledger.bills` topic rather than `task-service.tasks`, and the only case where notification-service needs a `users.id → email` lookup (`models/recipients.js`'s `emailForUserId`, since the event only carries `customer_id`). See [docs/roadmap/1.0/domain-services.md](roadmap/1.0/domain-services.md)'s Branch 7 for how rows get created (now a second consumer group across *two* topics) and read (`GET`/`PATCH /notifications`, both scoped to the caller's own `recipient_email`).
 
 ---
 
