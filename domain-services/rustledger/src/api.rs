@@ -1,7 +1,7 @@
 use axum::body::Bytes;
 use axum::extract::{Path, Query, State};
 use axum::http::{HeaderMap, StatusCode};
-use axum::response::{IntoResponse, Json};
+use axum::response::{IntoResponse, Json, Response};
 use axum::routing::{get, post};
 use axum::Router;
 use serde::{Deserialize, Serialize};
@@ -16,6 +16,30 @@ use crate::models::{AnalystTotal, Bill, LineItem};
 use crate::stripe_client;
 use crate::task_client;
 
+// Every other service in this stack (task-routes.js, audit-routes.js,
+// asset-service's api.rs) returns `{ "message": "..." }` on error — a
+// bare (StatusCode, String) renders as text/plain via axum's built-in
+// IntoResponse, which broke every frontend call site here (PmBillPanel.js/
+// CustomerProgressPanel.js both do `const body = await res.json()`
+// unconditionally, which throws parsing a text/plain error body before
+// the intended message or status-specific handling is ever reached).
+struct ApiError {
+    status: StatusCode,
+    message: String,
+}
+
+impl ApiError {
+    fn new(status: StatusCode, message: impl Into<String>) -> Self {
+        Self { status, message: message.into() }
+    }
+}
+
+impl IntoResponse for ApiError {
+    fn into_response(self) -> Response {
+        (self.status, Json(serde_json::json!({ "message": self.message }))).into_response()
+    }
+}
+
 // Full ledger visibility (any analyst's line items/totals) is billing
 // data with no access-control design yet — Branch 9 in ROADMAP.md
 // leaves "who can see whose billing" an open question. platform:admin
@@ -23,7 +47,7 @@ use crate::task_client;
 // (docs/security.md: rustledger had zero auth, unlike every other
 // service) without guessing at that unbuilt design; revisit once
 // Branch 9's payout-visibility model actually exists.
-fn require_admin(headers: &HeaderMap) -> Result<Claims, (StatusCode, String)> {
+fn require_admin(headers: &HeaderMap) -> Result<Claims, ApiError> {
     require_any_role(headers, &["platform:admin"])
 }
 
@@ -31,11 +55,11 @@ fn require_admin(headers: &HeaderMap) -> Result<Claims, (StatusCode, String)> {
 // combinations rather than admin-only — same claim-extraction, just a
 // list of acceptable roles instead of one. Returns the parsed Claims so
 // callers can read email/sub off it without extracting twice.
-fn require_any_role(headers: &HeaderMap, roles: &[&str]) -> Result<Claims, (StatusCode, String)> {
+fn require_any_role(headers: &HeaderMap, roles: &[&str]) -> Result<Claims, ApiError> {
     let claims = claims_from_headers(headers)
-        .ok_or((StatusCode::UNAUTHORIZED, "missing or malformed token".into()))?;
+        .ok_or_else(|| ApiError::new(StatusCode::UNAUTHORIZED, "missing or malformed token"))?;
     if !roles.iter().any(|role| claims.has_role(role)) {
-        return Err((
+        return Err(ApiError::new(
             StatusCode::FORBIDDEN,
             format!("requires one of: {}", roles.join(", ")),
         ));
@@ -77,7 +101,7 @@ async fn list_line_items(
     State(state): State<AppState>,
     headers: HeaderMap,
     Query(query): Query<LineItemsQuery>,
-) -> Result<Json<Vec<LineItem>>, (StatusCode, String)> {
+) -> Result<Json<Vec<LineItem>>, ApiError> {
     require_admin(&headers)?;
 
     let rows = match query.analyst_id {
@@ -99,14 +123,14 @@ async fn list_line_items(
     };
 
     rows.map(Json)
-        .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))
+        .map_err(|err| ApiError::new(StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))
 }
 
 async fn analyst_total(
     State(state): State<AppState>,
     headers: HeaderMap,
     Path(analyst_id): Path<String>,
-) -> Result<Json<AnalystTotal>, (StatusCode, String)> {
+) -> Result<Json<AnalystTotal>, ApiError> {
     require_admin(&headers)?;
 
     let rate_card = RateCard::from_env();
@@ -119,7 +143,7 @@ async fn analyst_total(
     .bind(&analyst_id)
     .fetch_one(&state.pool)
     .await
-    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))?;
+    .map_err(|err| ApiError::new(StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))?;
 
     Ok(Json(AnalystTotal {
         analyst_id,
@@ -128,7 +152,13 @@ async fn analyst_total(
     }))
 }
 
+// camelCase — matches PmBillPanel.js's JSON.stringify({ taskId, amountCents,
+// currency }) body. The deleted billing-service Node layer used to
+// translate this into snake_case before calling rustledger
+// (services/rustledger-client.js's createBill); that translation has to
+// happen here now that the frontend calls rustledger directly.
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct CreateBillBody {
     task_id: Uuid,
     amount_cents: i64,
@@ -148,33 +178,42 @@ async fn create_bill(
     State(state): State<AppState>,
     headers: HeaderMap,
     Json(body): Json<CreateBillBody>,
-) -> Result<Json<Bill>, (StatusCode, String)> {
+) -> Result<Json<Bill>, ApiError> {
     let claims = require_any_role(&headers, &["platform:project-manager", "platform:admin"])?;
-    let caller_email = claims
-        .email()
-        .ok_or((StatusCode::UNAUTHORIZED, "token has no email".into()))?;
 
     if body.amount_cents <= 0 {
-        return Err((StatusCode::BAD_REQUEST, "amount_cents must be positive".into()));
+        return Err(ApiError::new(StatusCode::BAD_REQUEST, "amount_cents must be positive"));
     }
 
     let task = task_client::fetch_task(&body.task_id.to_string())
         .await
-        .map_err(|e| (StatusCode::BAD_GATEWAY, e))?
-        .ok_or((StatusCode::NOT_FOUND, "task not found".into()))?;
+        .map_err(|e| ApiError::new(StatusCode::BAD_GATEWAY, e))?
+        .ok_or_else(|| ApiError::new(StatusCode::NOT_FOUND, "task not found"))?;
 
     if task.status != "done" {
-        return Err((
+        return Err(ApiError::new(
             StatusCode::CONFLICT,
             format!("task is \"{}\", not done", task.status),
         ));
     }
-    if task.owner.as_deref() != Some(caller_email) {
-        return Err((StatusCode::FORBIDDEN, "not this task's owner".into()));
+
+    // platform:admin bypasses the ownership match entirely — an admin
+    // isn't the task's owner and shouldn't need to be, same as every
+    // other admin escape hatch in this file. A plain PM must be the
+    // task's current owner (the approving/default PM), checked against
+    // their own email claim.
+    if !claims.has_role("platform:admin") {
+        let caller_email = claims
+            .email()
+            .ok_or_else(|| ApiError::new(StatusCode::UNAUTHORIZED, "token has no email"))?;
+        if task.owner.as_deref() != Some(caller_email) {
+            return Err(ApiError::new(StatusCode::FORBIDDEN, "not this task's owner"));
+        }
     }
+
     let customer_id = task
         .customer_id
-        .ok_or((StatusCode::CONFLICT, "task has no customer to bill".into()))?;
+        .ok_or_else(|| ApiError::new(StatusCode::CONFLICT, "task has no customer to bill"))?;
 
     bills::create_bill(
         &state.pool,
@@ -187,38 +226,62 @@ async fn create_bill(
     )
     .await
     .map(Json)
-    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))
+    .map_err(|err| {
+        // bills_task_id_key's unique violation on a genuine double-submit
+        // (double-click, two PM tabs racing) is a client-recoverable
+        // conflict, not a server fault — map it to a clean 409 instead of
+        // falling through to the generic 500 branch below, which would
+        // otherwise surface the raw Postgres constraint-violation message
+        // to the client.
+        if err
+            .as_database_error()
+            .is_some_and(|db_err| db_err.is_unique_violation())
+        {
+            ApiError::new(StatusCode::CONFLICT, "a bill already exists for this task")
+        } else {
+            ApiError::new(StatusCode::INTERNAL_SERVER_ERROR, err.to_string())
+        }
+    })
 }
 
 // A customer may only ever touch their own bill — PM/admin can see any
-// bill.
+// bill. Compares parsed UUIDs, not string formatting, and short-circuits
+// on the common PM/admin case before touching the customer's identity at
+// all.
 fn forbidden_for_customer(claims: &Claims, bill: &Bill) -> bool {
-    let customer_only = claims.has_role("platform:customer")
-        && !claims.has_role("platform:project-manager")
-        && !claims.has_role("platform:admin");
-    customer_only && claims.sub() != Some(bill.customer_id.to_string().as_str())
+    if claims.has_role("platform:project-manager") || claims.has_role("platform:admin") {
+        return false;
+    }
+    claims.sub().and_then(|sub| sub.parse::<Uuid>().ok()) != Some(bill.customer_id)
+}
+
+// Shared by get_bill_by_task and create_checkout_session — fetch the
+// bill for a task and apply the same customer-ownership narrowing both
+// routes need.
+async fn fetch_authorized_bill(pool: &PgPool, claims: &Claims, task_id: Uuid) -> Result<Bill, ApiError> {
+    let bill = bills::get_bill_by_task(pool, task_id)
+        .await
+        .map_err(|err| ApiError::new(StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))?
+        .ok_or_else(|| ApiError::new(StatusCode::NOT_FOUND, "no bill for that task"))?;
+
+    if forbidden_for_customer(claims, &bill) {
+        return Err(ApiError::new(StatusCode::FORBIDDEN, "not this customer's bill"));
+    }
+
+    Ok(bill)
 }
 
 async fn get_bill_by_task(
     State(state): State<AppState>,
     headers: HeaderMap,
     Path(task_id): Path<Uuid>,
-) -> Result<Json<Bill>, (StatusCode, String)> {
+) -> Result<Json<Bill>, ApiError> {
     let claims = require_any_role(
         &headers,
         &["platform:project-manager", "platform:customer", "platform:admin"],
     )?;
 
-    let bill = bills::get_bill_by_task(&state.pool, task_id)
-        .await
-        .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))?
-        .ok_or((StatusCode::NOT_FOUND, "no bill for that task".into()))?;
-
-    if forbidden_for_customer(&claims, &bill) {
-        return Err((StatusCode::FORBIDDEN, "not this customer's bill".into()));
-    }
-
-    Ok(Json(bill))
+    fetch_authorized_bill(&state.pool, &claims, task_id).await.map(Json)
 }
 
 #[derive(Serialize)]
@@ -228,29 +291,25 @@ struct CheckoutSessionResponse {
 
 // Customer clicks "View invoice" (CustomerProgressPanel.js) — creates a
 // Stripe-hosted Checkout Session for the bill's amount and redirects the
-// browser there.
+// browser there. Always mints a new session (no lookup/reuse of a prior
+// open one) — a customer re-clicking after abandoning checkout gets a
+// fresh session, which is correct (Stripe sessions expire) even if it
+// means a stray unpaid session can accumulate on Stripe's side.
 async fn create_checkout_session(
     State(state): State<AppState>,
     headers: HeaderMap,
     Path(task_id): Path<Uuid>,
-) -> Result<Json<CheckoutSessionResponse>, (StatusCode, String)> {
+) -> Result<Json<CheckoutSessionResponse>, ApiError> {
     let claims = require_any_role(&headers, &["platform:customer"])?;
 
-    let bill = bills::get_bill_by_task(&state.pool, task_id)
-        .await
-        .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))?
-        .ok_or((StatusCode::NOT_FOUND, "no bill for that task".into()))?;
-
-    if forbidden_for_customer(&claims, &bill) {
-        return Err((StatusCode::FORBIDDEN, "not this customer's bill".into()));
-    }
+    let bill = fetch_authorized_bill(&state.pool, &claims, task_id).await?;
     if bill.status == "paid" {
-        return Err((StatusCode::CONFLICT, "bill already paid".into()));
+        return Err(ApiError::new(StatusCode::CONFLICT, "bill already paid"));
     }
 
     let url = stripe_client::create_checkout_session(&bill)
         .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+        .map_err(|e| ApiError::new(StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     Ok(Json(CheckoutSessionResponse { url }))
 }
@@ -260,22 +319,25 @@ async fn create_checkout_session(
 // body must be the exact raw bytes Stripe sent (Bytes extractor, not
 // Json<T>) since signature verification hashes the raw payload — unlike
 // Express, Axum extracts per-handler so this doesn't need any global
-// middleware-ordering trick to get an unparsed body.
+// middleware-ordering trick to get an unparsed body. Stripe itself
+// doesn't parse the response as JSON (it only cares about the status
+// code), so this is the one route where ApiError's JSON body doesn't
+// actually matter to the caller — used anyway for consistency.
 async fn stripe_webhook(
     State(state): State<AppState>,
     headers: HeaderMap,
     body: Bytes,
-) -> Result<StatusCode, (StatusCode, String)> {
+) -> Result<StatusCode, ApiError> {
     let signature = headers
         .get("stripe-signature")
         .and_then(|v| v.to_str().ok())
-        .ok_or((StatusCode::BAD_REQUEST, "missing stripe-signature header".into()))?;
-    let payload =
-        std::str::from_utf8(&body).map_err(|_| (StatusCode::BAD_REQUEST, "invalid payload encoding".into()))?;
+        .ok_or_else(|| ApiError::new(StatusCode::BAD_REQUEST, "missing stripe-signature header"))?;
+    let payload = std::str::from_utf8(&body)
+        .map_err(|_| ApiError::new(StatusCode::BAD_REQUEST, "invalid payload encoding"))?;
     let webhook_secret = std::env::var("STRIPE_WEBHOOK_SECRET").unwrap_or_default();
 
     let completed = stripe_client::parse_checkout_completed(payload, signature, &webhook_secret)
-        .map_err(|e| (StatusCode::BAD_REQUEST, format!("Webhook Error: {e}")))?;
+        .map_err(|e| ApiError::new(StatusCode::BAD_REQUEST, format!("Webhook Error: {e}")))?;
 
     let Some(completed) = completed else {
         return Ok(StatusCode::OK);
@@ -284,7 +346,7 @@ async fn stripe_webhook(
     let task_id: Uuid = completed
         .task_id
         .parse()
-        .map_err(|_| (StatusCode::BAD_REQUEST, "checkout session had no valid task_id".into()))?;
+        .map_err(|_| ApiError::new(StatusCode::BAD_REQUEST, "checkout session had no valid task_id"))?;
 
     let bill = bills::mark_bill_paid(
         &state.pool,
@@ -295,7 +357,7 @@ async fn stripe_webhook(
         },
     )
     .await
-    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))?;
+    .map_err(|err| ApiError::new(StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))?;
 
     // None on a redelivered webhook for an already-paid bill (rustledger's
     // WHERE status = 'unpaid' guard in mark_bill_paid) — nothing new to

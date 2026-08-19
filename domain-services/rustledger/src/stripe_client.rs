@@ -1,3 +1,4 @@
+use std::sync::OnceLock;
 use stripe::{
     CheckoutSession, CheckoutSessionMode, Client, CreateCheckoutSession,
     CreateCheckoutSessionLineItems, CreateCheckoutSessionLineItemsPriceData,
@@ -7,9 +8,17 @@ use stripe::{
 
 use crate::models::Bill;
 
-fn client() -> Client {
-    let secret_key = std::env::var("STRIPE_SECRET_KEY").unwrap_or_default();
-    Client::new(secret_key)
+static CLIENT: OnceLock<Client> = OnceLock::new();
+
+// Built once and reused — Client wraps its own connection pool, so
+// constructing a fresh one on every "View invoice" click would pay a new
+// TCP+TLS handshake to Stripe on every checkout attempt instead of
+// reusing a keep-alive connection.
+fn client() -> &'static Client {
+    CLIENT.get_or_init(|| {
+        let secret_key = std::env::var("STRIPE_SECRET_KEY").unwrap_or_default();
+        Client::new(secret_key)
+    })
 }
 
 fn app_base_url() -> String {
@@ -51,7 +60,7 @@ pub async fn create_checkout_session(bill: &Bill) -> Result<String, String> {
     params.success_url = Some(&success_url);
     params.cancel_url = Some(&cancel_url);
 
-    let session = CheckoutSession::create(&client(), params)
+    let session = CheckoutSession::create(client(), params)
         .await
         .map_err(|e| e.to_string())?;
 
