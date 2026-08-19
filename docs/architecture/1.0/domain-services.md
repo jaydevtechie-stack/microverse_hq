@@ -6,7 +6,7 @@ Customer-facing, one specialist trick each, real brand names. See [core.md](core
 |---|---|---|---|
 | GoFeeler | Go | Sentiment analysis on uploaded chats/emails/comments | Online — `basic` keyword engine + `advanced` LLM engine (OpenAI), see Branch 5 below |
 | elixtempo | Elixir | The trust layer between "work happened" and "money/accountability follows" — tracked time feeds customer billing, analyst payouts, and business-efficiency reporting alike (see [docs/business/1.0/product-strategy.md](../../business/1.0/product-strategy.md)'s product definition). OTP concurrency handles many cheap live sessions. | Designing |
-| rustledger | Rust | Invoices/billing ledger, consumes elixtempo's time-entry events off Kafka | Designing |
+| rustledger | Rust | Billing ledger — analyst-payout line items (consumes elixtempo's time-entry events off Kafka) and customer bills, owns Stripe collection directly (Checkout Sessions, webhook verification, `async-stripe` crate) | Customer billing built (Branch 9); payouts still line-item groundwork only, no disbursement |
 | SpringPix | Java/Spring | Image and GIS processing — does the raster hotspot analysis, backed by PostGIS | Basic app |
 | PyReel | Python | Video processing | Basic app |
 | NetCruncher | .NET | Calculation engine | Exists |

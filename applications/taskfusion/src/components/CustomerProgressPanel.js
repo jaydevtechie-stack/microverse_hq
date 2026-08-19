@@ -34,7 +34,7 @@ const CustomerProgressPanel = ({ task }) => {
       });
       const body = await res.json();
       if (res.status === 404) throw new Error(t('panels.customerProgress.notYetInvoiced'));
-      if (!res.ok) throw new Error(body.message || `billing-service returned ${res.status}`);
+      if (!res.ok) throw new Error(body.message || `rustledger returned ${res.status}`);
       window.location.href = body.url;
     } catch (err) {
       setError(err.message);

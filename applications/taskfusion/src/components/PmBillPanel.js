@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { authHeaders } from '../services/keycloak';
 
-// Branch 9 — real billing-service integration. No price/rate field
-// exists anywhere on tasks/projects (docs/schema.md), so the PM enters
-// the amount by hand; billing-service re-verifies task ownership/status
+// Branch 9 — real rustledger integration. No price/rate field exists
+// anywhere on tasks/projects (docs/schema.md), so the PM enters the
+// amount by hand; rustledger re-verifies task ownership/status
 // server-side rather than trusting anything from this form beyond the
 // amount itself.
 const PmBillPanel = ({ task, onBilled }) => {
@@ -44,7 +44,7 @@ const PmBillPanel = ({ task, onBilled }) => {
         body: JSON.stringify({ taskId: task.id, amountCents, currency: 'USD' }),
       });
       const body = await res.json();
-      if (!res.ok) throw new Error(body.message || `billing-service returned ${res.status}`);
+      if (!res.ok) throw new Error(body.message || `rustledger returned ${res.status}`);
       setBilled(true);
       onBilled?.(task);
     } catch (err) {
