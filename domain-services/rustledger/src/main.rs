@@ -4,7 +4,10 @@ mod billing;
 mod bills;
 mod db;
 mod kafka_consumer;
+mod kafka_producer;
 mod models;
+mod stripe_client;
+mod task_client;
 
 #[tokio::main]
 async fn main() {
@@ -32,9 +35,16 @@ async fn main() {
         }
     };
 
-    tokio::spawn(kafka_consumer::run(kafka_brokers, pool.clone()));
+    tokio::spawn(kafka_consumer::run(kafka_brokers.clone(), pool.clone()));
 
-    let app = api::router(pool);
+    // Branch 9 — rustledger's first-ever producer, publishing bill.paid
+    // once a Stripe webhook confirms payment (see api.rs's stripe_webhook
+    // handler). Connects in the background (spawn_connect's own comment
+    // explains why) rather than being awaited here — this line does not
+    // block axum::serve below on Kafka being reachable.
+    let kafka_producer = kafka_producer::spawn_connect(kafka_brokers);
+
+    let app = api::router(pool, kafka_producer);
     let listener = tokio::net::TcpListener::bind(("0.0.0.0", port))
         .await
         .expect("failed to bind listener");
