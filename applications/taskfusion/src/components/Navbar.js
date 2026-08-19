@@ -107,10 +107,10 @@ const Navbar = ({ keycloak }) => {
             {t('deliveryTeam')}
           </PlatformNavLink>
           {/* Branch 9 — shared with account-manager below (BillsPage.js,
-              one route/one page, not /pm/bills — see
+              one route/one page, not /pm/billing — see
               docs/architecture/1.0/nav-config.json's Bills entry). PM
               creates bills here; publishing them is the AM's action. */}
-          <PlatformNavLink to="/bills" active={pathname === '/bills'}>
+          <PlatformNavLink to="/billing" active={pathname === '/billing'}>
             {t('bills')}
           </PlatformNavLink>
         </>
@@ -123,16 +123,15 @@ const Navbar = ({ keycloak }) => {
           <PlatformNavLink to="/projects/manage" active={pathname === '/projects/manage'}>
             {t('accounts')}
           </PlatformNavLink>
-          <PlatformNavLink to="/am/billing" active={pathname === '/am/billing'}>
+          {/* Branch 9 — replaces the old /am/billing placeholder
+              (AmBillingPage, never shipped real content) entirely; now
+              points at the real BillsPage.js, shared with
+              project-manager above. Deliberately unscoped — every bill
+              across every service, matching AM's other unscoped views —
+              unlike this role's other ownership-scoped pages (6.2.5).
+              Where the AM actually publishes a bill a PM created. */}
+          <PlatformNavLink to="/billing" active={pathname === '/billing'}>
             {t('billing')}
-          </PlatformNavLink>
-          {/* Branch 9 — shared with project-manager above. Unlike
-              /am/billing (ownership-scoped, 6.2.5), this is deliberately
-              unscoped — every bill across every service, matching AM's
-              other unscoped views. Where the AM actually publishes a
-              bill a PM created. */}
-          <PlatformNavLink to="/bills" active={pathname === '/bills'}>
-            {t('bills')}
           </PlatformNavLink>
         </>
       )}
