@@ -22,6 +22,7 @@ import PmOrdersPage from './pages/PmOrdersPage';
 import DeliveryTeamPage from './pages/DeliveryTeamPage';
 import AccountsManagePage from './pages/AccountsManagePage';
 import AmBillingPage from './pages/AmBillingPage';
+import BillsPage from './pages/BillsPage';
 import SearchResultsPage from './pages/SearchResultsPage';
 
 // microverse.local carries everything platform-side (landing page,
@@ -263,6 +264,22 @@ const App = () => {
               path="/am/billing"
               element={
                 <PrivateRoute element={<AmBillingPage />} keycloak={keycloak} roles={['platform:account-manager']} />
+              }
+            />
+
+            {/* Shared route, deliberately not /pm/bills or /am/bills —
+                rustledger's GET /api/billing/bills already scopes the
+                response by the caller's role (a PM's own bills vs. AM's
+                every bill), so one page/one path covers both instead of
+                two near-identical routes. */}
+            <Route
+              path="/bills"
+              element={
+                <PrivateRoute
+                  element={<BillsPage />}
+                  keycloak={keycloak}
+                  roles={['platform:project-manager', 'platform:account-manager', 'platform:admin']}
+                />
               }
             />
 

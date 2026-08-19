@@ -8,11 +8,12 @@ import { authHeaders } from '../services/keycloak';
 // server-side rather than trusting anything from this form beyond the
 // amount itself.
 //
-// Two separate PM actions, not one: creating a bill leaves it a draft
-// (invisible to the customer, no notification) so the PM can double-
-// check the amount; publishing is the explicit "release it" step that
-// actually notifies the customer (email + in-app, notification-service's
-// bill.published handler) and unlocks payment for them.
+// PM creates the bill (this panel); publishing it — the step that
+// actually notifies the customer and unlocks payment — moved to the
+// account manager after this branch's first pass (see
+// docs/roadmap/1.0/domain-services.md's Branch 9). That action now lives
+// on the shared /bills page (BillsPage.js), not here — a PM's part ends
+// once the draft exists.
 const CreateBillPanel = ({ task, onBilled }) => {
   const { t } = useTranslation('gofeeler');
   const [amount, setAmount] = useState('');
@@ -23,9 +24,7 @@ const CreateBillPanel = ({ task, onBilled }) => {
 
   // A task stays 'done' (and this panel stays mounted) until the
   // customer pays — revisiting the page shouldn't offer "Create bill"
-  // again on a task that already has a draft/published bill, and should
-  // pick up mid-flow at whichever step (draft vs published) it's
-  // actually in.
+  // again on a task that already has a bill.
   useEffect(() => {
     let cancelled = false;
     setLoadingBill(true);
@@ -66,30 +65,9 @@ const CreateBillPanel = ({ task, onBilled }) => {
     }
   };
 
-  const publishBill = async () => {
-    setWorking(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/billing/bills/by-task/${task.id}/publish`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.message || `rustledger returned ${res.status}`);
-      setBill(body);
-      onBilled?.(task);
-    } catch (err) {
-      setError(t('panels.createBill.publishError', { error: err.message }));
-    } finally {
-      setWorking(false);
-    }
-  };
-
   if (loadingBill) {
     return <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: 0 }}>{t('panels.createBill.loading')}</p>;
   }
-
-  const published = Boolean(bill?.published_at);
 
   return (
     <div>
@@ -147,59 +125,29 @@ const CreateBillPanel = ({ task, onBilled }) => {
         </>
       )}
 
-      {bill && !published && (
-        <>
-          <div
-            style={{
-              background: 'var(--mv-bg)',
-              border: '0.5px solid var(--mv-border)',
-              borderRadius: 8,
-              padding: '10px 12px',
-              color: 'var(--mv-text)',
-              fontSize: 12,
-              marginBottom: 12,
-            }}
-          >
-            {t('panels.createBill.draftNote', { amount: (bill.amount_cents / 100).toFixed(2), currency: bill.currency })}
-          </div>
-          <button
-            type="button"
-            onClick={publishBill}
-            disabled={working}
-            style={{
-              width: '100%',
-              padding: '10px 0',
-              background: 'var(--mv-color-primary)',
-              color: 'var(--mv-color-primary-contrast)',
-              fontWeight: 500,
-              fontSize: 13,
-              border: 'none',
-              borderRadius: 8,
-              cursor: working ? 'default' : 'pointer',
-              opacity: working ? 0.6 : 1,
-            }}
-          >
-            {working ? t('panels.createBill.publishing') : t('panels.createBill.publishBill')}
-          </button>
-        </>
-      )}
-
       {error && (
         <p style={{ color: 'var(--mv-color-danger)', fontSize: 12, margin: '8px 0 0' }}>{error}</p>
       )}
 
-      {published && (
+      {bill && (
         <div
           style={{
-            background: 'color-mix(in srgb, var(--mv-color-primary) 13%, transparent)',
-            border: '0.5px solid var(--mv-color-primary)',
+            background: bill.published_at
+              ? 'color-mix(in srgb, var(--mv-color-primary) 13%, transparent)'
+              : 'var(--mv-bg)',
+            border: `0.5px solid ${bill.published_at ? 'var(--mv-color-primary)' : 'var(--mv-border)'}`,
             borderRadius: 8,
             padding: '10px 12px',
-            color: 'var(--mv-color-primary)',
+            color: bill.published_at ? 'var(--mv-color-primary)' : 'var(--mv-text)',
             fontSize: 12,
           }}
         >
-          {t('panels.createBill.billPublishedNote')}
+          {bill.published_at
+            ? t('panels.createBill.billPublishedNote')
+            : t('panels.createBill.draftNote', {
+                amount: (bill.amount_cents / 100).toFixed(2),
+                currency: bill.currency,
+              })}
         </div>
       )}
     </div>
