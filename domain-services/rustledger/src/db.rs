@@ -50,6 +50,7 @@ async fn ensure_schema(pool: &PgPool) -> Result<(), sqlx::Error> {
             stripe_checkout_session_id  TEXT,
             stripe_payment_intent_id    TEXT,
             created_at                  TIMESTAMPTZ NOT NULL DEFAULT now(),
+            published_at                TIMESTAMPTZ,
             paid_at                     TIMESTAMPTZ
         )
         "#,
@@ -61,6 +62,16 @@ async fn ensure_schema(pool: &PgPool) -> Result<(), sqlx::Error> {
     sqlx::query(
         "CREATE UNIQUE INDEX IF NOT EXISTS bills_task_id_key \
          ON rustledger.bills (task_id)",
+    )
+    .execute(pool)
+    .await?;
+
+    // Added after bills first shipped — ALTER for anyone whose local
+    // Postgres volume already has the table from before this column
+    // existed; a no-op on a genuinely fresh database (already in the
+    // CREATE TABLE above).
+    sqlx::query(
+        "ALTER TABLE rustledger.bills ADD COLUMN IF NOT EXISTS published_at TIMESTAMPTZ",
     )
     .execute(pool)
     .await?;

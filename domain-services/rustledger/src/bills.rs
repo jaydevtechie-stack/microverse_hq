@@ -22,7 +22,7 @@ pub async fn create_bill(pool: &PgPool, new_bill: NewBill) -> Result<Bill, sqlx:
         VALUES ($1, $2, $3, $4, $5)
         RETURNING id, task_id, customer_id, amount_cents, currency, status,
                   stripe_checkout_session_id, stripe_payment_intent_id,
-                  created_at, paid_at
+                  created_at, published_at, paid_at
         "#,
     )
     .bind(Uuid::new_v4())
@@ -37,8 +37,32 @@ pub async fn create_bill(pool: &PgPool, new_bill: NewBill) -> Result<Bill, sqlx:
 pub async fn get_bill_by_task(pool: &PgPool, task_id: Uuid) -> Result<Option<Bill>, sqlx::Error> {
     sqlx::query_as::<_, Bill>(
         "SELECT id, task_id, customer_id, amount_cents, currency, status, \
-         stripe_checkout_session_id, stripe_payment_intent_id, created_at, paid_at \
+         stripe_checkout_session_id, stripe_payment_intent_id, created_at, \
+         published_at, paid_at \
          FROM rustledger.bills WHERE task_id = $1",
+    )
+    .bind(task_id)
+    .fetch_optional(pool)
+    .await
+}
+
+/// The PM's explicit "release to customer" action (create_bill leaves a
+/// bill as a draft, published_at NULL) — idempotent the same way
+/// mark_bill_paid is: WHERE published_at IS NULL guards against a
+/// double-click re-publishing (and re-notifying) an already-published
+/// bill. None means either no bill exists for that task or it's already
+/// published — api.rs's publish_bill distinguishes those for the error
+/// message with its own pre-check, since both look the same from here.
+pub async fn publish_bill(pool: &PgPool, task_id: Uuid) -> Result<Option<Bill>, sqlx::Error> {
+    sqlx::query_as::<_, Bill>(
+        r#"
+        UPDATE rustledger.bills
+        SET published_at = now()
+        WHERE task_id = $1 AND published_at IS NULL
+        RETURNING id, task_id, customer_id, amount_cents, currency, status,
+                  stripe_checkout_session_id, stripe_payment_intent_id,
+                  created_at, published_at, paid_at
+        "#,
     )
     .bind(task_id)
     .fetch_optional(pool)
@@ -69,7 +93,7 @@ pub async fn mark_bill_paid(
         WHERE task_id = $1 AND status = 'unpaid'
         RETURNING id, task_id, customer_id, amount_cents, currency, status,
                   stripe_checkout_session_id, stripe_payment_intent_id,
-                  created_at, paid_at
+                  created_at, published_at, paid_at
         "#,
     )
     .bind(task_id)

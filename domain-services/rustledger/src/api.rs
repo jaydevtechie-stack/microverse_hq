@@ -80,6 +80,7 @@ pub fn router(pool: PgPool, kafka_producer: kafka_producer::Producer) -> Router 
         .route("/api/analysts/{analyst_id}/total", get(analyst_total))
         .route("/api/billing/bills", post(create_bill))
         .route("/api/billing/bills/by-task/{task_id}", get(get_bill_by_task))
+        .route("/api/billing/bills/by-task/{task_id}/publish", post(publish_bill))
         .route(
             "/api/billing/bills/by-task/{task_id}/checkout-session",
             post(create_checkout_session),
@@ -165,27 +166,13 @@ struct CreateBillBody {
     currency: String,
 }
 
-// PM creates the bill once a task reaches 'done' (task.approved). Amount
-// is entered by the PM, not computed — no price/rate field exists
-// anywhere on tasks or projects yet (docs/schema.md). task status/owner
-// are re-verified against task-service itself (task_client.rs) rather
-// than trusted from the request body — customer_id in particular is
-// *derived* from the fetched task, never accepted from the client. This
-// used to be billing-service's job (a separate Node service in front of
-// rustledger); folded in here now that rustledger owns the whole billing
-// flow directly.
-async fn create_bill(
-    State(state): State<AppState>,
-    headers: HeaderMap,
-    Json(body): Json<CreateBillBody>,
-) -> Result<Json<Bill>, ApiError> {
-    let claims = require_any_role(&headers, &["platform:project-manager", "platform:admin"])?;
-
-    if body.amount_cents <= 0 {
-        return Err(ApiError::new(StatusCode::BAD_REQUEST, "amount_cents must be positive"));
-    }
-
-    let task = task_client::fetch_task(&body.task_id.to_string())
+// Shared by create_bill and publish_bill — both are PM actions gated on
+// the same thing: the task must be 'done', and the caller must be its
+// owner (or platform:admin, which bypasses the ownership match entirely
+// — an admin isn't the task's owner and shouldn't need to be, same as
+// every other admin escape hatch in this file).
+async fn authorize_pm_for_task(claims: &Claims, task_id: Uuid) -> Result<task_client::Task, ApiError> {
+    let task = task_client::fetch_task(&task_id.to_string())
         .await
         .map_err(|e| ApiError::new(StatusCode::BAD_GATEWAY, e))?
         .ok_or_else(|| ApiError::new(StatusCode::NOT_FOUND, "task not found"))?;
@@ -197,11 +184,6 @@ async fn create_bill(
         ));
     }
 
-    // platform:admin bypasses the ownership match entirely — an admin
-    // isn't the task's owner and shouldn't need to be, same as every
-    // other admin escape hatch in this file. A plain PM must be the
-    // task's current owner (the approving/default PM), checked against
-    // their own email claim.
     if !claims.has_role("platform:admin") {
         let caller_email = claims
             .email()
@@ -211,6 +193,30 @@ async fn create_bill(
         }
     }
 
+    Ok(task)
+}
+
+// PM creates the bill once a task reaches 'done' (task.approved). Amount
+// is entered by the PM, not computed — no price/rate field exists
+// anywhere on tasks or projects yet (docs/schema.md). Creates as a draft
+// — invisible to the customer and silent (no notification) until the PM
+// explicitly publishes it (publish_bill below), so a PM can create a
+// bill, double check the amount, and only then release it. task status/
+// owner are re-verified against task-service itself rather than trusted
+// from the request body — customer_id in particular is *derived* from
+// the fetched task, never accepted from the client.
+async fn create_bill(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Json(body): Json<CreateBillBody>,
+) -> Result<Json<Bill>, ApiError> {
+    let claims = require_any_role(&headers, &["platform:project-manager", "platform:admin"])?;
+
+    if body.amount_cents <= 0 {
+        return Err(ApiError::new(StatusCode::BAD_REQUEST, "amount_cents must be positive"));
+    }
+
+    let task = authorize_pm_for_task(&claims, body.task_id).await?;
     let customer_id = task
         .customer_id
         .ok_or_else(|| ApiError::new(StatusCode::CONFLICT, "task has no customer to bill"))?;
@@ -244,12 +250,39 @@ async fn create_bill(
     })
 }
 
+// The extra step the user asked for: creating a bill and releasing it to
+// the customer are two separate PM actions, not one — this is where the
+// customer actually finds out (email + in-app notification, via
+// notification-service consuming bill.published off rustledger.bills)
+// and where the bill becomes visible/payable to them at all
+// (fetch_authorized_bill below gates GET/checkout-session on
+// published_at being set, for anyone who isn't staff).
+async fn publish_bill(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Path(task_id): Path<Uuid>,
+) -> Result<Json<Bill>, ApiError> {
+    let claims = require_any_role(&headers, &["platform:project-manager", "platform:admin"])?;
+    authorize_pm_for_task(&claims, task_id).await?;
+
+    let bill = bills::publish_bill(&state.pool, task_id)
+        .await
+        .map_err(|err| ApiError::new(StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))?
+        .ok_or_else(|| ApiError::new(StatusCode::CONFLICT, "no draft bill to publish for this task"))?;
+
+    kafka_producer::publish_bill_event("bill.published", &state.kafka_producer, &bill).await;
+
+    Ok(Json(bill))
+}
+
+fn is_staff(claims: &Claims) -> bool {
+    claims.has_role("platform:project-manager") || claims.has_role("platform:admin")
+}
+
 // A customer may only ever touch their own bill — PM/admin can see any
-// bill. Compares parsed UUIDs, not string formatting, and short-circuits
-// on the common PM/admin case before touching the customer's identity at
-// all.
+// bill. Compares parsed UUIDs, not string formatting.
 fn forbidden_for_customer(claims: &Claims, bill: &Bill) -> bool {
-    if claims.has_role("platform:project-manager") || claims.has_role("platform:admin") {
+    if is_staff(claims) {
         return false;
     }
     claims.sub().and_then(|sub| sub.parse::<Uuid>().ok()) != Some(bill.customer_id)
@@ -257,7 +290,10 @@ fn forbidden_for_customer(claims: &Claims, bill: &Bill) -> bool {
 
 // Shared by get_bill_by_task and create_checkout_session — fetch the
 // bill for a task and apply the same customer-ownership narrowing both
-// routes need.
+// routes need, plus the draft/published gate: a bill the PM hasn't
+// published yet doesn't exist as far as the customer is concerned (same
+// 404 as no bill at all — CustomerProgressPanel.js's existing "not yet
+// invoiced" handling already covers this, no frontend change needed).
 async fn fetch_authorized_bill(pool: &PgPool, claims: &Claims, task_id: Uuid) -> Result<Bill, ApiError> {
     let bill = bills::get_bill_by_task(pool, task_id)
         .await
@@ -266,6 +302,10 @@ async fn fetch_authorized_bill(pool: &PgPool, claims: &Claims, task_id: Uuid) ->
 
     if forbidden_for_customer(claims, &bill) {
         return Err(ApiError::new(StatusCode::FORBIDDEN, "not this customer's bill"));
+    }
+
+    if !is_staff(claims) && bill.published_at.is_none() {
+        return Err(ApiError::new(StatusCode::NOT_FOUND, "no bill for that task"));
     }
 
     Ok(bill)
@@ -364,7 +404,7 @@ async fn stripe_webhook(
     // publish in that case, same idempotency posture as every Kafka
     // consumer in this stack.
     if let Some(bill) = bill {
-        kafka_producer::publish_bill_paid(&state.kafka_producer, &bill).await;
+        kafka_producer::publish_bill_event("bill.paid", &state.kafka_producer, &bill).await;
     }
 
     Ok(StatusCode::OK)

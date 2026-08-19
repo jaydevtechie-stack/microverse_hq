@@ -48,5 +48,10 @@ pub struct Bill {
     pub stripe_checkout_session_id: Option<String>,
     pub stripe_payment_intent_id: Option<String>,
     pub created_at: DateTime<Utc>,
+    // NULL = still a PM-only draft, invisible/unpayable to the customer
+    // (api.rs's fetch_authorized_bill gates on this). Set by publish_bill
+    // — the PM's explicit "release this to the customer" action, distinct
+    // from create_bill.
+    pub published_at: Option<DateTime<Utc>>,
     pub paid_at: Option<DateTime<Utc>>,
 }

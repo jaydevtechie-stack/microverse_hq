@@ -90,29 +90,36 @@ async fn ensure_topic(client: &rskafka::client::Client) {
 
 // Best-effort — same posture as every producer in this stack (task-
 // service's kafka-producer.js's publishTaskEvent comment is the canonical
-// statement): a bill has already been marked paid in Postgres by the time
-// this runs, so a Kafka publish failure shouldn't fail the webhook
-// response back to Stripe. Errors are logged, never propagated — this
-// includes the producer simply not being connected yet (a webhook
-// arriving in the first few seconds after a cold start, before
-// spawn_connect's background task has finished).
-pub async fn publish_bill_paid(producer: &Producer, bill: &Bill) {
+// statement): the bill has already been written to Postgres by the time
+// this runs (create_bill's INSERT or mark_bill_paid's UPDATE), so a Kafka
+// publish failure shouldn't fail the HTTP response back to the PM or
+// Stripe's webhook. Errors are logged, never propagated — this includes
+// the producer simply not being connected yet (a request arriving in the
+// first few seconds after a cold start, before spawn_connect's background
+// task has finished).
+//
+// One function for both bill.published and bill.paid (rather than two
+// near-duplicates) — event_name is the only thing that varies, and
+// customer_id rides along on every event since notification-service needs
+// it to resolve who to notify (models/recipients.js's emailForUserId).
+pub async fn publish_bill_event(event_name: &str, producer: &Producer, bill: &Bill) {
     let Some(partition_client) = producer.get() else {
-        tracing::warn!(task_id = %bill.task_id, "kafka producer not connected yet, dropping bill.paid event");
+        tracing::warn!(task_id = %bill.task_id, event = event_name, "kafka producer not connected yet, dropping event");
         return;
     };
 
     let value = match serde_json::to_vec(&serde_json::json!({
-        "event": "bill.paid",
+        "event": event_name,
         "task_id": bill.task_id,
         "bill_id": bill.id,
+        "customer_id": bill.customer_id,
         "amount_cents": bill.amount_cents,
         "currency": bill.currency,
         "paid_at": bill.paid_at,
     })) {
         Ok(v) => v,
         Err(err) => {
-            tracing::error!(?err, task_id = %bill.task_id, "failed to serialize bill.paid event");
+            tracing::error!(?err, task_id = %bill.task_id, event = event_name, "failed to serialize event");
             return;
         }
     };
@@ -125,6 +132,6 @@ pub async fn publish_bill_paid(producer: &Producer, bill: &Bill) {
     };
 
     if let Err(err) = partition_client.produce(vec![record], Compression::default()).await {
-        tracing::error!(?err, task_id = %bill.task_id, "failed to publish bill.paid");
+        tracing::error!(?err, task_id = %bill.task_id, event = event_name, "failed to publish event");
     }
 }
