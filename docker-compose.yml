@@ -353,7 +353,12 @@ services:
   # "rustledger" kept alongside "gofeeler" (Branch 9) — the customer-bill
   # endpoints (rustledger/src/bills.rs) are now part of the core GoFeeler
   # task flow (PM creates a bill once a task reaches 'done'), not just the
-  # standalone analyst-payout proof of concept this started as.
+  # standalone analyst-payout proof of concept this started as. rustledger
+  # also owns Stripe collection directly (Checkout Sessions, webhook
+  # verification) — an earlier iteration split that into a separate
+  # billing-service Node platform-service in front of rustledger, folded
+  # back in since rustledger already owned the billing domain by name and
+  # by its existing analyst-payout ledger.
   microverse-rustledger:
     profiles: ["gofeeler", "rustledger"]
     build:
@@ -365,27 +370,7 @@ services:
       KAFKA_BROKERS: microverse-kafka:9092
       DEFAULT_HOURLY_RATE_CENTS: ${RUSTLEDGER_HOURLY_RATE_CENTS}
       DEFAULT_CURRENCY: ${RUSTLEDGER_CURRENCY}
-    depends_on:
-      - microverse-postgis
-      - microverse-kafka
-    networks:
-      - microverse-network
-
-
-  # Branch 9 — Stripe collection for customer bills. Stateless (no
-  # Postgres): bills persist in rustledger, billing-service is the layer
-  # that talks to Stripe and orchestrates PM-create/customer-pay against
-  # rustledger + task-service.
-  microverse-billing-service:
-    profiles: ["gofeeler", "billing-service"]
-    build:
-      context: ./platform-services/billing-service
-    container_name: microverse-billing-service
-    environment:
-      PORT: 4003
-      RUSTLEDGER_URL: http://microverse-rustledger:8080
       TASK_SERVICE_URL: http://microverse-task-service:3000
-      KAFKA_BROKERS: microverse-kafka:9092
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
       # Stripe Checkout's success/cancel redirect target — the nginx host
@@ -393,9 +378,9 @@ services:
       # in this stack resolves to locally.
       APP_BASE_URL: http://localhost
     depends_on:
-      - microverse-rustledger
-      - microverse-task-service
+      - microverse-postgis
       - microverse-kafka
+      - microverse-task-service
     networks:
       - microverse-network
 
