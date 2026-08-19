@@ -165,8 +165,8 @@ async function rejectTask(id, reviewerEmail, newAnalystEmail) {
   return rows[0] || null;
 }
 
-// done -> paid, on billing-service's bill.paid Kafka event (Branch 9) —
-// see events/kafka-consumer.js, task-service's first ever consumer.
+// done -> paid, on rustledger's bill.paid Kafka event (Branch 9) — see
+// events/kafka-consumer.js, task-service's first ever consumer.
 // WHERE status = 'done' makes this idempotent the same way approveTask's
 // WHERE guard does: a redelivered event just no-ops (rows[0] is null)
 // rather than double-applying.

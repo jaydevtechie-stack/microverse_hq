@@ -2,20 +2,23 @@
 //
 // task-service's first ever Kafka consumer (it has only ever been a
 // producer, kafka-producer.js's task-service.tasks topic). Subscribes to
-// billing-service.bills — a Stripe payment confirming pays a task's bill
-// (rustledger, Branch 9), and this is how that fact makes it back into
-// task-service's own status column: done -> paid via models/task.js's
-// markPaid, then republished as the existing task.paid event on
-// task-service.tasks so audit-service/search-service/notification-service's
-// consumers pick it up with zero changes on their end — event-bus
-// decoupling instead of billing-service calling this service's REST API
-// directly (same posture as every other cross-service flow in this
-// stack). Retry-on-crash shape mirrors audit-service's consumer.
+// rustledger.bills — a Stripe payment confirming pays a task's bill
+// (rustledger owns Stripe collection directly, Branch 9 — there is no
+// separate billing-service; that was an earlier iteration, folded back
+// into rustledger since it already owned the billing domain), and this
+// is how that fact makes it back into task-service's own status column:
+// done -> paid via models/task.js's markPaid, then republished as the
+// existing task.paid event on task-service.tasks so audit-service/
+// search-service/notification-service's consumers pick it up with zero
+// changes on their end — event-bus decoupling instead of rustledger
+// calling this service's REST API directly (same posture as every other
+// cross-service flow in this stack). Retry-on-crash shape mirrors
+// audit-service's consumer.
 const { Kafka } = require('kafkajs');
 const { markPaid } = require('../models/task');
 const { publishTaskEvent } = require('./kafka-producer');
 
-const TOPIC = 'billing-service.bills';
+const TOPIC = 'rustledger.bills';
 const GROUP_ID = 'task-service-billing';
 
 const kafka = new Kafka({

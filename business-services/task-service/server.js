@@ -36,7 +36,7 @@ ensureSchema()
   .then(() => {
     console.log('Connected to Postgres, tasks table ready');
     initPolling(); // Start task polling logic
-    startConsumer(); // Branch 9 — bill.paid off billing-service.bills
+    startConsumer(); // Branch 9 — bill.paid off rustledger.bills
   })
   .catch((error) => {
     console.error('Postgres connection error:', error);
