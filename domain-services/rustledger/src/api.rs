@@ -232,7 +232,7 @@ async fn create_bill(
             customer_id,
             amount_cents: body.amount_cents,
             currency: body.currency.to_uppercase(),
-            created_by_email: claims.email().map(String::from),
+            created_by_id: claims.sub().and_then(|sub| sub.parse::<Uuid>().ok()),
         },
     )
     .await
@@ -285,9 +285,11 @@ async fn publish_bill(
 // GET /api/billing/bills — the shared /bills page (BillsPage.js) calls
 // this for both roles; the frontend never picks a different path or
 // query per role, this handler decides scope from the caller's own
-// claims. A PM sees only bills they created (created_by_email); an AM
-// (or admin) sees every bill across every service, matching AM's
-// unscoped reach everywhere else in this stack.
+// claims. A PM sees only bills they created (created_by_id — a Keycloak
+// sub, not email/username, since either of those can change and would
+// silently orphan a PM's own past bills from their view); an AM (or
+// admin) sees every bill across every service, matching AM's unscoped
+// reach everywhere else in this stack.
 async fn list_bills(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -300,10 +302,11 @@ async fn list_bills(
     let result = if claims.has_role("platform:account-manager") || claims.has_role("platform:admin") {
         bills::list_all_bills(&state.pool).await
     } else {
-        let caller_email = claims
-            .email()
-            .ok_or_else(|| ApiError::new(StatusCode::UNAUTHORIZED, "token has no email"))?;
-        bills::list_bills_for_email(&state.pool, caller_email).await
+        let caller_id: Uuid = claims
+            .sub()
+            .and_then(|sub| sub.parse::<Uuid>().ok())
+            .ok_or_else(|| ApiError::new(StatusCode::UNAUTHORIZED, "token has no valid subject"))?;
+        bills::list_bills_for_user(&state.pool, caller_id).await
     };
 
     result

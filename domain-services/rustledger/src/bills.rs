@@ -14,7 +14,7 @@ pub struct NewBill {
     pub customer_id: Uuid,
     pub amount_cents: i64,
     pub currency: String,
-    pub created_by_email: Option<String>,
+    pub created_by_id: Option<Uuid>,
 }
 
 /// One bill per task — ON CONFLICT surfaces as an error to the caller
@@ -24,11 +24,11 @@ pub async fn create_bill(pool: &PgPool, new_bill: NewBill) -> Result<Bill, sqlx:
     sqlx::query_as::<_, Bill>(
         r#"
         INSERT INTO rustledger.bills
-            (id, task_id, customer_id, amount_cents, currency, created_by_email)
+            (id, task_id, customer_id, amount_cents, currency, created_by_id)
         VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING id, task_id, customer_id, amount_cents, currency, status,
                   stripe_checkout_session_id, stripe_payment_intent_id,
-                  created_at, created_by_email, published_at, paid_at
+                  created_at, created_by_id, published_at, paid_at
         "#,
     )
     .bind(Uuid::new_v4())
@@ -36,7 +36,7 @@ pub async fn create_bill(pool: &PgPool, new_bill: NewBill) -> Result<Bill, sqlx:
     .bind(new_bill.customer_id)
     .bind(new_bill.amount_cents)
     .bind(new_bill.currency)
-    .bind(new_bill.created_by_email)
+    .bind(new_bill.created_by_id)
     .fetch_one(pool)
     .await
 }
@@ -45,7 +45,7 @@ pub async fn get_bill_by_task(pool: &PgPool, task_id: Uuid) -> Result<Option<Bil
     sqlx::query_as::<_, Bill>(
         "SELECT id, task_id, customer_id, amount_cents, currency, status, \
          stripe_checkout_session_id, stripe_payment_intent_id, created_at, \
-         created_by_email, published_at, paid_at \
+         created_by_id, published_at, paid_at \
          FROM rustledger.bills WHERE task_id = $1",
     )
     .bind(task_id)
@@ -56,14 +56,14 @@ pub async fn get_bill_by_task(pool: &PgPool, task_id: Uuid) -> Result<Option<Bil
 /// GET /api/billing/bills for a PM-only caller — their own bills, not
 /// every bill (api.rs's list_bills: AM/admin get list_all_bills instead,
 /// unscoped by design like every other AM view in this stack).
-pub async fn list_bills_for_email(pool: &PgPool, email: &str) -> Result<Vec<Bill>, sqlx::Error> {
+pub async fn list_bills_for_user(pool: &PgPool, user_id: Uuid) -> Result<Vec<Bill>, sqlx::Error> {
     sqlx::query_as::<_, Bill>(
         "SELECT id, task_id, customer_id, amount_cents, currency, status, \
          stripe_checkout_session_id, stripe_payment_intent_id, created_at, \
-         created_by_email, published_at, paid_at \
-         FROM rustledger.bills WHERE created_by_email = $1 ORDER BY created_at DESC",
+         created_by_id, published_at, paid_at \
+         FROM rustledger.bills WHERE created_by_id = $1 ORDER BY created_at DESC",
     )
-    .bind(email)
+    .bind(user_id)
     .fetch_all(pool)
     .await
 }
@@ -74,7 +74,7 @@ pub async fn list_all_bills(pool: &PgPool) -> Result<Vec<Bill>, sqlx::Error> {
     sqlx::query_as::<_, Bill>(
         "SELECT id, task_id, customer_id, amount_cents, currency, status, \
          stripe_checkout_session_id, stripe_payment_intent_id, created_at, \
-         created_by_email, published_at, paid_at \
+         created_by_id, published_at, paid_at \
          FROM rustledger.bills ORDER BY created_at DESC",
     )
     .fetch_all(pool)
@@ -97,7 +97,7 @@ pub async fn publish_bill(pool: &PgPool, task_id: Uuid) -> Result<Option<Bill>, 
         WHERE task_id = $1 AND published_at IS NULL
         RETURNING id, task_id, customer_id, amount_cents, currency, status,
                   stripe_checkout_session_id, stripe_payment_intent_id,
-                  created_at, created_by_email, published_at, paid_at
+                  created_at, created_by_id, published_at, paid_at
         "#,
     )
     .bind(task_id)
@@ -129,7 +129,7 @@ pub async fn mark_bill_paid(
         WHERE task_id = $1 AND status = 'unpaid'
         RETURNING id, task_id, customer_id, amount_cents, currency, status,
                   stripe_checkout_session_id, stripe_payment_intent_id,
-                  created_at, created_by_email, published_at, paid_at
+                  created_at, created_by_id, published_at, paid_at
         "#,
     )
     .bind(task_id)

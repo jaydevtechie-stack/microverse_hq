@@ -77,7 +77,7 @@
           "id": "bills",
           "label": "Bills",
           "route": "/bills",
-          "notes": "Branch 9 — shared route with platform:account-manager (BillsPage.js), deliberately not /pm/bills — rustledger's GET /api/billing/bills scopes the response server-side by caller role instead of the frontend picking a different path. A PM sees only bills they created (rustledger.bills.created_by_email); they create the bill (amount) but no longer publish it themselves (moved to the AM after this branch's first pass) — see docs/roadmap/1.0/domain-services.md's Branch 9. Distinct from the Orders placeholder above, which is about the order/task pool, not billing."
+          "notes": "Branch 9 — shared route with platform:account-manager (BillsPage.js), deliberately not /pm/bills — rustledger's GET /api/billing/bills scopes the response server-side by caller role instead of the frontend picking a different path. A PM sees only bills they created (rustledger.bills.created_by_id, a Keycloak subject — not email/username, since either can change and would silently orphan old bills from view); they create the bill (amount) but no longer publish it themselves (moved to the AM after this branch's first pass) — see docs/roadmap/1.0/domain-services.md's Branch 9. Distinct from the Orders placeholder above, which is about the order/task pool, not billing."
         }
       ]
     },
