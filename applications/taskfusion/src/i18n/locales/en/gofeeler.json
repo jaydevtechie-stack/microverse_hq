@@ -132,7 +132,7 @@
       "assign": "Assign",
       "assignTo": "Assign to {{name}}"
     },
-    "pmBill": {
+    "createBill": {
       "analysisApproved": "Analysis approved and complete",
       "readyToBill": "Ready to bill the customer for this order.",
       "amountPlaceholder": "0.00",

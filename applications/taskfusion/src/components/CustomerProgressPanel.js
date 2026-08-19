@@ -24,7 +24,7 @@ const CustomerProgressPanel = ({ task }) => {
   // bill and redirects the browser there. Always a fresh session, no
   // reuse of a prior unpaid one — re-clicking after abandoning checkout
   // just mints another (Stripe sessions expire on their own). A 404 here
-  // means the PM hasn't created the bill yet (PmBillPanel.js) — surfaced
+  // means the PM hasn't created the bill yet (CreateBillPanel.js) — surfaced
   // as a distinct message rather than a generic error.
   const payInvoice = async () => {
     setWorking(true);

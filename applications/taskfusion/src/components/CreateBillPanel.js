@@ -7,7 +7,7 @@ import { authHeaders } from '../services/keycloak';
 // amount by hand; rustledger re-verifies task ownership/status
 // server-side rather than trusting anything from this form beyond the
 // amount itself.
-const PmBillPanel = ({ task, onBilled }) => {
+const CreateBillPanel = ({ task, onBilled }) => {
   const { t } = useTranslation('gofeeler');
   const [amount, setAmount] = useState('');
   const [billing, setBilling] = useState(false);
@@ -57,10 +57,10 @@ const PmBillPanel = ({ task, onBilled }) => {
   return (
     <div>
       <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: '0 0 6px' }}>
-        {t('panels.pmBill.analysisApproved')}
+        {t('panels.createBill.analysisApproved')}
       </p>
       <p style={{ color: 'var(--mv-text)', fontSize: 13, margin: '0 0 12px' }}>
-        {t('panels.pmBill.readyToBill')}
+        {t('panels.createBill.readyToBill')}
       </p>
 
       {!billed && (
@@ -72,7 +72,7 @@ const PmBillPanel = ({ task, onBilled }) => {
             step="0.01"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            placeholder={t('panels.pmBill.amountPlaceholder')}
+            placeholder={t('panels.createBill.amountPlaceholder')}
             style={{
               flex: 1,
               background: 'var(--mv-bg)',
@@ -106,12 +106,12 @@ const PmBillPanel = ({ task, onBilled }) => {
           marginBottom: billed ? 12 : 0,
         }}
       >
-        {billed ? t('panels.pmBill.billCreated') : billing ? t('panels.pmBill.billing') : t('panels.pmBill.createBill')}
+        {billed ? t('panels.createBill.billCreated') : billing ? t('panels.createBill.billing') : t('panels.createBill.createBill')}
       </button>
 
       {billError && (
         <p style={{ color: 'var(--mv-color-danger)', fontSize: 12, margin: '8px 0 0' }}>
-          {t('panels.pmBill.billError', { error: billError })}
+          {t('panels.createBill.billError', { error: billError })}
         </p>
       )}
 
@@ -126,11 +126,11 @@ const PmBillPanel = ({ task, onBilled }) => {
             fontSize: 12,
           }}
         >
-          {t('panels.pmBill.billCreatedNote')}
+          {t('panels.createBill.billCreatedNote')}
         </div>
       )}
     </div>
   );
 };
 
-export default PmBillPanel;
+export default CreateBillPanel;
