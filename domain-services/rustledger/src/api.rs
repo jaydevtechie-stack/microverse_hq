@@ -412,22 +412,30 @@ async fn stripe_webhook(
     let signature = headers
         .get("stripe-signature")
         .and_then(|v| v.to_str().ok())
-        .ok_or_else(|| ApiError::new(StatusCode::BAD_REQUEST, "missing stripe-signature header"))?;
-    let payload = std::str::from_utf8(&body)
-        .map_err(|_| ApiError::new(StatusCode::BAD_REQUEST, "invalid payload encoding"))?;
+        .ok_or_else(|| {
+            tracing::error!("stripe webhook: missing stripe-signature header");
+            ApiError::new(StatusCode::BAD_REQUEST, "missing stripe-signature header")
+        })?;
+    let payload = std::str::from_utf8(&body).map_err(|err| {
+        tracing::error!(?err, "stripe webhook: invalid payload encoding");
+        ApiError::new(StatusCode::BAD_REQUEST, "invalid payload encoding")
+    })?;
     let webhook_secret = std::env::var("STRIPE_WEBHOOK_SECRET").unwrap_or_default();
 
     let completed = stripe_client::parse_checkout_completed(payload, signature, &webhook_secret)
-        .map_err(|e| ApiError::new(StatusCode::BAD_REQUEST, format!("Webhook Error: {e}")))?;
+        .map_err(|e| {
+            tracing::error!(error = %e, "stripe webhook: signature/event parsing failed");
+            ApiError::new(StatusCode::BAD_REQUEST, format!("Webhook Error: {e}"))
+        })?;
 
     let Some(completed) = completed else {
         return Ok(StatusCode::OK);
     };
 
-    let task_id: Uuid = completed
-        .task_id
-        .parse()
-        .map_err(|_| ApiError::new(StatusCode::BAD_REQUEST, "checkout session had no valid task_id"))?;
+    let task_id: Uuid = completed.task_id.parse().map_err(|_| {
+        tracing::error!(task_id = %completed.task_id, "stripe webhook: client_reference_id not a valid task_id");
+        ApiError::new(StatusCode::BAD_REQUEST, "checkout session had no valid task_id")
+    })?;
 
     let bill = bills::mark_bill_paid(
         &state.pool,
