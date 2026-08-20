@@ -63,7 +63,6 @@ RUN mix compile
 # Changes to config/runtime.exs don't require recompiling the code
 COPY config/runtime.exs config/
 
-COPY rel rel
 RUN mix release
 
 # start a new build stage so that the final image will only contain
@@ -100,4 +99,9 @@ EXPOSE 4000
 # above and adding an entrypoint. See https://github.com/krallin/tini for details
 # ENTRYPOINT ["/tini", "--"]
 
-CMD ["/app/bin/server"]
+# No rel/overlays/bin/server wrapper exists (rel/ was never checked
+# into this scaffold) — its only job would be setting PHX_SERVER=true
+# before `bin/elixtempo start`, and docker-compose.yml already sets
+# that env var directly, so calling the release's own start command
+# works the same without needing to fabricate the wrapper.
+CMD ["/app/bin/elixtempo", "start"]
