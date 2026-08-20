@@ -10,6 +10,7 @@ defmodule ElixTempo.Application do
     :ok = ElixTempo.KafkaProducer.start_client()
 
     children = [
+      ElixTempo.Sessions.Store,
       ElixTempoWeb.Telemetry,
       {DNSCluster, query: Application.get_env(:elixtempo, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: ElixTempo.PubSub},
