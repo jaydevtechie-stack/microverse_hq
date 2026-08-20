@@ -21,6 +21,7 @@ const fieldInputStyle = {
   fontFamily: 'inherit',
 };
 const fieldErrorStyle = { color: 'var(--mv-color-danger)', fontSize: 11, margin: '-10px 0 14px' };
+const fieldNoteStyle = { color: 'var(--mv-text-muted)', fontSize: 11, margin: '6px 0 0' };
 const smallOutlineButtonStyle = (busy) => ({
   padding: '7px 12px',
   fontSize: 12,
@@ -223,6 +224,7 @@ const BlogPostForm = ({ post, onSaved, onDeleted, onCancel }) => {
             </button>
           )}
         </div>
+        {!savedPost && <p style={fieldNoteStyle}>{t('blog:form.saveFirstForImages')}</p>}
         <input ref={coverInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleCoverFile} />
       </div>
 
