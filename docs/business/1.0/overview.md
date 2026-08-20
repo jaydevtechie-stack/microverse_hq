@@ -24,7 +24,7 @@ Still open:
 
 ## Payouts (PMs and analysts)
 
-Flagged in [docs/roadmap/1.0/domain-services.md](../../roadmap/1.0/domain-services.md)'s Branch 9 as genuinely new, undesigned scope — collecting from customers and paying out to staff are different flows, not opposite sides of the same one.
+Flagged in [docs/roadmap/1.0/domain-services.md](../../roadmap/1.0/domain-services.md)'s Phase 9 as genuinely new, undesigned scope — collecting from customers and paying out to staff are different flows, not opposite sides of the same one. Deferred to 1.1 along with the rest of the non-GoFeeler domain-service work — see [docs/roadmap/1.1/domain-services.md](../../roadmap/1.1/domain-services.md) for the open questions.
 
 - **Mechanism** — Stripe Connect is the obvious candidate for payouts, but unconfirmed.
 - **Payout basis** — hourly rate from `elixtempo`'s tracked time? A per-task flat rate? Something else?
@@ -45,7 +45,7 @@ Kept here as a growing reference — the industry term, plain English, and where
 | **Engagement** | A piece of ongoing work with a client | `projects` — what we call Project |
 | **SOW** (Statement of Work) | The document defining an engagement's scope and terms | Merged into `projects.payment_terms` rather than a separate table — normal for smaller service businesses where one SOW = one engagement |
 | **Deliverable** | The actual output handed to the client | A completed Order/Task |
-| **SLA** (Service Level Agreement) | A commitment on response/turnaround time | Directly relevant to Branch 8's analyst reaction-time tracking |
+| **SLA** (Service Level Agreement) | A commitment on response/turnaround time | Directly relevant to Phase 8's analyst reaction-time tracking |
 | **Retainer** | An ongoing paid arrangement, not one-off | A Project with recurring `payment_terms` instead of a single SOW |
 | **Milestone** | A checkpoint within an engagement | Could map to task status transitions later |
 | **Churn** | When an Account stops renewing/engaging | Not yet tracked — worth revisiting once Accounts has real usage data |

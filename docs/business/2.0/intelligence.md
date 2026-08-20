@@ -13,20 +13,20 @@ This matters commercially in a way "we use AI" doesn't: a customer isn't being s
 - **One workforce, two kinds of workers, indistinguishable at the permission/audit layer.** A `qa-agent` reviewing work is bound by the exact same approve/reject action, the exact same task-status transition, the exact same audit trail as a human reviewer. Nothing about the system trusts an agent less carefully or more loosely than a human — the trust boundary is the role, not the species doing the role.
 - **Centralized AI capability, not six reinvented wheels.** `ai-tools` as one shared, language-agnostic service means GoFeeler (Go), SpringPix (Java), and every future domain-service reach for the *same* classification/vision/OCR capability rather than each service quietly building its own. Consistency and cost efficiency, not a marketing line.
 - **Every agent maps to a real operational need**, not a generic "AI assistant." `planner` fills a specific role (PM), `qa-agent` fills a specific role (reviewer) — this is staffing, not a chatbot feature.
-- **elixtempo's fairness guarantee extends to agents too.** Payouts (Branch 9) work the same way whether the "analyst" being compensated is Mark or an agentic worker — the trust layer doesn't care which.
+- **elixtempo's fairness guarantee extends to agents too.** Payouts (Phase 9) work the same way whether the "analyst" being compensated is Mark or an agentic worker — the trust layer doesn't care which.
 
 ## Cost model — human analyst vs. agentic analyst
 
-The direct lever: [docs/business/1.0/overview.md](../1.0/overview.md)'s Payouts section (tracked in [docs/roadmap/1.0/domain-services.md](../../roadmap/1.0/domain-services.md) Branch 9, still undesigned) assumes a human getting paid — hourly via `elixtempo`'s tracked time, or per-task. An agentic analyst has a fundamentally different cost shape: per-task compute/API cost, not a wage. Every Task an agent completes instead of a human changes the margin math on that Task.
+The direct lever: [docs/business/1.0/overview.md](../1.0/overview.md)'s Payouts section (tracked in [docs/roadmap/1.0/domain-services.md](../../roadmap/1.0/domain-services.md) Phase 9, still undesigned) assumes a human getting paid — hourly via `elixtempo`'s tracked time, or per-task. An agentic analyst has a fundamentally different cost shape: per-task compute/API cost, not a wage. Every Task an agent completes instead of a human changes the margin math on that Task.
 
 | | Human analyst | Agentic analyst |
 |---|---|---|
 | Cost driver | Hourly rate × `elixtempo` tracked time | Per-task compute cost (`ai-tools` calls, model tokens) |
-| Payout mechanism | Branch 9's payout flow (Stripe Connect candidate, still undesigned) | None — an internal compute cost, not a person to pay |
+| Payout mechanism | Phase 9's payout flow (Stripe Connect candidate, still undesigned) | None — an internal compute cost, not a person to pay |
 | Turnaround | Bounded by human availability (Scout's current availability heuristic) | Bounded by model latency + `mcp/` round-trips — plausibly much faster, which changes SLA math |
 | Quality signal | Kudos + performance history (Djaboard) | Efficiency scoring, not Kudos — see Agent evaluation and accountability below |
 
-A Task completed by an agent never touches Branch 9's payout side at all — it only carries a (likely much smaller) compute cost. The same customer price produces a different margin depending on whether the analyst behind it was human or agentic. Whether that difference gets passed to the customer or kept entirely as margin is the pricing question below, not something to default silently either way.
+A Task completed by an agent never touches Phase 9's payout side at all — it only carries a (likely much smaller) compute cost. The same customer price produces a different margin depending on whether the analyst behind it was human or agentic. Whether that difference gets passed to the customer or kept entirely as margin is the pricing question below, not something to default silently either way.
 
 ## Agent evaluation and accountability
 
@@ -35,7 +35,7 @@ A Task completed by an agent never touches Branch 9's payout side at all — it 
 - **Fine-tuning flag** — routes to `intelligence/prompts/`/`intelligence/models/`. A consistently underperforming agent gets its prompt revised or its model config swapped, versioned the same way everything else in those folders already is.
 - **Resource reallocation** — routes to `planner`. A consistently strong agent gets more volume; a struggling one gets throttled until it's retuned. This is `planner` routing on a live efficiency score, not just Scout's availability heuristic.
 
-Signal sources, all reusing infrastructure this project already has rather than inventing new measurement: [docs/roadmap/1.0/domain-services.md](../../roadmap/1.0/domain-services.md) Branch 8's event stream (once built) for throughput/turnaround, per-task compute cost from the Cost model above, and `qa-agent`'s own approve/reject history per agent as a quality proxy — a sharper signal than Kudos ever gave for humans, since it's generated automatically rather than depending on someone remembering to give kudos.
+Signal sources, all reusing infrastructure this project already has rather than inventing new measurement: [docs/roadmap/1.0/domain-services.md](../../roadmap/1.0/domain-services.md) Phase 8's event stream (once built) for throughput/turnaround, per-task compute cost from the Cost model above, and `qa-agent`'s own approve/reject history per agent as a quality proxy — a sharper signal than Kudos ever gave for humans, since it's generated automatically rather than depending on someone remembering to give kudos.
 
 **Resolved: neither downstream action is autonomous.** Both are proposals, not actions — a human has to approve before a fine-tune actually lands in `prompts/`/`models/`, or before a reallocation actually changes `planner`'s routing weights. This is the direct answer to the liability question this section used to leave open: if a `qa-agent` approves a `gis-analyst`'s work with no human touching the Task, who's accountable? Nobody, because that gap doesn't get allowed to exist unsupervised — not at the individual-Task level (that stays fully agentic, that's the throughput win), but at the level of *decisions that compound across every future Task an agent touches*. A bad Task-level rejection affects one Task; a bad reallocation or a bad retune affects everything that agent does afterward. That's the level that needs the human gate.
 
@@ -76,5 +76,5 @@ Extends [docs/business/1.0/overview.md](../1.0/overview.md)'s glossary — same 
 | **Agentic PM** | An AI system filling the Project Manager role | `intelligence/agents/planner` — the natural successor to Scout, which today only recommends rather than assigns |
 | **Agentic reviewer** | An AI system filling the Reviewer role | `intelligence/agents/qa-agent` — slots into the existing `analyst → reviewer` transition with no new workflow state |
 | **Agentic supervisor** | An AI system filling the new Agent Supervisor role | `platform:agent-supervisor` — watches agent efficiency and drafts fine-tune/reallocation proposals; the *approval* of a proposal specifically requires a human assignee regardless of who fills the role generally |
-| **Compute cost** | The agentic-analyst equivalent of a payout | Per-task `ai-tools`/model cost — never runs through Branch 9's payout flow, since there's no person to pay |
+| **Compute cost** | The agentic-analyst equivalent of a payout | Per-task `ai-tools`/model cost — never runs through Phase 9's payout flow, since there's no person to pay |
 | **Dark task** | A Task completed with no human touching it at all | `planner` assigns → an agentic analyst works it → `qa-agent` reviews → `report-writer` delivers. Allowed at the individual-Task level; audit sampling and which price tiers permit it are still open, see Agent evaluation and accountability |

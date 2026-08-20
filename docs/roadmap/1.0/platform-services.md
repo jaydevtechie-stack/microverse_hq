@@ -50,4 +50,4 @@ GET /assets/{order_id}
 
 ## Up next
 
-Most platform-service progress today (search-service, notification-service, event-bus, audit) is tracked as part of [GoFeeler's branch plan](domain-services.md) rather than separately here, since each one is being built out as GoFeeler needs it. Billing collection is tracked there too, but lives in `rustledger` (a domain service), not a platform-service — see that plan's Branch 9.
+Most platform-service progress today (search-service, notification-service, event-bus, audit) is tracked as part of [GoFeeler's phase plan](domain-services.md) rather than separately here, since each one is being built out as GoFeeler needs it. Billing collection is tracked there too, but lives in `rustledger` (a domain service), not a platform-service — see that plan's Phase 9.

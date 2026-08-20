@@ -71,13 +71,13 @@
             { "id": "analysts", "label": "Analysts", "route": "/pm/delivery-team/analysts" },
             { "id": "reviewers", "label": "Reviewers", "route": "/pm/delivery-team/reviewers" }
           ],
-          "notes": "List of analysts/reviewers, master-detail split view. Detail shows that person's tasks assigned. No workload/performance metrics yet — deferred to Branch 8's audit-trail work; this is list+detail only for 4.3. Analysts/Reviewers render as an in-page Subnav tab row (DeliveryTeamPage.js), same shape as Admin below — not a navbar dropdown."
+          "notes": "List of analysts/reviewers, master-detail split view. Detail shows that person's tasks assigned. No workload/performance metrics yet — deferred to Phase 8's audit-trail work; this is list+detail only for 4.3. Analysts/Reviewers render as an in-page Subnav tab row (DeliveryTeamPage.js), same shape as Admin below — not a navbar dropdown."
         },
         {
           "id": "bills",
           "label": "Bills",
           "route": "/billing",
-          "notes": "Branch 9 — shared route with platform:account-manager (BillsPage.js), deliberately not /pm/billing — rustledger's GET /api/billing/bills scopes the response server-side by caller role instead of the frontend picking a different path. A PM sees only bills they created (rustledger.bills.created_by_id, a Keycloak subject — not email/username, since either can change and would silently orphan old bills from view); they create the bill (amount) but no longer publish it themselves (moved to the AM after this branch's first pass) — see docs/roadmap/1.0/domain-services.md's Branch 9. Distinct from the Orders placeholder above, which is about the order/task pool, not billing."
+          "notes": "Phase 9 — shared route with platform:account-manager (BillsPage.js), deliberately not /pm/billing — rustledger's GET /api/billing/bills scopes the response server-side by caller role instead of the frontend picking a different path. A PM sees only bills they created (rustledger.bills.created_by_id, a Keycloak subject — not email/username, since either can change and would silently orphan old bills from view); they create the bill (amount) but no longer publish it themselves (moved to the AM after this branch's first pass) — see docs/roadmap/1.0/domain-services.md's Phase 9. Distinct from the Orders placeholder above, which is about the order/task pool, not billing."
         }
       ]
     },
@@ -94,7 +94,7 @@
           "id": "billing",
           "label": "Billing",
           "route": "/billing",
-          "notes": "Branch 9 — replaces the earlier /am/billing placeholder (AmBillingPage) entirely, which never shipped real content past a stub; that ownership-scoped (accounts.account_manager_id, 6.2.5) contract-terms/invoicing-status concept was superseded before it was ever built. This is the real page (BillsPage.js), shared with platform:project-manager above — deliberately unscoped, every bill across every service/PM, matching AM's other unscoped views (e.g. GET /accounts) rather than the ownership-scoped pattern 6.2.5 established elsewhere for this role. Where the AM actually publishes/releases a bill a PM created (rustledger's POST .../publish), the action that notifies the customer."
+          "notes": "Phase 9 — replaces the earlier /am/billing placeholder (AmBillingPage) entirely, which never shipped real content past a stub; that ownership-scoped (accounts.account_manager_id, 6.2.5) contract-terms/invoicing-status concept was superseded before it was ever built. This is the real page (BillsPage.js), shared with platform:project-manager above — deliberately unscoped, every bill across every service/PM, matching AM's other unscoped views (e.g. GET /accounts) rather than the ownership-scoped pattern 6.2.5 established elsewhere for this role. Where the AM actually publishes/releases a bill a PM created (rustledger's POST .../publish), the action that notifies the customer."
         }
       ]
     },

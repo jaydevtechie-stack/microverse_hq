@@ -85,14 +85,14 @@ The mapping table above says *which role* each agent fills. This is *what it doe
 
 | Tool | What it does | Called by |
 |---|---|---|
-| `classification` | Labels or categorizes content — sentiment tags, pass/fail checks, image content categories | GoFeeler's sentiment analysis (Phase 2 / [docs/roadmap/1.0/domain-services.md](../1.0/domain-services.md) Branch 5), `qa-agent`'s approve/reject judgment, `image-analyst`'s content categorization |
+| `classification` | Labels or categorizes content — sentiment tags, pass/fail checks, image content categories | GoFeeler's sentiment analysis (Phase 2 / [docs/roadmap/1.0/domain-services.md](../1.0/domain-services.md) Phase 5), `qa-agent`'s approve/reject judgment, `image-analyst`'s content categorization |
 | `embeddings` | Turns content into vectors for semantic similarity/search | `research-agent`'s `knowledge/` lookups; a plausible later input to smarter `planner` routing |
 | `extraction` | Pulls structured fields out of unstructured input | `gis-analyst` (coordinates/regions from raster data), `report-writer` (stats/figures worth featuring), `research-agent` (facts from source material) |
 | `ocr` | Reads text out of images or scanned documents | `image-analyst` (signage, labels, photographed documents); potentially GoFeeler if chat exports ever arrive as screenshots rather than text |
 | `summarization` | Condenses longer content into shorter form | `report-writer` (primary use case), `qa-agent` (condensing analyst notes), `research-agent` (condensing findings before handoff) |
 | `vision` | Visual feature/object detection in images and raster data | `gis-analyst` and `image-analyst` — by far the two heaviest users |
 
-Every row above is a shared capability, not a per-agent reimplementation — the same reasoning `ai-tools/` was given in the taxonomy table: build `classification` once for GoFeeler's Branch 5, and `qa-agent`/`image-analyst` get it for free rather than each growing their own copy.
+Every row above is a shared capability, not a per-agent reimplementation — the same reasoning `ai-tools/` was given in the taxonomy table: build `classification` once for GoFeeler's Phase 5, and `qa-agent`/`image-analyst` get it for free rather than each growing their own copy.
 
 ## Agent security model
 
@@ -104,7 +104,7 @@ How an agent gets stopped from doing work it isn't authorized for, and from acti
 
 **Layer 3 — blast radius, the rule for judging what needs a human.** Not "agents can't act" — a Task-level action (an analyst finishes work, a reviewer rejects) is bounded and reversible, and stays fully agentic. An action that compounds across every future Task (retuning a model, changing routing weights, approving another agent's supervisor action) needs a human, because getting it wrong doesn't cost one Task, it costs everything downstream. This is the reasoning already applied to Phase 7's approval gate and the contract boundary — stated here explicitly so the next new agent capability gets checked against a rule instead of re-argued from scratch.
 
-**Layer 4 — attribution, for detection rather than prevention.** [docs/roadmap/1.0/domain-services.md](../1.0/domain-services.md) Branch 8's audit log already covers status/owner changes. Tagging actor identity as human-or-agent makes every logged action attributable after the fact — and it's what makes Phase 7's dark-task audit sampling meaningful in the first place, since sampling only works if there's a trustworthy log to sample from.
+**Layer 4 — attribution, for detection rather than prevention.** [docs/roadmap/1.0/domain-services.md](../1.0/domain-services.md) Phase 8's audit log already covers status/owner changes. Tagging actor identity as human-or-agent makes every logged action attributable after the fact — and it's what makes Phase 7's dark-task audit sampling meaningful in the first place, since sampling only works if there's a trustworthy log to sample from.
 
 **Agent identity, underneath all four layers: Keycloak service accounts.** Each agent is a Keycloak client with service accounts enabled, authenticating via the client-credentials grant rather than a login — and roles get assigned to that service account exactly like a human user, which is what makes [docs/architecture/1.0/core.md](../../architecture/1.0/core.md)'s "agents are simply assigned roles the same way" literally true at the mechanism level, not just a design intent. This also answers what used to be an open question here: whether an agentic Analyst/PM/Reviewer needs its own `users` row — yes, synced the same JIT way a human's is, once `syncUser`'s current requirement (present `sub`, `email`, `name`) is satisfied for a token type that doesn't carry those by default. That's a real implementation gap, not a footnote — see Phase 5. It's also what makes the human-vs-agent distinction for Phase 7's approval action mechanically real rather than a trusted flag: checkable from *how* a session authenticated (login vs. client-credentials), not a self-reported column an agent could misrepresent.
 
@@ -120,7 +120,7 @@ How an agent gets stopped from doing work it isn't authorized for, and from acti
 - ⚪ Needs real write access to task-service's assignment endpoint via `mcp/` — Scout today is read-only
 
 **Phase 2 — ai-tools/classification, via GoFeeler's LLM integration**
-- 🟡 This *is* [docs/roadmap/1.0/domain-services.md](../1.0/domain-services.md)'s Branch 5 (real sentiment analysis replacing the naive keyword matcher) — building it as `intelligence/ai-tools/classification` from the start, rather than inline in GoFeeler's service code, is what makes it a reusable tool other agents can call later instead of a one-off.
+- 🟡 This *is* [docs/roadmap/1.0/domain-services.md](../1.0/domain-services.md)'s Phase 5 (real sentiment analysis replacing the naive keyword matcher) — building it as `intelligence/ai-tools/classification` from the start, rather than inline in GoFeeler's service code, is what makes it a reusable tool other agents can call later instead of a one-off.
 
 **Phase 3 — SpringPix + gis-analyst/image-analyst**
 - ⚪ Blocked on SpringPix existing — still not yet planned in detail per [docs/roadmap/1.0/domain-services.md](../1.0/domain-services.md)
@@ -140,7 +140,7 @@ How an agent gets stopped from doing work it isn't authorized for, and from acti
 - ⚪ `knowledge/` starts empty. First real candidates: GoFeeler's sentiment vocabulary (already an ES index, could be referenced rather than duplicated) and, later, a library of past reports for report-writer to match tone/format against.
 
 **Phase 7 — agent evaluation & reallocation loop**
-- ⚪ Efficiency scoring per agent, reusing [docs/roadmap/1.0/domain-services.md](../1.0/domain-services.md) Branch 8's event stream (once built) for throughput/turnaround, [docs/business/2.0/intelligence.md](../../business/2.0/intelligence.md)'s per-task compute cost, and `qa-agent`'s own approve/reject history as a quality proxy — not a new measurement system, existing signals repurposed.
+- ⚪ Efficiency scoring per agent, reusing [docs/roadmap/1.0/domain-services.md](../1.0/domain-services.md) Phase 8's event stream (once built) for throughput/turnaround, [docs/business/2.0/intelligence.md](../../business/2.0/intelligence.md)'s per-task compute cost, and `qa-agent`'s own approve/reject history as a quality proxy — not a new measurement system, existing signals repurposed.
 - ⚪ Two outputs, neither autonomous: a fine-tune flag (→ `prompts/`/`models/`) and a reallocation flag (→ `planner`'s routing weights). Both are proposals requiring approval from a human `platform:agent-supervisor` before landing — see [docs/business/2.0/intelligence.md](../../business/2.0/intelligence.md)'s "Agent evaluation and accountability" and the Agent security model above for how the human-only check is actually enforced.
 - ⚪ Dark-task audit sampling — pulling some percentage of fully-agentic Tasks for human spot-check after completion, so drift gets caught before this loop is deciding off unreviewed data. Rate and mechanism not decided.
 - ⚪ `agent-supervisor` needs adding as a new `intelligence/agents/` subfolder — not one of the original six. See the mapping table above.
