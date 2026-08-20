@@ -1,9 +1,9 @@
-# Testing — GoFeeler (Phase 5, LLM sentiment engine)
+# Testing — GoFeeler (Branch 5, LLM sentiment engine)
 
-Scope: `domain-services/gofeeler`, up through Phase 5 in
+Scope: `domain-services/gofeeler`, up through Branch 5 in
 [docs/roadmap/1.0/domain-services.md](../roadmap/1.0/domain-services.md).
 This was the first service to get CI/test-case docs — see below for
-`search-service`'s, added in Phase 6.1. Still not a repo-wide convention;
+`search-service`'s, added in Branch 6.1. Still not a repo-wide convention;
 most other services have neither yet.
 
 CI runs this automatically: `.github/workflows/gofeeler-ci.yml`, on any
@@ -16,7 +16,7 @@ hit an `httptest.Server`, never the network or a real DB.
 
 | Area | File | Covers |
 |---|---|---|
-| Basic engine | `engine/basic_test.go` | Table-driven keyword matching (love/great/awesome → positive, hate/terrible/disappointed → negative, else neutral), case-insensitivity, confidence values, `engine_used` stamp. Locks in pre-Phase-5 behavior — the interface refactor must not change results. |
+| Basic engine | `engine/basic_test.go` | Table-driven keyword matching (love/great/awesome → positive, hate/terrible/disappointed → negative, else neutral), case-insensitivity, confidence values, `engine_used` stamp. Locks in pre-Branch-5 behavior — the interface refactor must not change results. |
 | Advanced engine | `engine/advanced_test.go` | Default-template resolution when `templateId` omitted, explicit-template lookup, template-resolve failure propagates as an error, provider failure propagates as an error. Provider and resolver are both fakes. |
 | OpenAI provider | `provider/openai_test.go` | Request shape (Authorization header, model field) against a local `httptest.Server` — never calls `api.openai.com`. Successful completion parsing, malformed model JSON output → error, non-200 API response → error, `Name()` returns `"openai"`. |
 | `/analyze` handler | `handler/analyze_test.go` | Engine omitted defaults to `"basic"`. Requesting `"advanced"` when it isn't registered → `400`, not a silent fallback to basic. Response stamps `template_id`/`llm_provider`/`model_version` when the engine provides them. Missing `text` → `400`. Engine returning an error → `502`. |
@@ -39,7 +39,7 @@ request/response contract rather than internals:
 
 1. `POST /analyze` with "great"/"love" text → `sentiment: positive`, `engine_used: basic`.
 2. `POST /analyze` with "hate"/"terrible" text → `sentiment: negative`.
-3. `POST /analyze` with `engine` omitted → still `engine_used: basic` (pre-Phase-5 callers unaffected).
+3. `POST /analyze` with `engine` omitted → still `engine_used: basic` (pre-Branch-5 callers unaffected).
 4. `POST /analyze` with `engine: "advanced"` and no key configured → `400`, not a fallback.
 5. `GET /templates` → the 3 system-default templates seeded on boot are present.
 6. `POST /templates` with a valid body → `201`, `isSystemDefault: false`.
@@ -70,7 +70,7 @@ curl https://gofeeler.microverse.local/api/gofeeler/templates
 
 ### Create Order file upload (asset-service → MinIO)
 
-Two real gaps caught here during Phase 5 testing, both fixed:
+Two real gaps caught here during Branch 5 testing, both fixed:
 
 - **Duplicate CORS headers.** `infrastructure/nginx/conf.d/assets.conf`
   used to add its own `Access-Control-Allow-*` headers on
@@ -137,7 +137,7 @@ money) — run manually when validating provider-integration changes:
 
 ### Role-gated Create Order flow (customer-facing UI)
 
-This is the one that actually caught a real gap during Phase 5 testing —
+This is the one that actually caught a real gap during Branch 5 testing —
 **not a code bug**, a Keycloak test-user mix-up. `platform:customer` +
 `service:gofeeler` are both required to reach `/create`
 ([docs/architecture/1.0/core.md](../architecture/1.0/core.md)'s two-dimensional
@@ -171,7 +171,7 @@ Checklist:
 
 ---
 
-# Testing — search-service (Phase 6.1, task search index)
+# Testing — search-service (Branch 6.1, task search index)
 
 Scope: `platform-services/search-service`. CI runs this automatically:
 `.github/workflows/search-service-ci.yml`, on any push/PR touching
@@ -189,7 +189,7 @@ logic here that doesn't ultimately touch ES.
 |---|---|
 | `test_service_index_name` | Pure function, no ES: `tasks-<service>` naming convention. |
 | `test_health_reports_elasticsearch_up` | `/health` reflects a real ES connection. |
-| `test_tasks_template_registered` | The `tasks-template` index template (Phase 6.1) exists on boot, pattern `tasks-*`. |
+| `test_tasks_template_registered` | The `tasks-template` index template (Branch 6.1) exists on boot, pattern `tasks-*`. |
 | `test_new_service_index_inherits_tasks_mapping` | Writing to a disposable `tasks-<service>` index lazily creates it with the templated mapping — analyzed `title`/`context`, keyword `status`/`assignee_ids`/etc., no `service` field. Never touches `tasks-gofeeler` itself. |
 | `test_tag_suggest_still_works` | Regression check on the pre-existing `/tags/suggest` endpoint, since it shares `main.py` with the new template code. |
 
@@ -220,7 +220,7 @@ print(es.indices.get_index_template(name=TASKS_TEMPLATE_NAME).body)
 
 ---
 
-# Testing — search-service (Phase 6.2, lifecycle-aware indexing consumer)
+# Testing — search-service (Branch 6.2, lifecycle-aware indexing consumer)
 
 Scope: `platform-services/search-service/app/kafka_consumer.py` (the
 consumer) and `business-services/task-service/events/kafka-producer.js`
@@ -284,7 +284,7 @@ consumer thread retries every 5s, no restart needed) and
 ...` (producer failure — fire-and-forget, so the API call itself still
 succeeds even if this fails).
 
-# Testing — search-service (Phase 6.3, no_index reconcile)
+# Testing — search-service (Branch 6.3, no_index reconcile)
 
 Scope: `platform-services/search-service/app/kafka_consumer.py`'s
 delete-vs-upsert branch and `business-services/task-service/routes/
@@ -340,7 +340,7 @@ that PM/analyst/reviewer/admin tokens can't reach the route at all
 (gated at `requireAnyRealmRole('platform:account-manager',
 'platform:customer')` before the ownership check ever runs).
 
-# Testing — notification-service (Phase 7, Notifications & messaging)
+# Testing — notification-service (Branch 7, Notifications & messaging)
 
 Scope: `platform-services/notification-service` end to end (Kafka
 consumer, Postgres persistence, REST, WebSocket push, email hand-off) and
@@ -412,10 +412,10 @@ consumer, verified the same way.
 `task.rejected`, `task.no-index-changed`) don't produce any
 `notifications` rows — this consumer only acts on `task.created`/
 `task.assigned`, everything else on the topic is consumed and ignored by
-design (Phase 8's audit trail is the intended home for "notify on every
+design (Branch 8's audit trail is the intended home for "notify on every
 transition").
 
-# Testing — audit-service (Phase 8, Auditing & efficiency)
+# Testing — audit-service (Branch 8, Auditing & efficiency)
 
 Scope: `platform-services/audit-service` end to end (dual-topic Kafka
 consumer, Postgres persistence, REST) and GoFeeler's new Kafka producer
@@ -532,7 +532,7 @@ the timeline drill-down rendered a real task's `task.created` →
 `task.assigned` → `sentiment.analyzed` sequence with correct
 time-in-status/duration values.
 
-# Testing — rustledger (Phase 9, Billing)
+# Testing — rustledger (Branch 9, Billing)
 
 Scope: `domain-services/rustledger` end to end (bill create/publish,
 Stripe Checkout Session creation, webhook-confirmed payment,
@@ -661,7 +661,7 @@ Confirm each step:
 - `GET /api/tasks/:id` shows the task's own `status` flipped to `paid`
   (via task-service's new `events/kafka-consumer.js` consuming
   `bill.paid` off `rustledger.bills`), and `GET /api/audit/tasks/:id`
-  (Phase 8) shows a `task.paid` row — confirms audit-service's existing
+  (Branch 8) shows a `task.paid` row — confirms audit-service's existing
   consumer picked up the republished event with zero changes on its end,
   same "producer republishes on the existing topic" design as every
   other cross-service signal in this stack.

@@ -15,9 +15,9 @@ Ordered roughly by business priority, least-first.
 
 ## Payouts (PMs and analysts)
 
-Moved from 1.0's Phase 9, which scoped itself to customer billing/collection only and deferred this entirely — see that phase's note in [docs/roadmap/1.0/domain-services.md](../1.0/domain-services.md) and [docs/business/1.0/overview.md](../../business/1.0/overview.md)'s Payouts section for the commercial framing.
+Moved from 1.0's Branch 9, which scoped itself to customer billing/collection only and deferred this entirely — see that phase's note in [docs/roadmap/1.0/domain-services.md](../1.0/domain-services.md) and [docs/business/1.0/overview.md](../../business/1.0/overview.md)'s Payouts section for the commercial framing.
 
-Collecting money (customer → Microverse) and paying it out (Microverse → analyst/PM) are different flows with different tooling — this is not a small extension of Phase 9's Stripe Checkout work.
+Collecting money (customer → Microverse) and paying it out (Microverse → analyst/PM) are different flows with different tooling — this is not a small extension of Branch 9's Stripe Checkout work.
 
 - ⚪ Payout mechanism — Stripe Connect is the assumed candidate, unconfirmed, nothing built
 - ⚪ Payout basis — hourly off elixtempo's tracked time (rustledger's existing `line_items` already prices a flat-rate v1 of this for analysts) vs. a per-task flat rate vs. something else

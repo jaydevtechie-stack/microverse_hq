@@ -29,7 +29,7 @@ intelligence/
 |---|---|---|
 | `planner` | The agentic **Project Manager** | Ties directly to the founding vision — a PM role that can be filled by an agent, same `platform:project-manager` role, same task pool, same permissions as a human PM. |
 | `qa-agent` | The agentic **Reviewer** | Fills `platform:reviewer` the same way — checks analyst work quality automatically, same approve/reject action a human reviewer takes. |
-| `gis-analyst` | The agentic **Analyst for SpringPix** | Does the raster/GIS hotspot reasoning — the actual analysis engine behind SpringPix's "Analyse" step, same shape as GoFeeler's planned LLM upgrade (Phase 5). |
+| `gis-analyst` | The agentic **Analyst for SpringPix** | Does the raster/GIS hotspot reasoning — the actual analysis engine behind SpringPix's "Analyse" step, same shape as GoFeeler's planned LLM upgrade (Branch 5). |
 | `image-analyst` | The agentic **Analyst for PyReel** / general vision | Broader than `gis-analyst`'s geo-specific reasoning — general image/video understanding. |
 | `report-writer` | Feeds **Djaboard / the Reports nav placeholder** | Writes up findings (GIS results, sentiment patterns) into human-readable reports for customers or PMs — not raw data, a written narrative. |
 | `research-agent` | Context-gathering for ambiguous tasks | Open-ended synthesis when a task doesn't map cleanly to a fixed classification — could also back Scout 2.0's `read_task_content` tool. |
@@ -40,11 +40,11 @@ intelligence/
 
 Classification, embeddings, extraction, OCR, summarization, vision — these are **reusable capabilities**, not full agents. The critical design decision: **this is one service exposing an API, not a Python library each agent imports.** Reason: Microverse is genuinely polyglot (GoFeeler is Go, SpringPix is Java, agents are Python) — a Python library isn't callable from Go or Java, but an API-exposed service is callable from anywhere. `ai-tools` is the shared capability layer every domain-service and agent calls into, regardless of what language it's written in.
 
-GoFeeler's Phase 5 `advanced` engine ([docs/architecture/1.0/domain-services.md](../1.0/domain-services.md)) doesn't call `ai-tools` yet — it's GoFeeler-local, calling an LLM provider directly through its own `Provider` interface, since it's the first consumer and `ai-tools` doesn't exist. That interface is the deliberate plug-in point: once `ai-tools` exists, it's a new `Provider` implementation, not a rewrite.
+GoFeeler's Branch 5 `advanced` engine ([docs/architecture/1.0/domain-services.md](../1.0/domain-services.md)) doesn't call `ai-tools` yet — it's GoFeeler-local, calling an LLM provider directly through its own `Provider` interface, since it's the first consumer and `ai-tools` doesn't exist. That interface is the deliberate plug-in point: once `ai-tools` exists, it's a new `Provider` implementation, not a rewrite.
 
 | Tool | Used by |
 |---|---|
-| `classification` | GoFeeler's Phase 5 sentiment upgrade (once migrated off its direct-provider shim, above) |
+| `classification` | GoFeeler's Branch 5 sentiment upgrade (once migrated off its direct-provider shim, above) |
 | `embeddings` | Semantic task-similarity (Scout 2.0's `get_task_history`), potential search-service enhancement beyond fuzzy/prefix matching |
 | `extraction` | Pulling structured entities/dates out of GoFeeler's uploaded chat/email exports before analysis |
 | `ocr` | Text extraction from scanned documents or images in asset-service uploads |

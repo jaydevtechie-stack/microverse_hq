@@ -6,7 +6,7 @@ What's getting built, roughly in order. See [docs/architecture/1.0/core.md](../.
 
 Per-component build plans:
 - [applications.md](applications.md) — frontend/UI proposals
-- [domain-services.md](domain-services.md) — GoFeeler's phase plan, the only domain service actually in 1.0's scope now (see that file's note — the other six moved to [docs/roadmap/1.1/domain-services.md](../1.1/domain-services.md))
+- [domain-services.md](domain-services.md) — GoFeeler's branch plan (kept as "branch" for historical continuity — see that file's own note), the only domain service actually in 1.0's scope now (see that file's note — the other six moved to [docs/roadmap/1.1/domain-services.md](../1.1/domain-services.md))
 - [business-services.md](business-services.md) — task-service/workflow queue
 - [platform-services.md](platform-services.md) — asset-service/MinIO proposal
 - [infrastructure.md](infrastructure.md) — Keycloak, CI/CD pipeline
