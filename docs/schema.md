@@ -236,6 +236,18 @@ Older versions aren't deleted — they're just not what this query returns, whic
 
 ---
 
+# elixtempo database
+
+**PostgreSQL** — `${POSTGRES_DB}` on `microverse-postgis` (shared instance with `task-service`/`rustledger`/`springpix`, by decision), own `elixtempo` schema namespace
+
+- `sessions` — one row per work session, upserted on every lifecycle transition (write-behind, not an append-only log — see [docs/roadmap/1.1/domain-services.md](roadmap/1.1/domain-services.md)'s Phase 2.1 for why): `id` (TEXT, not UUID — sidesteps Postgrex's binary/string UUID encoding entirely, and matches how `rustledger.line_items.session_id` below already treats this as an opaque cross-service string), `analyst_id`, `quest_id`, `status` (`running`/`paused`/`stopped`), `accumulated_seconds`, `running_since` (`NULL` unless `status = 'running'`), `inserted_at`, `updated_at`. Raw state, not a computed snapshot — `accumulated_seconds`/`running_since` are exactly what the in-memory `Session` GenServer holds, so a row can rehydrate a session on boot without recomputing anything (Phase 2.2). `quest_id` is presently just an opaque caller-supplied string — nothing yet confirms it corresponds to task-service's `tasks.id` (that's Phase 4's open question, not yet resolved).
+
+Every transition also publishes to the `elixtempo.sessions` Kafka *topic* — this table and that topic share a name but are two different things: the table is ElixTempo's own durable state, the topic is what `rustledger` consumes to bill stopped sessions (see its `line_items` entry below).
+
+`GET /api/analysts/:analyst_id/hours` (Phase 3) reads this table directly — sums `accumulated_seconds` for `status = 'stopped'` rows, grouped by `quest_id`, optionally bounded by `updated_at`. No separate history/aggregate table; the sessions table is both the live-state store and the query surface.
+
+---
+
 # rustledger database
 
 **PostgreSQL** — `${POSTGRES_DB}` on `microverse-postgis` (shared instance with `task-service`/`springpix`, by decision), own `rustledger` schema namespace
