@@ -15,7 +15,9 @@ defmodule ElixTempo.Application do
       {DNSCluster, query: Application.get_env(:elixtempo, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: ElixTempo.PubSub},
       {Registry, keys: :unique, name: ElixTempo.Sessions.Registry},
-      {DynamicSupervisor, name: ElixTempo.Sessions.Supervisor, strategy: :one_for_one},
+      # Rehydrates in-flight sessions from Postgres as part of starting —
+      # see ElixTempo.Sessions.Supervisor's moduledoc.
+      ElixTempo.Sessions.Supervisor,
       # Start to serve requests, typically the last entry
       ElixTempoWeb.Endpoint
     ]

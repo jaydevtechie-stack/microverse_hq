@@ -21,6 +21,20 @@ defmodule ElixTempo.Sessions.Session do
     GenServer.start_link(__MODULE__, {id, analyst_id, quest_id}, name: via(id))
   end
 
+  # Rehydrate form — spawned by ElixTempo.Sessions.rehydrate_all/0 on
+  # boot, one per still-open row in Postgres. Seeded directly from
+  # persisted raw state rather than starting fresh, so a restart is
+  # transparent to the analyst's clock: a running session keeps
+  # accruing from its real running_since, it doesn't reset to zero or
+  # freeze for the downtime.
+  def start_link({id, analyst_id, quest_id, status, accumulated_seconds, running_since}) do
+    GenServer.start_link(
+      __MODULE__,
+      {id, analyst_id, quest_id, status, accumulated_seconds, running_since},
+      name: via(id)
+    )
+  end
+
   def pause(id), do: GenServer.call(via(id), :pause)
   def resume(id), do: GenServer.call(via(id), :resume)
   def stop(id), do: GenServer.call(via(id), :stop)
@@ -37,6 +51,20 @@ defmodule ElixTempo.Sessions.Session do
       status: :running,
       accumulated_seconds: 0,
       running_since: DateTime.utc_now()
+    }
+
+    {:ok, state}
+  end
+
+  @impl true
+  def init({id, analyst_id, quest_id, status, accumulated_seconds, running_since}) do
+    state = %__MODULE__{
+      id: id,
+      analyst_id: analyst_id,
+      quest_id: quest_id,
+      status: status,
+      accumulated_seconds: accumulated_seconds,
+      running_since: running_since
     }
 
     {:ok, state}

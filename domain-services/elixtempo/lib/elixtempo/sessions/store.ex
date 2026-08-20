@@ -80,6 +80,31 @@ defmodule ElixTempo.Sessions.Store do
     :ok
   end
 
+  @doc "Every session not yet stopped — what needs to come back to life on boot."
+  def list_open do
+    %Postgrex.Result{rows: rows} =
+      Postgrex.query!(
+        @name,
+        """
+        SELECT id, analyst_id, quest_id, status, accumulated_seconds, running_since
+        FROM elixtempo.sessions
+        WHERE status != 'stopped'
+        """,
+        []
+      )
+
+    Enum.map(rows, fn [id, analyst_id, quest_id, status, accumulated_seconds, running_since] ->
+      %{
+        id: id,
+        analyst_id: analyst_id,
+        quest_id: quest_id,
+        status: String.to_existing_atom(status),
+        accumulated_seconds: accumulated_seconds,
+        running_since: running_since
+      }
+    end)
+  end
+
   defp connection_opts do
     url = System.get_env("DATABASE_URL") || "postgres://postgres:postgres@localhost:5432/microverse"
     uri = URI.parse(url)
