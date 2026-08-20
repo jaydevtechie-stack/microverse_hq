@@ -376,7 +376,7 @@ services:
       # Stripe Checkout's success/cancel redirect target — the nginx host
       # fronting taskfusion, same origin every other browser-facing link
       # in this stack resolves to locally.
-      APP_BASE_URL: http://localhost
+      APP_BASE_URL: ${APP_BASE_URL}
     depends_on:
       - microverse-postgis
       - microverse-kafka
