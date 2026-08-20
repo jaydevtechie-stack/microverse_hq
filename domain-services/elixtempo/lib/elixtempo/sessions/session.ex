@@ -80,13 +80,19 @@ defmodule ElixTempo.Sessions.Session do
 
   defp elapsed(%{accumulated_seconds: acc}), do: acc
 
+  # accumulated_seconds/running_since ride along on the view alongside
+  # the computed elapsed_seconds — SessionJSON doesn't surface them (no
+  # public API change), but Sessions.Store needs the raw fields as-is to
+  # persist and later rehydrate a session without recomputing anything.
   defp to_view(state) do
     %{
       id: state.id,
       analyst_id: state.analyst_id,
       quest_id: state.quest_id,
       status: state.status,
-      elapsed_seconds: elapsed(state)
+      elapsed_seconds: elapsed(state),
+      accumulated_seconds: state.accumulated_seconds,
+      running_since: state.running_since
     }
   end
 end

@@ -344,8 +344,13 @@ services:
       PHX_HOST: localhost
       SECRET_KEY_BASE: ${ELIXTEMPO_SECRET_KEY_BASE}
       KAFKA_BROKERS: microverse-kafka:9092
+      # sessions table (write-behind for crash recovery) — own `elixtempo`
+      # schema on the shared instance, same convention as rustledger/
+      # task-service.
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@microverse-postgis:5432/${POSTGRES_DB}
     depends_on:
       - microverse-kafka
+      - microverse-postgis
     networks:
       - microverse-network
 

@@ -7,6 +7,7 @@ defmodule ElixTempo.Sessions do
 
   alias ElixTempo.KafkaProducer
   alias ElixTempo.Sessions.Session
+  alias ElixTempo.Sessions.Store
 
   def start_session(analyst_id, quest_id) do
     id = Uniq.UUID.uuid4()
@@ -17,6 +18,7 @@ defmodule ElixTempo.Sessions do
          ) do
       {:ok, _pid} ->
         {:ok, view} = Session.view(id)
+        Store.upsert(view)
         publish(view, "session.started")
         {:ok, view}
 
@@ -38,6 +40,7 @@ defmodule ElixTempo.Sessions do
   defp transition(id, fun, event_name) do
     case fun.(id) do
       {:ok, view} ->
+        Store.upsert(view)
         publish(view, event_name)
         {:ok, view}
 

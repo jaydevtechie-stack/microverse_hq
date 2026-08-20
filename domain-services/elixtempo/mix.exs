@@ -47,7 +47,8 @@ defmodule ElixTempo.MixProject do
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
       {:brod, "~> 4.5"},
-      {:uniq, "~> 0.6"}
+      {:uniq, "~> 0.6"},
+      {:postgrex, "~> 0.19"}
     ]
   end
 
