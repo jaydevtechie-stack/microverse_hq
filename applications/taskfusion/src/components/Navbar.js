@@ -138,11 +138,9 @@ const Navbar = ({ keycloak }) => {
       )}
 
       {/* Self-hosted blog — marketing/admin only, points at the
-          WYSIWYG editor (/blog/manage), not the public /blog reading
-          page (that has no nav link at all: Navbar never renders for
-          anonymous visitors, see App.js — discoverability there comes
-          from LandingPage's own "read our blog" link and the page
-          being indexable). */}
+          WYSIWYG editor (/blog/manage), not the public reading
+          page (that's "/" itself now, and has no nav link at all:
+          Navbar never renders for anonymous visitors — see App.js). */}
       {(isMarketing || isAdmin) && (
         <PlatformNavLink to="/blog/manage" active={pathname.startsWith('/blog/manage')}>
           {t('blog')}
@@ -316,9 +314,10 @@ const Navbar = ({ keycloak }) => {
   return (
     <nav
       style={{
-        // Explicit stacking context so this renders above LandingPage's
-        // position:fixed background image rather than behind it — plain
-        // static-position siblings otherwise lose to a fixed element.
+        // Explicit stacking context so this renders above any
+        // position:fixed content in the routed page below it rather
+        // than behind it — plain static-position siblings otherwise
+        // lose to a fixed element.
         position: 'relative',
         zIndex: 1,
         background: 'var(--mv-bg-elevated)',

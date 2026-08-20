@@ -2,10 +2,76 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { IconArticle } from '@tabler/icons-react';
+import { IconArticle, IconCalendarEvent } from '@tabler/icons-react';
 import usePageMeta from '../hooks/usePageMeta';
-import { BlogHeader, BlogFooter, TagChip, TagBadge, shortDate } from '../components/BlogChrome';
+import { BlogHeader, TagChip, TagBadge, shortDate } from '../components/BlogChrome';
+import Footer from '../components/Footer';
 import { colorForTag } from '../utils/tagColor';
+
+// Static — no events feature or newsletter/subscribe pipeline exists
+// anywhere in this app yet (the latter's real version is a separate,
+// planned Listmonk integration). Visual-only, matching the mock-up
+// exactly: the input/button below are plain styled elements, not a real
+// form — no onSubmit, nothing to wire up yet.
+const EventsWidget = () => {
+  const { t } = useTranslation('blog');
+  return (
+    <div
+      style={{
+        background: 'var(--mv-bg)',
+        border: '1px dashed var(--mv-border)',
+        borderRadius: 8,
+        padding: 20,
+        marginTop: 16,
+        textAlign: 'center',
+      }}
+    >
+      <IconCalendarEvent size={22} color="var(--mv-text-muted)" aria-hidden="true" />
+      <p style={{ color: 'var(--mv-text)', fontSize: 13, fontWeight: 500, margin: '10px 0 4px' }}>{t('list.sidebar.eventsTitle')}</p>
+      <p style={{ color: 'var(--mv-text-muted)', fontSize: 12, margin: 0 }}>{t('list.sidebar.eventsBody')}</p>
+    </div>
+  );
+};
+
+const NewsletterWidget = () => {
+  const { t } = useTranslation('blog');
+  return (
+    <div style={{ background: 'var(--mv-color-primary)', borderRadius: 8, padding: 16, marginTop: 16 }}>
+      <p style={{ color: 'var(--mv-color-primary-contrast)', fontSize: 14, fontWeight: 500, margin: '0 0 4px' }}>
+        {t('list.sidebar.newsletterTitle')}
+      </p>
+      <p style={{ color: 'var(--mv-color-primary-contrast)', fontSize: 12, margin: '0 0 12px', opacity: 0.85 }}>
+        {t('list.sidebar.newsletterBody')}
+      </p>
+      <div
+        style={{
+          background: 'var(--mv-bg)',
+          borderRadius: 6,
+          padding: '9px 12px',
+          color: 'var(--mv-text-muted)',
+          fontSize: 13,
+          marginBottom: 8,
+        }}
+      >
+        {t('list.sidebar.newsletterPlaceholder')}
+      </div>
+      <span
+        style={{
+          display: 'block',
+          textAlign: 'center',
+          background: 'var(--mv-text)',
+          color: 'var(--mv-bg)',
+          fontSize: 13,
+          fontWeight: 500,
+          padding: '9px 0',
+          borderRadius: 6,
+        }}
+      >
+        {t('list.sidebar.newsletterSubscribe')}
+      </span>
+    </div>
+  );
+};
 
 const BlogListPage = () => {
   const { t } = useTranslation(['blog', 'landing']);
@@ -149,7 +215,7 @@ const BlogListPage = () => {
         </div>
       </div>
 
-      <BlogFooter />
+      <Footer />
     </div>
   );
 };

@@ -3,7 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import usePageMeta from '../hooks/usePageMeta';
-import { BlogHeader, BlogFooter, TagBadge, shortDate } from '../components/BlogChrome';
+import { BlogHeader, TagBadge, shortDate } from '../components/BlogChrome';
+import Footer from '../components/Footer';
 import { estimateReadingTime } from '../utils/readingTime';
 
 // Fully public, same posture as BlogListPage.js. body_html is rendered
@@ -48,7 +49,7 @@ const BlogPostPage = () => {
       <BlogHeader />
 
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '32px 24px 0', width: '100%', boxSizing: 'border-box', flex: 1 }}>
-        <Link to="/blog" style={{ color: 'var(--mv-color-primary)', fontSize: 13, textDecoration: 'none' }}>
+        <Link to="/" style={{ color: 'var(--mv-color-primary)', fontSize: 13, textDecoration: 'none' }}>
           ← {t('post.back')}
         </Link>
 
@@ -87,7 +88,7 @@ const BlogPostPage = () => {
         )}
       </div>
 
-      <BlogFooter />
+      <Footer />
     </div>
   );
 };

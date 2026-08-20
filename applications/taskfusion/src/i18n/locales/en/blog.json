@@ -57,8 +57,6 @@
     "byLine": "By {{name}}",
     "readingTime": "{{count}} min read",
     "nav": {
-      "home": "Home",
-      "blog": "Blog",
       "goToDashboard": "Go to dashboard"
     },
     "hero": {
@@ -69,11 +67,27 @@
       "all": "All"
     },
     "sidebar": {
-      "popularTitle": "Popular articles"
+      "popularTitle": "Popular articles",
+      "eventsTitle": "Events",
+      "eventsBody": "Event calendar and webinars are coming soon.",
+      "newsletterTitle": "Get new posts by email",
+      "newsletterBody": "One email whenever a new post goes up. No spam.",
+      "newsletterPlaceholder": "name@company.com",
+      "newsletterSubscribe": "Subscribe"
     },
     "footer": {
-      "tagline": "A polyglot platform, built in the open.",
-      "copyright": "© {{year}} Microverse"
+      "tagline": "A polyglot platform, built in the open — seven services, one design system.",
+      "copyright": "© {{year}} Microverse",
+      "servicesTitle": "Services",
+      "companyTitle": "Company",
+      "resourcesTitle": "Resources",
+      "companyAbout": "About",
+      "companyRoadmap": "Roadmap",
+      "resourcesDocs": "Docs",
+      "resourcesStatus": "Status",
+      "resourcesContact": "Contact",
+      "privacy": "Privacy",
+      "terms": "Terms"
     }
   },
   "post": {

@@ -7,7 +7,6 @@ import { ThemeProvider } from './context/ThemeContext';
 import { SERVICE_THEME } from './data/services';
 import { setFavicon } from './utils/favicon';
 import microverseLogo from './assets/brand/design-system/logos/microverse-logo.png';
-import LandingPage from './pages/LandingPage';
 import Navbar from './components/Navbar';
 import Dashboard from './pages/Dashboard';  // Example protected page
 import AccountsViewPage from './pages/AccountsViewPage';
@@ -157,16 +156,23 @@ const App = () => {
                   // app's gates.
                   <ServiceLandingPage serviceKey={currentService.key} />
                 ) : (
-                  <LandingPage />
+                  // The blog homepage — no auth check of its own here;
+                  // BlogListPage's own header (BlogHeader) already shows
+                  // Login vs. "go to dashboard" based on keycloak state
+                  // internally, so there's nothing extra to gate at the
+                  // route level. Also reachable at the old /blog path via
+                  // a redirect below, for anything bookmarked during dev.
+                  <BlogListPage />
                 )
               }
             />
-            {/* Public reading pages — same tier as "/", reachable and
-                indexable with no session at all (LandingPage stays a
-                login gate, not a content page — see its own comment).
-                /blog/manage (below, PrivateRoute-gated) is the separate
-                marketing/admin editor. */}
-            <Route path="/blog" element={<BlogListPage />} />
+            {/* /blog is now just a redirect to "/" (the blog IS the
+                homepage, see the "/" route above) — kept for anything
+                bookmarked during dev. /blog/:slug (individual posts) is
+                still real and public. /blog/manage (below,
+                PrivateRoute-gated) is the separate marketing/admin
+                editor — a different path on purpose. */}
+            <Route path="/blog" element={<Navigate to="/" replace />} />
             <Route path="/blog/:slug" element={<BlogPostPage />} />
 
             {/* Protected Route */}

@@ -1,8 +1,9 @@
 // src/components/BlogChrome.js
 //
-// Shared header/footer/tag-badge chrome for the two public blog pages
+// Shared header/tag-badge chrome for the two public blog pages
 // (BlogListPage.js, BlogPostPage.js) — pulled out so the two don't drift
-// out of sync with each other.
+// out of sync with each other. The site footer lives in Footer.js
+// instead — it isn't blog-specific.
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
@@ -62,24 +63,13 @@ export const BlogHeader = () => {
           justifyContent: 'space-between',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--mv-color-primary)' }} />
-            <span style={{ color: 'var(--mv-text)', fontWeight: 500, fontSize: 15 }}>Microverse</span>
-          </Link>
-          <Link
-            to="/blog"
-            style={{
-              color: 'var(--mv-color-primary)',
-              fontSize: 13,
-              textDecoration: 'none',
-              borderBottom: '2px solid var(--mv-color-primary)',
-              paddingBottom: 2,
-            }}
-          >
-            {t('blog:list.nav.blog')}
-          </Link>
-        </div>
+        {/* No separate "Blog" nav item — the blog IS "/" now, same
+            destination as the brand mark, so a second link to itself
+            would be redundant. */}
+        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--mv-color-primary)' }} />
+          <span style={{ color: 'var(--mv-text)', fontWeight: 500, fontSize: 15 }}>Microverse</span>
+        </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <button
             type="button"
@@ -117,30 +107,3 @@ export const BlogHeader = () => {
   );
 };
 
-export const BlogFooter = () => {
-  const { t } = useTranslation('blog');
-  return (
-    <div style={{ borderTop: '0.5px solid var(--mv-border)', marginTop: 40 }}>
-      <div
-        style={{
-          maxWidth: 1140,
-          margin: '0 auto',
-          padding: '20px 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 8,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--mv-color-primary)' }} />
-          <span style={{ color: 'var(--mv-text-muted)', fontSize: 12 }}>{t('list.footer.tagline')}</span>
-        </div>
-        <span style={{ color: 'var(--mv-text-muted)', fontSize: 12 }}>
-          {t('list.footer.copyright', { year: new Date().getFullYear() })}
-        </span>
-      </div>
-    </div>
-  );
-};
