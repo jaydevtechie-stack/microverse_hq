@@ -6,6 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import (
+    BLOG_INDEX,
     TASKS_TEMPLATE_NAME,
     app,
     build_search_query,
@@ -173,3 +174,57 @@ def test_tag_suggest_still_works(client):
     resp = client.get("/tags/suggest", params={"q": "urg"})
     assert resp.status_code == 200
     assert any(m["name"] == "urgency" for m in resp.json()["matches"])
+
+
+@pytest.fixture
+def scoped_blog_post(client):
+    # Writes straight to ES, bypassing blog-service/Kafka entirely — same
+    # posture as scoped_task, which does the same for tasks-<service>.
+    post_id = str(uuid.uuid4())
+    slug = f"citest-post-{uuid.uuid4().hex[:8]}"
+    es.index(
+        index=BLOG_INDEX,
+        id=post_id,
+        document={"title": "Widgetopolis launch notes", "context": "how we shipped the widget dashboard", "slug": slug},
+        refresh="wait_for",
+    )
+    try:
+        yield post_id, slug
+    finally:
+        es.options(ignore_status=404).delete(index=BLOG_INDEX, id=post_id)
+
+
+def test_search_includes_blog_articles_for_anonymous_caller(client, scoped_blog_post):
+    post_id, slug = scoped_blog_post
+    resp = client.get("/search", params={"q": "widgetopolis"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 1
+    assert body["hits"][0] == {
+        "type": "blog",
+        "task_id": None,
+        "slug": slug,
+        "title": "Widgetopolis launch notes",
+        "snippet": "how we shipped the widget dashboard",
+        "service": "blog",
+        "score": body["hits"][0]["score"],
+    }
+
+
+def test_search_blends_blog_articles_with_scoped_tasks(client, scoped_task, scoped_blog_post):
+    # Both fixtures use "widget" so one query surfaces one of each type.
+    service, task_id = scoped_task
+    _, slug = scoped_blog_post
+    token = _bearer_token(["platform:analyst", f"service:{service}"]).decode()
+    resp = client.get("/search", params={"q": "widget"}, headers={"Authorization": token})
+    assert resp.status_code == 200
+    types = {hit["type"] for hit in resp.json()["hits"]}
+    assert types == {"task", "blog"}
+
+
+def test_search_service_param_excludes_blog(client, scoped_blog_post):
+    # `service` is task-only narrowing (see /search's own comment) — it
+    # should never surface blog-articles, even for a caller with no
+    # matching task scope at all.
+    resp = client.get("/search", params={"q": "widgetopolis", "service": "gofeeler"})
+    assert resp.json() == {"hits": [], "total": 0, "page": 1, "size": 10}

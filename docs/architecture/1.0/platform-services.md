@@ -11,7 +11,7 @@ Plumbing — zero business opinions, fully generic, could get dropped into a tot
 | messaging | Human (and possibly agent) communication feature — popup notification, newsfeed entry, email; no dedicated chat, async only |
 | notification-service | Node.js/TypeScript — decides who needs to know, hands off to email-service; handles delivery mechanics underneath `messaging` |
 | email-service | Node.js/TypeScript (nodemailer → MailHog) |
-| search-service | Python (Elasticsearch) — permission-specific search over a user's own work; human-only, not for agents |
+| search-service | Python (Elasticsearch) — permission-specific search over a user's own work, plus a separate always-public `blog-articles` index for the blog; human-only, not for agents |
 | audit | Java |
 | scheduler | Java (Quartz) |
 | tracking-service | .NET — general product usage analytics (not time tracking — that's elixtempo, though tracking-service does consume elixtempo's events as one input for business-efficiency reporting, see [docs/business/1.0/overview.md](../../business/1.0/overview.md)) |
