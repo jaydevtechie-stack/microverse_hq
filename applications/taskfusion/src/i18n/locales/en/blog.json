@@ -1,0 +1,87 @@
+{
+  "manage": {
+    "headerTitle": "Blog",
+    "loading": "Loading posts…",
+    "loadError": "Couldn't load posts: {{error}}",
+    "empty": "No posts yet.",
+    "newPost": "New post",
+    "draftBadge": "Draft",
+    "publishedBadge": "Published",
+    "untitled": "Untitled"
+  },
+  "form": {
+    "fields": {
+      "title": "Title",
+      "slug": "Slug",
+      "excerpt": "Excerpt",
+      "tags": "Tags",
+      "coverImage": "Cover image",
+      "body": "Body"
+    },
+    "slugLockedNote": "The slug can't be changed once a post is published.",
+    "validation": {
+      "titleRequired": "Title is required"
+    },
+    "save": "Save",
+    "saving": "Saving…",
+    "publish": "Publish",
+    "unpublish": "Unpublish",
+    "delete": "Delete",
+    "deleteConfirm": "Delete this draft? This can't be undone.",
+    "replaceCoverImage": "Replace",
+    "removeCoverImage": "Remove",
+    "uploadingImage": "Uploading…",
+    "uploadImageError": "Image upload failed: {{error}}",
+    "saveFirstForImages": "Save the post before adding images"
+  },
+  "editor": {
+    "bold": "Bold",
+    "italic": "Italic",
+    "strike": "Strikethrough",
+    "heading2": "Heading",
+    "heading3": "Subheading",
+    "bulletList": "Bullet list",
+    "orderedList": "Numbered list",
+    "blockquote": "Quote",
+    "codeBlock": "Code block",
+    "link": "Link",
+    "linkPrompt": "Link URL",
+    "image": "Image"
+  },
+  "list": {
+    "headerTitle": "Blog",
+    "loading": "Loading posts…",
+    "loadError": "Couldn't load posts: {{error}}",
+    "empty": "Nothing published yet — check back soon.",
+    "readMore": "Read more",
+    "byLine": "By {{name}}",
+    "readingTime": "{{count}} min read",
+    "nav": {
+      "home": "Home",
+      "blog": "Blog",
+      "goToDashboard": "Go to dashboard"
+    },
+    "hero": {
+      "title": "Microverse blog",
+      "description": "Notes on building a polyglot platform in the open — architecture, design, and the odd open question."
+    },
+    "filters": {
+      "all": "All"
+    },
+    "sidebar": {
+      "popularTitle": "Popular articles"
+    },
+    "footer": {
+      "tagline": "A polyglot platform, built in the open.",
+      "copyright": "© {{year}} Microverse"
+    }
+  },
+  "post": {
+    "back": "Back to blog",
+    "loadError": "Couldn't load this post: {{error}}",
+    "notFound": "This post doesn't exist, or isn't published yet."
+  },
+  "landing": {
+    "readBlog": "Read our blog"
+  }
+}

@@ -1,6 +1,7 @@
 // src/pages/LandingPage.js
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { login, getKeycloak } from '../services/keycloak';
 import usePageMeta from '../hooks/usePageMeta';
 
@@ -11,7 +12,7 @@ import usePageMeta from '../hooks/usePageMeta';
 // real role-vetting flow design.
 const LandingPage = () => {
   const keycloak = getKeycloak();
-  const { t } = useTranslation(['landing', 'common']);
+  const { t } = useTranslation(['landing', 'common', 'blog']);
 
   // The one page anonymous visitors (including search engines) can
   // actually reach — everything else sits behind Keycloak auth, so
@@ -73,6 +74,22 @@ const LandingPage = () => {
             {t('common:login')}
           </button>
         )}
+
+        {/* This page stays a login gate, not a content site (see the
+            file comment) — /blog is the real public reading experience,
+            just one small link out to it here. */}
+        <Link
+          to="/blog"
+          style={{
+            display: 'block',
+            marginTop: 18,
+            color: 'var(--mv-color-primary)',
+            fontSize: 13,
+            textDecoration: 'none',
+          }}
+        >
+          {t('blog:landing.readBlog')} →
+        </Link>
       </div>
     </div>
   );

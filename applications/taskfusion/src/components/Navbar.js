@@ -76,6 +76,7 @@ const Navbar = ({ keycloak }) => {
   // 4.3 — new role, not yet provisioned in Keycloak. Nav item is
   // future-ready: it'll just start rendering once someone holds it.
   const isAccountManager = keycloak.hasRealmRole('platform:account-manager');
+  const isMarketing = keycloak.hasRealmRole('platform:marketing');
 
   const navLinks = (
     <>
@@ -134,6 +135,18 @@ const Navbar = ({ keycloak }) => {
             {t('billing')}
           </PlatformNavLink>
         </>
+      )}
+
+      {/* Self-hosted blog — marketing/admin only, points at the
+          WYSIWYG editor (/blog/manage), not the public /blog reading
+          page (that has no nav link at all: Navbar never renders for
+          anonymous visitors, see App.js — discoverability there comes
+          from LandingPage's own "read our blog" link and the page
+          being indexable). */}
+      {(isMarketing || isAdmin) && (
+        <PlatformNavLink to="/blog/manage" active={pathname.startsWith('/blog/manage')}>
+          {t('blog')}
+        </PlatformNavLink>
       )}
 
       {/* 4.3 — Admin stays one top-level item, no longer holding global

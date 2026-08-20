@@ -23,6 +23,9 @@ import DeliveryTeamPage from './pages/DeliveryTeamPage';
 import AccountsManagePage from './pages/AccountsManagePage';
 import BillsPage from './pages/BillsPage';
 import SearchResultsPage from './pages/SearchResultsPage';
+import BlogListPage from './pages/BlogListPage';
+import BlogPostPage from './pages/BlogPostPage';
+import BlogManagePage from './pages/BlogManagePage';
 
 // microverse.local carries everything platform-side (landing page,
 // /dashboard, /accounts/view — path-based). Domain services get
@@ -158,6 +161,14 @@ const App = () => {
                 )
               }
             />
+            {/* Public reading pages — same tier as "/", reachable and
+                indexable with no session at all (LandingPage stays a
+                login gate, not a content page — see its own comment).
+                /blog/manage (below, PrivateRoute-gated) is the separate
+                marketing/admin editor. */}
+            <Route path="/blog" element={<BlogListPage />} />
+            <Route path="/blog/:slug" element={<BlogPostPage />} />
+
             {/* Protected Route */}
             <Route
               path="/dashboard"
@@ -201,6 +212,17 @@ const App = () => {
             <Route
               path="/admin/:tab"
               element={<PrivateRoute element={<AdminPage />} keycloak={keycloak} roles={['platform:admin']} />}
+            />
+
+            <Route
+              path="/blog/manage"
+              element={
+                <PrivateRoute
+                  element={<BlogManagePage />}
+                  keycloak={keycloak}
+                  roles={['platform:marketing', 'platform:admin']}
+                />
+              }
             />
 
             {/* Page-level gate is broad on purpose — platform:project-manager
