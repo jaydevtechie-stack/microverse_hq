@@ -5,9 +5,43 @@ defmodule ElixTempo.Sessions do
   that's what RustLedger listens to in order to bill stopped sessions.
   """
 
+  require Logger
+
   alias ElixTempo.KafkaProducer
   alias ElixTempo.Sessions.Session
   alias ElixTempo.Sessions.Store
+
+  @doc """
+  Called once at boot, from ElixTempo.Sessions.Supervisor's start_link
+  — spawns a Session per still-open row in Postgres, seeded with its
+  persisted raw state. No Kafka event is published here: nothing new
+  happened from a business standpoint, this just puts back in memory
+  what a restart took away.
+  """
+  def rehydrate_all do
+    Store.list_open()
+    |> Enum.each(&rehydrate_one/1)
+  end
+
+  defp rehydrate_one(row) do
+    child = {Session, {row.id, row.analyst_id, row.quest_id, row.status, row.accumulated_seconds, row.running_since}}
+
+    case DynamicSupervisor.start_child(ElixTempo.Sessions.Supervisor, child) do
+      {:ok, _pid} ->
+        :ok
+
+      # Benign — on a genuine cold boot this can't happen (nothing is
+      # alive yet when rehydrate_all runs), but rehydrate_all is safe
+      # to call more than once, so a session that's already live is a
+      # no-op, not a failure.
+      {:error, {:already_started, _pid}} ->
+        :ok
+
+      {:error, reason} ->
+        Logger.error("ElixTempo: failed to rehydrate session #{row.id}: #{inspect(reason)}")
+        :ok
+    end
+  end
 
   def start_session(analyst_id, quest_id) do
     id = Uniq.UUID.uuid4()

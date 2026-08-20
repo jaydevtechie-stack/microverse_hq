@@ -64,6 +64,74 @@ defmodule ElixTempo.SessionsTest do
     Postgrex.query!(Store, "SELECT #{columns} FROM elixtempo.sessions WHERE id = $1", [id])
   end
 
+  # Deletes the row directly (not via Sessions.stop_session) — these
+  # tests inject synthetic rows straight into Postgres to simulate
+  # "a session existed before this boot," and cleaning up through the
+  # real API would publish a genuine session.stopped Kafka event that
+  # RustLedger's live consumer would bill as if it were real work.
+  defp cleanup_row(id), do: Postgrex.query(Store, "DELETE FROM elixtempo.sessions WHERE id = $1", [id])
+
+  test "rehydrate_all restores a running session from a Postgres row with no live process" do
+    id = Uniq.UUID.uuid4()
+    on_exit(fn -> cleanup_row(id) end)
+    running_since = DateTime.utc_now() |> DateTime.add(-120, :second) |> DateTime.truncate(:second)
+
+    Store.upsert(%{
+      id: id,
+      analyst_id: "analyst-rehydrate-running",
+      quest_id: "quest-rehydrate",
+      status: :running,
+      accumulated_seconds: 30,
+      running_since: running_since
+    })
+
+    assert Sessions.get_session(id) == {:error, :not_found}
+
+    Sessions.rehydrate_all()
+
+    assert {:ok, view} = Sessions.get_session(id)
+    assert view.status == :running
+    assert view.elapsed_seconds >= 150
+  end
+
+  test "rehydrate_all restores a paused session with its accumulated time frozen" do
+    id = Uniq.UUID.uuid4()
+    on_exit(fn -> cleanup_row(id) end)
+
+    Store.upsert(%{
+      id: id,
+      analyst_id: "analyst-rehydrate-paused",
+      quest_id: "quest-rehydrate",
+      status: :paused,
+      accumulated_seconds: 90,
+      running_since: nil
+    })
+
+    Sessions.rehydrate_all()
+
+    assert {:ok, view} = Sessions.get_session(id)
+    assert view.status == :paused
+    assert view.elapsed_seconds == 90
+  end
+
+  test "rehydrate_all does not resurrect a stopped session" do
+    id = Uniq.UUID.uuid4()
+    on_exit(fn -> cleanup_row(id) end)
+
+    Store.upsert(%{
+      id: id,
+      analyst_id: "analyst-rehydrate-stopped",
+      quest_id: "quest-rehydrate",
+      status: :stopped,
+      accumulated_seconds: 10,
+      running_since: nil
+    })
+
+    Sessions.rehydrate_all()
+
+    assert Sessions.get_session(id) == {:error, :not_found}
+  end
+
   test "get_session on an unknown id returns not_found" do
     assert Sessions.get_session(Uniq.UUID.uuid4()) == {:error, :not_found}
   end
