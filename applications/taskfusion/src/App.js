@@ -190,15 +190,15 @@ const App = () => {
               element={<PrivateRoute element={<MyProfilePage />} keycloak={keycloak} />}
             />
 
-            {/* 6.5/6.6 — global search, reachable from any host/role.
-                No roles/customCheck: 6.4's endpoint is itself the
-                permission boundary (discovery-scoped per caller's
-                service:* roles, platform:admin fails closed to no
-                scope), so this route only needs "logged in". */}
-            <Route
-              path="/search"
-              element={<PrivateRoute element={<SearchResultsPage />} keycloak={keycloak} />}
-            />
+            {/* 6.5/6.6 — global search, reachable from any host/role,
+                logged in or not. Not PrivateRoute-gated: /api/search is
+                itself the permission boundary (discovery-scoped per
+                caller's service:* roles, platform:admin fails closed to
+                no task scope) and now also always includes public
+                blog-articles results, which anonymous blog readers need
+                to reach too. */}
+            <Route path="/search" element={<SearchResultsPage />} />
+
 
             <Route
               path="/accounts/view"

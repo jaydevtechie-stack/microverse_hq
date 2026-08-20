@@ -76,6 +76,20 @@ async function popularTags(limit) {
   return rows;
 }
 
+// Boot-time search-index backfill only (index.js) — every currently-
+// published post, full fields (unlike LIST_COLUMNS, this needs
+// body_html too, since that's what kafka-producer.js's postToEvent
+// strips down into the `context` field). Unpaginated: fine at this
+// table's scale, same posture as popularTags' unnest/GROUP BY.
+async function listPublishedForIndex() {
+  const { rows } = await pool.query(
+    `SELECT id, title, slug, excerpt, body_html, tags, author_name, published_at
+     FROM blog_posts
+     WHERE published_at IS NOT NULL`
+  );
+  return rows;
+}
+
 async function getBySlug(slug, includeDrafts) {
   const { rows } = await pool.query(
     includeDrafts
@@ -177,6 +191,7 @@ module.exports = {
   listPublished,
   listAll,
   listPopular,
+  listPublishedForIndex,
   popularTags,
   getBySlug,
   getById,

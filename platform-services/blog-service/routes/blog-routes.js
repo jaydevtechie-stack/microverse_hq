@@ -12,6 +12,7 @@ const { requireAnyRealmRole } = require('../middleware/auth');
 const posts = require('../models/posts');
 const { slugify } = require('../lib/slug');
 const { sanitizeBodyHtml, stripAllTags } = require('../lib/sanitize');
+const { publishPostEvent } = require('../events/kafka-producer');
 
 const router = express.Router();
 
@@ -103,6 +104,12 @@ router.post('/posts', requireAnyRealmRole('platform:marketing', 'platform:admin'
     authorName,
     coverImageUrl: req.body.coverImageUrl || null,
   });
+  // Always a draft at creation (publishPost is the only path that sets
+  // published_at), so search-service's consumer will see published:false
+  // and no-op — published here for the same reason task-service
+  // publishes task.created: keeping "every persisted state change gets
+  // an event" true rather than special-casing create as silent.
+  await publishPostEvent('post.created', row);
   res.status(201).json(row);
 });
 
@@ -132,6 +139,10 @@ router.patch('/posts/:id', requireAnyRealmRole('platform:marketing', 'platform:a
       tags: tagsFromBody(req.body),
       coverImageUrl: req.body.coverImageUrl || null,
     });
+    // Matters most when editing an already-published post — the index
+    // needs the new title/content; harmless no-op via published:false if
+    // it's still a draft.
+    await publishPostEvent('post.updated', row);
     res.json(row);
   } catch (err) {
     if (err.code === '23505') return res.status(409).json({ message: 'That slug is already taken' });
@@ -145,6 +156,10 @@ router.post('/posts/:id/publish', requireAnyRealmRole('platform:marketing', 'pla
   if (existing.published_at) return res.status(409).json({ message: 'Post is already published' });
 
   const row = await posts.publishPost(req.params.id);
+  // The event that actually gets this post into search for the first
+  // time — published:true flips search-service's consumer from no-op to
+  // upsert.
+  await publishPostEvent('post.published', row);
   res.json(row);
 });
 
@@ -154,6 +169,9 @@ router.post('/posts/:id/unpublish', requireAnyRealmRole('platform:marketing', 'p
   if (!existing.published_at) return res.status(409).json({ message: 'Post is already a draft' });
 
   const row = await posts.unpublishPost(req.params.id);
+  // published_at is now NULL -> published:false -> search-service
+  // deletes the already-indexed doc.
+  await publishPostEvent('post.unpublished', row);
   res.json(row);
 });
 

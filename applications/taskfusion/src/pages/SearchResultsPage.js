@@ -14,6 +14,10 @@ const PAGE_SIZE = 10;
 // the app needing real page-through UI (no existing pattern to copy —
 // GofeelerListPanel/AdminUsersPage both fetch unpaginated lists), so
 // Prev/Next here is new, driven by the endpoint's own page/size/total.
+// Reachable unauthenticated (not PrivateRoute-gated, see App.js) since
+// /api/search always includes public blog-articles hits alongside
+// whatever task scope the caller's own JWT resolves to — an anonymous
+// caller just gets blog-only results.
 const SearchResultsPage = () => {
   const { t } = useTranslation('search');
   usePageMeta({ title: 'Microverse - Search' });
@@ -132,8 +136,8 @@ const SearchResultsPage = () => {
             <div>
               {result.hits.map((hit) => (
                 <Link
-                  key={hit.task_id}
-                  to={`/task/${hit.task_id}`}
+                  key={hit.type === 'blog' ? `blog-${hit.slug}` : `task-${hit.task_id}`}
+                  to={hit.type === 'blog' ? `/blog/${hit.slug}` : `/task/${hit.task_id}`}
                   style={{
                     display: 'block',
                     padding: '14px 4px',

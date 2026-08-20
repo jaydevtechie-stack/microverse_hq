@@ -1,12 +1,12 @@
 {
   "navSearch": {
     "ariaLabel": "Search",
-    "placeholder": "Search tasks…",
+    "placeholder": "Search…",
     "empty": "No matches for \"{{query}}\"",
     "viewAll": "View all results for \"{{query}}\""
   },
   "resultsPage": {
-    "placeholder": "Search tasks…",
+    "placeholder": "Search…",
     "count_zero": "No results",
     "count_one": "{{count}} result for \"{{query}}\"",
     "count_other": "{{count}} results for \"{{query}}\"",

@@ -11,6 +11,7 @@ import { IconSun, IconMoon } from '@tabler/icons-react';
 import { useTheme } from '../context/ThemeContext';
 import { login, getKeycloak } from '../services/keycloak';
 import { colorForTag } from '../utils/tagColor';
+import NavSearch from './NavSearch';
 
 export const shortDate = (iso) =>
   new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -71,6 +72,11 @@ export const BlogHeader = () => {
           <span style={{ color: 'var(--mv-text)', fontWeight: 500, fontSize: 15 }}>Microverse</span>
         </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          {/* Anonymous readers' only route into search — /api/search
+              always includes public blog-articles results regardless of
+              auth state, and NavSearch itself needs no anonymous-
+              specific branch (authHeaders() degrades to no header). */}
+          <NavSearch />
           <button
             type="button"
             onClick={toggleTheme}

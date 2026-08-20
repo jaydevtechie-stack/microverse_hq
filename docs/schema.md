@@ -317,6 +317,23 @@ Shared pool, visible to every analyst; any analyst can create or edit (self-serv
 
 Doc `_id = task_id` (REFERENCES `task-service`'s `tasks.id`, cross-service reference, not enforced by an FK — same posture as `gofeeler.sentiment_results.task_id` above), so future lifecycle-driven writes (Branch 6.2) are idempotent upserts, not append-only. No `service` field — implicit in which index a document lives in. Template exists and is documented; nothing writes to it yet — that's Branch 6.2's job.
 
+## blog-articles — 🟢 live (6.5/6.6 extension)
+
+**Elasticsearch** — one static index (not a per-service template like `tasks-*`, since there's only ever one source: `blog-service`), populated by `search-service`'s own second Kafka consumer group (`search-service-blog-indexer`) on `blog-service.posts`.
+
+```
+{
+  title, context,           -- analyzed (text) — same field names as tasks-<service>'s own query targets, so /search's multi_match(title, context) runs unchanged across a mixed list of task and blog indices
+  slug,                     -- keyword — what the frontend links to (/blog/:slug), since blog-service's URLs are slug-based, not id-based
+  tags, author_name,        -- keyword
+  published_at              -- date
+}
+```
+
+`context` is `blog_posts.excerpt` + a stripped-HTML copy of `body_html`, folded together by `blog-service`'s producer (`events/kafka-producer.js`), not stored as separate fields. Doc `_id = post_id`; a post whose `published_at` is `NULL` (draft, or just unpublished) is never upserted — `blog-service` publishes `published: true/false` on every create/update/publish/unpublish, and the consumer deletes rather than upserts when it's false, same "flag rides along on every event so a later event can't resurrect an excluded doc" reasoning as `tasks-<service>`'s `no_index`.
+
+**Unlike `tasks-*`, this index is never permission-scoped** — blog reads are already fully public (`GET /blog/posts`), so `GET /search` always includes `blog-articles` in the searched indices regardless of the caller's JWT (or lack of one), alongside whatever `tasks-<service>` indices their `service:*` roles resolve to. The one exception: the `service` query param (task-only narrowing) deliberately excludes it. See [docs/roadmap/1.0/domain-services.md](roadmap/1.0/domain-services.md) Branch 6's 6.5/6.6 notes for why this reopens (narrowly) the "federated cross-entity search" idea that branch had otherwise deferred.
+
 ---
 
 # asset-service / MinIO
@@ -409,3 +426,7 @@ CREATE TABLE blog_posts (
 `tags` deliberately matches `task-service.tasks.tags` exactly (native array, GIN index, no join table) — reuses the same Elasticsearch-backed vocabulary/autocomplete (`GET/POST /api/tags`, search-service) and the same `TagInput.js` component GoFeeler's Create Order form already uses, rather than a separate fixed-category system. `GET /api/blog/posts?tag=` filters via array containment (`tags @> ARRAY[...]`); `GET /api/blog/posts/tags/popular` (public, published-only) powers the blog's filter-chip row via `unnest(tags)` + `GROUP BY`. `view_count` increments on every fetch of a *published* post via `GET /api/blog/posts/:slug` (fire-and-forget, not awaited into the response) — there's no session/cookie-based unique-visitor tracking anywhere in this app, so this is a "good enough for a Popular-articles sidebar" count, not real analytics; `GET /api/blog/posts/popular` ranks on it.
 
 Body HTML is user-authored rich text (TipTap, in `applications/taskfusion/src/components/BlogEditor.js`) rendered via `dangerouslySetInnerHTML` to anonymous public visitors — sanitized server-side on every write (create *and* update, not just intake) via an allowlist (`sanitize-html`, see `lib/sanitize.js`) that excludes `style`, `javascript:`/`data:` URI schemes, and restricts `img[src]` to same-origin `/api/assets/blog/...` paths only (see the asset-service section above). Two policy defaults: a post's `slug` is only editable while it's a draft (changing it after publish breaks shared/indexed links), and `DELETE` only works on drafts (a published post must be unpublished first).
+
+`events/kafka-producer.js` publishes the post's full current state to `blog-service.posts` on create/update/publish/unpublish (search-service's `blog-articles` index is the sole subscriber, see below) — fire-and-forget, same best-effort posture as every other producer in this stack. A draft is republished the same as anything else; the `published` flag (`published_at != NULL`) rides along on every event so the consumer knows whether to index or delete, not just the publish/unpublish transitions themselves.
+
+`index.js` also re-publishes every currently-published post on every service boot (`reindexPublishedPosts`), not just a one-time migration — cheap and idempotent (search-service upserts by `post_id`), and it's what keeps a post published *before* this Kafka wiring existed (or before an ES/index rebuild) from staying permanently unindexed until someone happens to edit it by hand. Best-effort like everything else here: a Kafka hiccup at cold boot logs and moves on rather than blocking the HTTP server from starting.

@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from elasticsearch import Elasticsearch
 
 from app.kafka_consumer import start_kafka_consumer_thread
+from app.blog_kafka_consumer import start_kafka_consumer_thread as start_blog_kafka_consumer_thread
 
 ELASTICSEARCH_URL = os.environ.get("ELASTICSEARCH_URL", "http://localhost:9200")
 
@@ -84,6 +85,35 @@ TASKS_MAPPINGS = {
 def service_index_name(service: str) -> str:
     """Single source of truth for the tasks-<service> naming convention."""
     return f"tasks-{service}"
+
+
+# blog-articles (6.5/6.6 extension) — public, unscoped content, so this
+# is one static index (like `tags`), not a per-service template like
+# tasks-*. `title`/`context` deliberately match the tasks-<service>
+# mapping's own field names (blog-service's producer folds excerpt +
+# stripped body text into `context`) so build_search_query below can run
+# unchanged across a mixed list of task and blog indices — no per-type
+# query branching needed. `slug` (not `_id` alone) is what the frontend
+# needs to link a hit to /blog/:slug, since blog-service's own URLs are
+# slug-based, not id-based like task-service's /task/:id.
+BLOG_INDEX = "blog-articles"
+BLOG_MAPPINGS = {
+    "properties": {
+        "title": {"type": "text"},
+        "context": {"type": "text"},
+        "slug": {"type": "keyword"},
+        "tags": {"type": "keyword"},
+        "author_name": {"type": "keyword"},
+        "published_at": {"type": "date"},
+    }
+}
+
+
+@app.on_event("startup")
+def ensure_blog_index():
+    if es.indices.exists(index=BLOG_INDEX):
+        return
+    es.indices.create(index=BLOG_INDEX, mappings=BLOG_MAPPINGS)
 
 
 # Permission-scoped search (6.4) — unverified claim extraction, same
@@ -166,6 +196,25 @@ def stop_kafka_consumer():
     stop_event.set()
 
 
+# Second, independent consumer group on a separate topic
+# (blog-service.posts) — same fan-out shape as notification-service's/
+# audit-service's own extra consumer groups on task-service.tasks, not a
+# second subscription bolted onto the tasks indexer above.
+@app.on_event("startup")
+def start_blog_kafka_consumer():
+    app.state.blog_kafka_thread, app.state.blog_kafka_stop_event = start_blog_kafka_consumer_thread(
+        es, BLOG_INDEX
+    )
+
+
+@app.on_event("shutdown")
+def stop_blog_kafka_consumer():
+    stop_event = getattr(app.state, "blog_kafka_stop_event", None)
+    if stop_event is None:
+        return
+    stop_event.set()
+
+
 @app.get("/")
 async def root():
     return {"message": "search-service is running"}
@@ -231,12 +280,25 @@ async def search_tasks(
 
     indices = resolve_scope(claims_from_header(authorization))
 
-    # `service` narrows within scope, it never widens it — a service
+    # `service` narrows within task scope, it never widens it — a service
     # outside the caller's resolved scope collapses to no results rather
-    # than confirming whether that service (or a task in it) exists.
+    # than confirming whether that service (or a task in it) exists. It's
+    # also task-specific narrowing, so it deliberately excludes
+    # blog-articles rather than trying to make "service" mean something
+    # for public content too.
     if service:
         target = service_index_name(service)
         indices = [target] if target in indices else []
+    else:
+        # blog-articles is public content, not permission-scoped — always
+        # searched alongside whatever task indices the caller's own
+        # service:* roles resolved to, including an anonymous caller
+        # (resolve_scope's empty task-scope) or platform:admin (also
+        # empty by design). This is a deliberate, narrow reopening of
+        # Branch 6's deferred "federated cross-entity search" — one
+        # direction only (public blog content joining the results), not
+        # a precedent for merging other entity types in un-scoped.
+        indices = indices + [BLOG_INDEX]
 
     if not indices:
         return {"hits": [], "total": 0, "page": page, "size": size}
@@ -252,19 +314,33 @@ async def search_tasks(
         size=size,
         ignore_unavailable=True,
     )
-    hits = [
-        {
-            "task_id": hit["_id"],
-            "title": hit["_source"].get("title"),
-            "snippet": hit["_source"].get("context"),
-            # No `service` field in the mapping (6.1.1) — it's implicit
-            # in which index the hit came from, not the doc source.
-            "service": hit["_index"].removeprefix("tasks-"),
+    hits = [_hit_to_dict(hit) for hit in result["hits"]["hits"]]
+    return {"hits": hits, "total": result["hits"]["total"]["value"], "page": page, "size": size}
+
+
+def _hit_to_dict(hit: dict) -> dict:
+    source = hit["_source"]
+    if hit["_index"] == BLOG_INDEX:
+        return {
+            "type": "blog",
+            "task_id": None,
+            "slug": source.get("slug"),
+            "title": source.get("title"),
+            "snippet": source.get("context"),
+            "service": "blog",
             "score": hit["_score"],
         }
-        for hit in result["hits"]["hits"]
-    ]
-    return {"hits": hits, "total": result["hits"]["total"]["value"], "page": page, "size": size}
+    return {
+        "type": "task",
+        "task_id": hit["_id"],
+        "slug": None,
+        "title": source.get("title"),
+        "snippet": source.get("context"),
+        # No `service` field in the mapping (6.1.1) — it's implicit
+        # in which index the hit came from, not the doc source.
+        "service": hit["_index"].removeprefix("tasks-"),
+        "score": hit["_score"],
+    }
 
 
 class TagCreate(BaseModel):

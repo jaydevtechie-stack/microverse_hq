@@ -405,9 +405,15 @@ services:
       # then paste its UUID into .env and restart this service.
       LISTMONK_URL: http://microverse-listmonk:9000
       LISTMONK_PUBLIC_LIST_UUID: ${LISTMONK_PUBLIC_LIST_UUID}
+      # Publishes to blog-service.posts on create/update/publish/unpublish
+      # (events/kafka-producer.js) — search-service's blog indexing
+      # consumer is the subscriber, same fan-out shape as task-service's
+      # own producer.
+      KAFKA_BROKERS: microverse-kafka:9092
     depends_on:
       - microverse-postgis
       - microverse-listmonk
+      - microverse-kafka
     networks:
       - microverse-network
 

@@ -13,11 +13,15 @@ const SUGGEST_SIZE = 5;
 // permission-scoped GET /api/search, reusing that endpoint directly
 // with a small `size` rather than a dedicated suggest route (there's
 // no lighter-weight shape to ask for; the endpoint already returns
-// task_id/title/snippet/service/score). Debounce pattern mirrors
-// TagInput's own hand-rolled combobox — this repo has no downshift
-// dependency despite the roadmap doc's "downshift/combobox pattern"
-// phrasing, so "reuse the pattern" means reuse this shape, not the
-// library.
+// task_id/title/snippet/service/score, plus a blog-articles extension's
+// type/slug). Debounce pattern mirrors TagInput's own hand-rolled
+// combobox — this repo has no downshift dependency despite the roadmap
+// doc's "downshift/combobox pattern" phrasing, so "reuse the pattern"
+// means reuse this shape, not the library. Also rendered unauthenticated
+// on the public blog (BlogChrome's BlogHeader) — authHeaders() degrades
+// gracefully to no Authorization header, and /api/search always includes
+// public blog-articles results regardless of auth state, so this
+// component needs no anonymous-specific branch of its own.
 const NavSearch = () => {
   const { t } = useTranslation('search');
   const navigate = useNavigate();
@@ -127,10 +131,10 @@ const NavSearch = () => {
           ) : (
             matches.map((hit) => (
               <div
-                key={hit.task_id}
+                key={hit.type === 'blog' ? `blog-${hit.slug}` : `task-${hit.task_id}`}
                 onClick={() => {
                   closeSearch();
-                  navigate(`/task/${hit.task_id}`);
+                  navigate(hit.type === 'blog' ? `/blog/${hit.slug}` : `/task/${hit.task_id}`);
                 }}
                 style={{
                   padding: '9px 12px',
