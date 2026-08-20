@@ -21,7 +21,7 @@ import InactiveUserScrim from './components/InactiveUserScrim';
 import PmOrdersPage from './pages/PmOrdersPage';
 import DeliveryTeamPage from './pages/DeliveryTeamPage';
 import AccountsManagePage from './pages/AccountsManagePage';
-import AmBillingPage from './pages/AmBillingPage';
+import BillsPage from './pages/BillsPage';
 import SearchResultsPage from './pages/SearchResultsPage';
 
 // microverse.local carries everything platform-side (landing page,
@@ -259,10 +259,21 @@ const App = () => {
                 />
               }
             />
+            {/* Shared route, deliberately not /pm/billing or /am/billing —
+                rustledger's GET /api/billing/bills already scopes the
+                response by the caller's role (a PM's own bills vs. AM's
+                every bill), so one page/one path covers both instead of
+                two near-identical routes. Replaces the old /am/billing
+                placeholder (AmBillingPage) entirely — that stub never
+                shipped real content, this is the real page. */}
             <Route
-              path="/am/billing"
+              path="/billing"
               element={
-                <PrivateRoute element={<AmBillingPage />} keycloak={keycloak} roles={['platform:account-manager']} />
+                <PrivateRoute
+                  element={<BillsPage />}
+                  keycloak={keycloak}
+                  roles={['platform:project-manager', 'platform:account-manager', 'platform:admin']}
+                />
               }
             />
 

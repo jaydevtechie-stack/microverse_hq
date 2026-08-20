@@ -19,6 +19,15 @@ struct RealmAccess {
 pub struct Claims {
     #[serde(default, rename = "realm_access")]
     realm_access: Option<RealmAccess>,
+    // email/sub — needed for the bill routes (Branch 9): matching the
+    // approving PM's own identity against a task's `owner`, and a
+    // customer's own identity against a bill's `customer_id`. Same claim
+    // names task-service's own middleware/auth.js already reads
+    // (`req.claims?.email`, `req.claims?.sub`) from the same tokens.
+    #[serde(default)]
+    email: Option<String>,
+    #[serde(default)]
+    sub: Option<String>,
 }
 
 impl Claims {
@@ -27,6 +36,14 @@ impl Claims {
             .as_ref()
             .map(|ra| ra.roles.iter().any(|r| r == role))
             .unwrap_or(false)
+    }
+
+    pub fn email(&self) -> Option<&str> {
+        self.email.as_deref()
+    }
+
+    pub fn sub(&self) -> Option<&str> {
+        self.sub.as_deref()
     }
 }
 

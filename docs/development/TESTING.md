@@ -531,3 +531,137 @@ errors, all three fetches (`/events`, both `/metrics/*`) resolved, and
 the timeline drill-down rendered a real task's `task.created` →
 `task.assigned` → `sentiment.analyzed` sequence with correct
 time-in-status/duration values.
+
+# Testing — rustledger (Branch 9, Billing)
+
+Scope: `domain-services/rustledger` end to end (bill create/publish,
+Stripe Checkout Session creation, webhook-confirmed payment,
+task-service's new `bill.paid` consumer) and
+`platform-services/notification-service`'s `bill.published` handler. No
+automated test suite yet — `cargo check` only; this branch's real
+verification is manual, same "documented, not faked" posture as other
+gaps in this codebase rather than a mocked test standing in for one.
+
+## Manual — end-to-end through the running stack
+
+```
+docker compose --profile gofeeler up -d --build microverse-rustledger microverse-notification-service microverse-task-service microverse-nginx
+```
+
+Needs a real Stripe **test-mode** account (free, no card/business
+verification required — see [docs/architecture/1.0/domain-services.md](../architecture/1.0/domain-services.md)'s
+rustledger section for why Stripe was chosen) with `STRIPE_SECRET_KEY`
+(`sk_test_...`) set in `.env`.
+
+**`STRIPE_WEBHOOK_SECRET` needs its own local tunnel** — `microverse.local`
+isn't a publicly reachable HTTPS URL, so Stripe's real servers can't call
+the webhook endpoint directly. The Stripe Dashboard's browser-based
+"Shell" tool (`stripe listen` with no flags) can't help here either — it
+only forwards events into Stripe's own UI, not to an arbitrary local URL;
+its `-h` output tellingly has no `--forward-to` flag at all, unlike the
+real CLI. Two ways to run the actual CLI:
+
+- **Native install** (Scoop on Windows: `scoop bucket add stripe
+  https://github.com/stripe/scoop-stripe-cli.git && scoop install
+  stripe`, then `stripe login`), then:
+  ```
+  stripe listen --forward-to https://microverse.local/api/billing/webhooks/stripe
+  ```
+- **Docker, no install at all** — run it on the same compose network,
+  targeting nginx by container name directly (sidesteps
+  `microverse.local`'s hostname/self-signed-cert entirely):
+  ```
+  docker run -d --name stripe-listen \
+    --network microverse_hq_microverse-network \
+    stripe/stripe-cli listen \
+    --api-key <STRIPE_SECRET_KEY from .env> \
+    --forward-to https://microverse-nginx/api/billing/webhooks/stripe \
+    --skip-verify
+  ```
+
+Either way, `docker logs stripe-listen` (or the native CLI's own stdout)
+prints `Your webhook signing secret is whsec_...` on connect — that's
+`STRIPE_WEBHOOK_SECRET`, not an API key (see the architecture doc's note
+on why those two are easy to mix up). Paste it into `.env`, then
+`docker compose up -d --force-recreate microverse-rustledger` — a plain
+`restart` won't pick up a new env var on an already-created container.
+Leave the `stripe listen` process/container running for the rest of the
+flow; it's a live tunnel, not a one-time setup step.
+
+**A recreated container often gets a new Docker-network IP** — if
+`nginx` was already running before `rustledger` (or any upstream it
+proxies to) got recreated, nginx's own DNS resolution goes stale and
+every proxied request 502s with "connection refused" in
+`docker logs microverse-nginx`, even though `docker ps` shows the
+upstream container as healthy. Fix: `docker restart microverse-nginx` —
+confirm with `docker exec microverse-nginx sh -c "getent hosts
+microverse-rustledger"` that the printed IP matches
+`docker inspect microverse-rustledger --format
+'{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'` before
+retrying. Not a code bug, purely a container-recreation/DNS-caching
+artifact — don't go looking for it in application logs.
+
+**`--force-recreate` alone does not rebuild the image.** It only
+recreates the *container* from whatever image is already cached locally
+for that service — source changes since the last build are silently not
+included, with no warning. If you've edited rustledger's Rust source and
+recreated the container but new `tracing::` logging isn't showing up (or
+old bugs seem to persist unchanged), suspect a stale image before
+suspecting the code: `docker images microverse_hq-microverse-rustledger`
+shows the image's actual build timestamp. `docker compose build
+microverse-rustledger` (or `up -d --build --force-recreate ...`) forces a
+real rebuild.
+
+**A live Stripe account's default API version can outrun a pinned Rust
+client.** `async-stripe` 0.41.0 generates its typed `Event`/
+`CheckoutSession` structs against a fixed Stripe API version
+(`resources/generated/version.rs`, `2023-10-16`). A live test-mode
+account defaults to whatever its *current* API version is, and `stripe
+listen` has no flag to pin an older one when forwarding — so incoming
+webhook payloads can be shaped for a newer schema than the crate expects,
+and `Webhook::construct_event` fails with a generic "error parsing event
+object" even though the HMAC signature itself is valid. Symptom: some
+event types 200 (their payload happens to still deserialize) while
+`checkout.session.completed` specifically 400s, with no useful detail in
+the error. rustledger's `stripe_client.rs` no longer depends on the
+typed model for webhook parsing — it verifies the signature manually
+(same HMAC scheme, version-independent) and reads the 3 needed fields
+off untyped JSON instead.
+
+Drive the actual flow with real bearer tokens (a Keycloak login, or an
+unsigned `header.payload.sig` JWT with the right `sub`/`email`/
+`realm_access.roles`, same approach as other branches' manual checks
+above) against `platform:project-manager`/`platform:account-manager`/
+`platform:customer`:
+
+```
+PATCH /api/tasks/:id/approve                              (reviewer/PM — task done)
+POST  /api/billing/bills                                  (PM, owner of the task — {"taskId","amountCents","currency"})
+POST  /api/billing/bills/by-task/:id/publish               (AM — releases the draft)
+POST  /api/billing/bills/by-task/:id/checkout-session       (customer, owner of the bill — returns {"url"})
+```
+
+Confirm each step:
+
+- After `publish`, a `notifications` row lands for the customer's email
+  (`bill.published` type) and, if `sendNotificationEmail` reached
+  MailHog, a message appears at `http://localhost:8025`.
+- Opening the returned Checkout `url` and paying with `4242 4242 4242
+  4242` (any future expiry/CVC) redirects back to `/task/:id` —
+  immediately after, the bill is likely still `unpaid` (the webhook
+  hasn't landed yet, see the architecture doc's note on why the redirect
+  isn't confirmation).
+- Within a few seconds, `docker logs microverse-rustledger` shows no
+  webhook-related errors, and:
+  ```
+  docker exec microverse-postgis psql -U root -d microverse -c \
+    "SELECT status, published_at IS NOT NULL, paid_at FROM rustledger.bills WHERE task_id = '<id>';"
+  ```
+  shows `status = 'paid'` with a real `paid_at`.
+- `GET /api/tasks/:id` shows the task's own `status` flipped to `paid`
+  (via task-service's new `events/kafka-consumer.js` consuming
+  `bill.paid` off `rustledger.bills`), and `GET /api/audit/tasks/:id`
+  (Branch 8) shows a `task.paid` row — confirms audit-service's existing
+  consumer picked up the republished event with zero changes on its end,
+  same "producer republishes on the existing topic" design as every
+  other cross-service signal in this stack.

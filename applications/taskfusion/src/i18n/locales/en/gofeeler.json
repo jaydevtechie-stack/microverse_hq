@@ -132,12 +132,16 @@
       "assign": "Assign",
       "assignTo": "Assign to {{name}}"
     },
-    "pmBill": {
+    "createBill": {
+      "loading": "Checking for an existing bill…",
       "analysisApproved": "Analysis approved and complete",
       "readyToBill": "Ready to bill the customer for this order.",
+      "amountPlaceholder": "0.00",
       "createBill": "Create bill",
-      "billCreated": "Bill created",
-      "billCreatedNote": "Bill created — order will move to \"paid\" status once the customer pays"
+      "billing": "Creating bill…",
+      "draftNote": "Bill created for ${{amount}} {{currency}} — awaiting your account manager to publish it. The customer can't see it or pay until then.",
+      "billPublishedNote": "Bill published — the customer has been notified and can now pay. Order will move to \"paid\" once they do.",
+      "billError": "Could not create bill: {{error}}"
     },
     "customerProgress": {
       "steps": {
@@ -151,8 +155,31 @@
       "invoicePaid": "Your invoice has been paid",
       "downloadUnlocks": "Download unlocks once your invoice is paid",
       "downloadResults": "Download results",
-      "viewInvoice": "View invoice"
+      "viewInvoice": "View invoice",
+      "working": "Working…",
+      "notYetInvoiced": "Invoice not ready yet — check back soon",
+      "noFiles": "No result files found for this order"
     }
+  },
+  "billsPage": {
+    "title": "Bills",
+    "subtitleYourBills": "Bills you've created.",
+    "subtitleAllServices": "All bills, across every service.",
+    "loading": "Loading bills…",
+    "empty": "No bills yet.",
+    "columns": {
+      "task": "Task",
+      "amount": "Amount",
+      "status": "Status",
+      "published": "Published",
+      "created": "Created"
+    },
+    "statusPaid": "Paid",
+    "statusUnpaid": "Unpaid",
+    "published": "Published",
+    "draft": "Draft",
+    "publish": "Publish",
+    "publishing": "Publishing…"
   },
   "tagInput": {
     "placeholder": "Type a tag, e.g. 'urgency'...",

@@ -4,7 +4,7 @@ import { IconLink, IconMail, IconPencil, IconShare2 } from '@tabler/icons-react'
 import { getKeycloak, authHeaders } from '../services/keycloak';
 import TaskStatusBadge from './TaskStatusBadge';
 import PmAssignPanel from './PmAssignPanel';
-import PmBillPanel from './PmBillPanel';
+import CreateBillPanel from './CreateBillPanel';
 import AnalysisPanel from './AnalysisPanel';
 import ReviewerPanel from './ReviewerPanel';
 import CustomerProgressPanel from './CustomerProgressPanel';
@@ -43,7 +43,7 @@ function actionPanelFor({ task, isPM, isAnalyst, isReviewer, isCustomer, usernam
     return <PmAssignPanel task={task} onAssigned={onTaskUpdated} />;
   }
   if (isPM && task.status === 'done' && task.owner === username) {
-    return <PmBillPanel />;
+    return <CreateBillPanel task={task} onBilled={onTaskUpdated} />;
   }
   if (isAnalyst && task.status === 'analyst' && task.assignee === username) {
     return <AnalysisPanel task={task} onTaskUpdated={onTaskUpdated} />;

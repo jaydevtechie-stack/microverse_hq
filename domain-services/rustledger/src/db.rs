@@ -38,5 +38,54 @@ async fn ensure_schema(pool: &PgPool) -> Result<(), sqlx::Error> {
     .execute(pool)
     .await?;
 
+    sqlx::query(
+        r#"
+        CREATE TABLE IF NOT EXISTS rustledger.bills (
+            id                          UUID PRIMARY KEY,
+            task_id                     UUID NOT NULL,
+            customer_id                 UUID NOT NULL,
+            amount_cents                BIGINT NOT NULL,
+            currency                    TEXT NOT NULL,
+            status                      TEXT NOT NULL DEFAULT 'unpaid',
+            stripe_checkout_session_id  TEXT,
+            stripe_payment_intent_id    TEXT,
+            created_at                  TIMESTAMPTZ NOT NULL DEFAULT now(),
+            created_by_id               UUID,
+            published_at                TIMESTAMPTZ,
+            paid_at                     TIMESTAMPTZ
+        )
+        "#,
+    )
+    .execute(pool)
+    .await?;
+
+    // one bill per task — same idempotency-guard shape as line_items above
+    sqlx::query(
+        "CREATE UNIQUE INDEX IF NOT EXISTS bills_task_id_key \
+         ON rustledger.bills (task_id)",
+    )
+    .execute(pool)
+    .await?;
+
+    // Added after bills first shipped — ALTER for anyone whose local
+    // Postgres volume already has the table from before this column
+    // existed; a no-op on a genuinely fresh database (already in the
+    // CREATE TABLE above).
+    sqlx::query(
+        "ALTER TABLE rustledger.bills ADD COLUMN IF NOT EXISTS published_at TIMESTAMPTZ",
+    )
+    .execute(pool)
+    .await?;
+
+    // Same follow-up-ALTER shape as published_at just above — scopes a
+    // PM's own view of GET /api/billing/bills (models.rs's Bill doc
+    // comment). A UUID (Keycloak sub), not email/username — both can
+    // change and would silently orphan old bills from a PM's own view.
+    sqlx::query(
+        "ALTER TABLE rustledger.bills ADD COLUMN IF NOT EXISTS created_by_id UUID",
+    )
+    .execute(pool)
+    .await?;
+
     Ok(())
 }
