@@ -1,0 +1,189 @@
+<h2 class="sr-only">Microverse blog landing page mock-up using the Default theme, constrained to a centered container for large screens, with a filterable article list, sidebar, and footer</h2>
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;500&display=swap" rel="stylesheet">
+<style>
+* { font-family:'Lato',sans-serif; box-sizing:border-box; }
+.chip { padding:6px 14px; font-size:13px; border:1px solid #DEE2E6; border-radius:20px; cursor:pointer; user-select:none; color:#6C757D; }
+.container { max-width:1140px; margin:0 auto; padding:0 24px; }
+.main-grid { display:grid; grid-template-columns:2fr 1fr; gap:24px; padding-bottom:32px; }
+.footer-grid { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:24px; }
+@media (max-width:480px) {
+  .main-grid { grid-template-columns:1fr; }
+  .footer-grid { grid-template-columns:1fr; }
+}
+.art-row { display:flex; gap:14px; padding:16px; border:1px solid #DEE2E6; border-radius:8px; margin-bottom:14px; background:#FFFFFF; }
+.tag { font-size:11px; padding:2px 8px; border-radius:4px; font-weight:500; }
+.flink { color:#6C757D; font-size:13px; display:block; margin-bottom:8px; }
+</style>
+<div style="background:#F8F9FA;border-radius:16px;overflow:hidden">
+
+<div style="background:#FFFFFF;border-bottom:1px solid #DEE2E6">
+  <div class="container" style="padding-top:14px;padding-bottom:14px;display:flex;align-items:center;justify-content:space-between">
+    <div style="display:flex;align-items:center;gap:28px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:8px;height:8px;border-radius:50%;background:#0EA5D9"></div>
+        <span style="color:#212529;font-weight:500;font-size:15px">Microverse</span>
+      </div>
+      <span style="color:#6C757D;font-size:13px">Home</span>
+      <span style="color:#6C757D;font-size:13px">Services</span>
+      <span style="color:#0EA5D9;font-size:13px;border-bottom:2px solid #0EA5D9;padding-bottom:2px">Blog</span>
+      <span style="color:#6C757D;font-size:13px">Docs</span>
+    </div>
+    <span style="background:#0EA5D9;color:#FFFFFF;font-size:12px;font-weight:500;padding:7px 16px;border-radius:6px;cursor:pointer">Subscribe</span>
+  </div>
+</div>
+
+<div class="container">
+  <div style="padding:40px 0 20px">
+    <p style="color:#212529;font-size:26px;font-weight:500;margin:0 0 6px">Microverse blog</p>
+    <p style="color:#6C757D;font-size:14px;margin:0 0 20px">Notes on building a polyglot platform in the open — architecture, design, and the odd open question.</p>
+    <div id="filters" style="display:flex;gap:8px;flex-wrap:wrap">
+      <div class="chip" role="button" tabindex="0" data-tag="all" aria-pressed="true" style="background:#0EA5D9;color:#FFFFFF;border-color:#0EA5D9">All</div>
+      <div class="chip" role="button" tabindex="0" data-tag="engineering" aria-pressed="false">Engineering</div>
+      <div class="chip" role="button" tabindex="0" data-tag="design" aria-pressed="false">Design</div>
+      <div class="chip" role="button" tabindex="0" data-tag="product" aria-pressed="false">Product</div>
+      <div class="chip" role="button" tabindex="0" data-tag="announcements" aria-pressed="false">Announcements</div>
+    </div>
+  </div>
+
+  <div class="main-grid">
+    <div id="articleList">
+
+      <div class="art-row" data-tag="engineering">
+        <div style="width:88px;height:72px;min-width:88px;border-radius:6px;background:#E6F1FB;display:flex;align-items:center;justify-content:center"><i class="ti ti-shield-lock" style="color:#185FA5;font-size:24px" aria-hidden="true"></i></div>
+        <div>
+          <span class="tag" style="background:#E6F1FB;color:#0C447C">Engineering</span>
+          <p style="color:#212529;font-size:15px;font-weight:500;margin:8px 0 4px">Two-independent-checks: a reusable authorization pattern</p>
+          <p style="color:#6C757D;font-size:13px;margin:0 0 8px;line-height:1.5">How a PM authorization rule ended up reused verbatim in the search filter design.</p>
+          <span style="color:#6C757D;font-size:12px">Aug 18 · 6 min read</span>
+        </div>
+      </div>
+
+      <div class="art-row" data-tag="design">
+        <div style="width:88px;height:72px;min-width:88px;border-radius:6px;background:#EEEDFE;display:flex;align-items:center;justify-content:center"><i class="ti ti-palette" style="color:#534AB7;font-size:24px" aria-hidden="true"></i></div>
+        <div>
+          <span class="tag" style="background:#EEEDFE;color:#3C3489">Design</span>
+          <p style="color:#212529;font-size:15px;font-weight:500;margin:8px 0 4px">Designing Vienna: five themes, one component set</p>
+          <p style="color:#6C757D;font-size:13px;margin:0 0 8px;line-height:1.5">Default, Vienna, Uhuru, Orchid, and Amethyst, built on the same nav bar, tabs, and dashboard.</p>
+          <span style="color:#6C757D;font-size:12px">Aug 12 · 8 min read</span>
+        </div>
+      </div>
+
+      <div class="art-row" data-tag="engineering">
+        <div style="width:88px;height:72px;min-width:88px;border-radius:6px;background:#E6F1FB;display:flex;align-items:center;justify-content:center"><i class="ti ti-receipt" style="color:#185FA5;font-size:24px" aria-hidden="true"></i></div>
+        <div>
+          <span class="tag" style="background:#E6F1FB;color:#0C447C">Engineering</span>
+          <p style="color:#212529;font-size:15px;font-weight:500;margin:8px 0 4px">Effort times rate: how rustledger computes an invoice</p>
+          <p style="color:#6C757D;font-size:13px;margin:0 0 8px;line-height:1.5">Hours from elixtempo, a negotiated rate per project, and one sole owner of billing storage.</p>
+          <span style="color:#6C757D;font-size:12px">Aug 5 · 5 min read</span>
+        </div>
+      </div>
+
+      <div class="art-row" data-tag="announcements">
+        <div style="width:88px;height:72px;min-width:88px;border-radius:6px;background:#FAECE7;display:flex;align-items:center;justify-content:center"><i class="ti ti-file-text" style="color:#993C1D;font-size:24px" aria-hidden="true"></i></div>
+        <div>
+          <span class="tag" style="background:#FAECE7;color:#712B13">Announcements</span>
+          <p style="color:#212529;font-size:15px;font-weight:500;margin:8px 0 4px">Radical documentation honesty, six months in</p>
+          <p style="color:#6C757D;font-size:13px;margin:0 0 8px;line-height:1.5">What it costs, and what it buys, to only document what is actually built.</p>
+          <span style="color:#6C757D;font-size:12px">Jul 30 · 4 min read</span>
+        </div>
+      </div>
+
+      <div class="art-row" data-tag="product">
+        <div style="width:88px;height:72px;min-width:88px;border-radius:6px;background:#FAEEDA;display:flex;align-items:center;justify-content:center"><i class="ti ti-robot" style="color:#854F0B;font-size:24px" aria-hidden="true"></i></div>
+        <div>
+          <span class="tag" style="background:#FAEEDA;color:#633806">Product</span>
+          <p style="color:#212529;font-size:15px;font-weight:500;margin:8px 0 4px">Scout, but not yet an agent</p>
+          <p style="color:#6C757D;font-size:13px;margin:0 0 8px;line-height:1.5">Why Scout stays a scoring query until there is enough task history to justify Scout 2.0.</p>
+          <span style="color:#6C757D;font-size:12px">Jul 22 · 5 min read</span>
+        </div>
+      </div>
+
+    </div>
+
+    <div>
+      <div style="background:#FFFFFF;border:1px solid #DEE2E6;border-radius:8px;padding:16px;margin-bottom:16px">
+        <p style="color:#212529;font-size:14px;font-weight:500;margin:0 0 10px">Popular articles</p>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="padding-bottom:10px;border-bottom:1px solid #F1EFE8"><p style="color:#212529;font-size:13px;margin:0">Two-independent-checks pattern</p><span style="color:#6C757D;font-size:11px">Aug 18</span></div>
+          <div style="padding-bottom:10px;border-bottom:1px solid #F1EFE8"><p style="color:#212529;font-size:13px;margin:0">Designing Vienna: five themes</p><span style="color:#6C757D;font-size:11px">Aug 12</span></div>
+          <div style="padding-bottom:10px;border-bottom:1px solid #F1EFE8"><p style="color:#212529;font-size:13px;margin:0">Effort times rate billing model</p><span style="color:#6C757D;font-size:11px">Aug 5</span></div>
+          <div><p style="color:#212529;font-size:13px;margin:0">Radical documentation honesty</p><span style="color:#6C757D;font-size:11px">Jul 30</span></div>
+        </div>
+      </div>
+
+      <div style="background:#FFFFFF;border:1px dashed #B4B2A9;border-radius:8px;padding:20px;margin-bottom:16px;text-align:center">
+        <i class="ti ti-calendar-event" style="color:#888780;font-size:22px" aria-hidden="true"></i>
+        <p style="color:#212529;font-size:13px;font-weight:500;margin:10px 0 4px">Events</p>
+        <p style="color:#6C757D;font-size:12px;margin:0">Event calendar and webinars are coming soon.</p>
+      </div>
+
+      <div style="background:#0EA5D9;border-radius:8px;padding:16px">
+        <p style="color:#FFFFFF;font-size:14px;font-weight:500;margin:0 0 4px">Get new posts by email</p>
+        <p style="color:#E6F1FB;font-size:12px;margin:0 0 12px">One email whenever a new post goes up. No spam.</p>
+        <div style="background:#FFFFFF;border-radius:6px;padding:9px 12px;color:#888780;font-size:13px;margin-bottom:8px">name@company.com</div>
+        <span style="display:block;text-align:center;background:#212529;color:#FFFFFF;font-size:13px;font-weight:500;padding:9px 0;border-radius:6px;cursor:pointer">Subscribe</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="background:#FFFFFF;border-top:1px solid #DEE2E6">
+  <div class="container footer-grid" style="padding-top:32px;padding-bottom:24px">
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div style="width:8px;height:8px;border-radius:50%;background:#0EA5D9"></div>
+        <span style="color:#212529;font-weight:500;font-size:14px">Microverse</span>
+      </div>
+      <p style="color:#6C757D;font-size:13px;margin:0 0 14px;max-width:260px;line-height:1.5">A polyglot platform, built in the open — seven services, one design system.</p>
+      <div style="display:flex;gap:14px">
+        <i class="ti ti-brand-github" style="color:#6C757D;font-size:18px" aria-hidden="true"></i>
+        <i class="ti ti-brand-x" style="color:#6C757D;font-size:18px" aria-hidden="true"></i>
+        <i class="ti ti-brand-linkedin" style="color:#6C757D;font-size:18px" aria-hidden="true"></i>
+      </div>
+    </div>
+    <div>
+      <p style="color:#212529;font-size:13px;font-weight:500;margin:0 0 12px">Services</p>
+      <span class="flink">Gofeeler</span><span class="flink">SpringPix</span><span class="flink">PyReel</span><span class="flink">Djaboard</span>
+    </div>
+    <div>
+      <p style="color:#212529;font-size:13px;font-weight:500;margin:0 0 12px">Company</p>
+      <span class="flink">About</span><span class="flink">Blog</span><span class="flink">Roadmap</span>
+    </div>
+    <div>
+      <p style="color:#212529;font-size:13px;font-weight:500;margin:0 0 12px">Resources</p>
+      <span class="flink">Docs</span><span class="flink">Status</span><span class="flink">Contact</span>
+    </div>
+  </div>
+  <div style="border-top:1px solid #DEE2E6">
+    <div class="container" style="padding-top:16px;padding-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <span style="color:#6C757D;font-size:12px">© 2026 Microverse</span>
+      <span style="color:#6C757D;font-size:12px">Privacy · Terms</span>
+    </div>
+  </div>
+</div>
+
+</div>
+<script>
+function applyTag(chip) {
+  document.querySelectorAll('.chip').forEach(function(c) {
+    c.setAttribute('aria-pressed', 'false');
+    c.style.background = 'transparent';
+    c.style.color = '#6C757D';
+    c.style.borderColor = '#DEE2E6';
+  });
+  chip.setAttribute('aria-pressed', 'true');
+  chip.style.background = '#0EA5D9';
+  chip.style.color = '#FFFFFF';
+  chip.style.borderColor = '#0EA5D9';
+  var tag = chip.dataset.tag;
+  document.querySelectorAll('.art-row').forEach(function(row) {
+    row.style.display = (tag === 'all' || row.dataset.tag === tag) ? '' : 'none';
+  });
+}
+document.querySelectorAll('.chip').forEach(function(chip) {
+  chip.addEventListener('click', function() { applyTag(chip); });
+  chip.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); applyTag(chip); }
+  });
+});
+</script>
