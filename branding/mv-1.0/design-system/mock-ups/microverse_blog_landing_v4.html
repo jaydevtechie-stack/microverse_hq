@@ -1,0 +1,247 @@
+<h2 class="sr-only">Microverse blog landing page mock-up with a light and dark mode toggle, a collapsing mobile nav with hamburger menu, filterable article list, sidebar, and footer</h2>
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;500&display=swap" rel="stylesheet">
+<style>
+* { font-family:'Lato',sans-serif; box-sizing:border-box; }
+#blogRoot {
+  --bg-page:#F8F9FA; --bg-surface:#FFFFFF; --text-primary:#212529; --text-secondary:#6C757D; --text-muted:#888780;
+  --border:#DEE2E6; --border-dashed:#B4B2A9; --accent:#0EA5D9; --on-accent:#FFFFFF; --divider:#F1EFE8;
+  --tag-blue-bg:#E6F1FB; --tag-blue-text:#0C447C; --tag-purple-bg:#EEEDFE; --tag-purple-text:#3C3489;
+  --tag-coral-bg:#FAECE7; --tag-coral-text:#712B13; --tag-amber-bg:#FAEEDA; --tag-amber-text:#633806;
+}
+#blogRoot[data-mode="dark"] {
+  --bg-page:#05061A; --bg-surface:#0B0F2E; --text-primary:#E8F4FF; --text-secondary:#9BB8E0; --text-muted:#6B7A99;
+  --border:#1E2A6B; --border-dashed:#3A4A8A; --accent:#4DD8FF; --on-accent:#04203B; --divider:#1A2044;
+  --tag-blue-bg:#12283F; --tag-blue-text:#7FC4F5; --tag-purple-bg:#241F47; --tag-purple-text:#C9C2F5;
+  --tag-coral-bg:#3A2015; --tag-coral-text:#F2B7A0; --tag-amber-bg:#3A2C10; --tag-amber-text:#F5CE8A;
+}
+.chip { padding:6px 14px; font-size:13px; border:1px solid var(--border); border-radius:20px; cursor:pointer; user-select:none; color:var(--text-secondary); }
+.container { max-width:1140px; margin:0 auto; padding:0 24px; }
+.main-grid { display:grid; grid-template-columns:2fr 1fr; gap:24px; padding-bottom:32px; }
+.footer-grid { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:24px; }
+.art-row { display:flex; gap:14px; padding:16px; border:1px solid var(--border); border-radius:8px; margin-bottom:14px; background:var(--bg-surface); }
+.tag { font-size:11px; padding:2px 8px; border-radius:4px; font-weight:500; }
+.flink { color:var(--text-secondary); font-size:13px; display:block; margin-bottom:8px; }
+.nav-links-desktop { display:flex; align-items:center; gap:28px; }
+.nav-hamburger { display:none; cursor:pointer; }
+.nav-icon-btn { cursor:pointer; display:flex; align-items:center; }
+#mobileMenu { display:none; background:var(--bg-surface); border-bottom:1px solid var(--border); }
+@media (max-width:640px) {
+  .main-grid { grid-template-columns:1fr; }
+  .footer-grid { grid-template-columns:1fr; }
+  .nav-links-desktop { display:none; }
+  .nav-hamburger { display:flex; }
+  .nav-login-text { display:none; }
+}
+</style>
+<div id="blogRoot" data-mode="light" style="background:var(--bg-page);border-radius:16px;overflow:hidden">
+
+<div style="background:var(--bg-surface);border-bottom:1px solid var(--border)">
+  <div class="container" style="padding-top:14px;padding-bottom:14px;display:flex;align-items:center;justify-content:space-between">
+    <div class="nav-links-desktop">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--accent)"></div>
+        <span style="color:var(--text-primary);font-weight:500;font-size:15px">Microverse</span>
+      </div>
+      <span style="color:var(--text-secondary);font-size:13px">Home</span>
+      <span style="color:var(--text-secondary);font-size:13px">Services</span>
+      <span style="color:var(--accent);font-size:13px;border-bottom:2px solid var(--accent);padding-bottom:2px">Blog</span>
+      <span style="color:var(--text-secondary);font-size:13px">Docs</span>
+    </div>
+    <div class="nav-hamburger" id="hamburgerBtn" role="button" tabindex="0" aria-label="Open menu">
+      <i class="ti ti-menu-2" id="hamburgerIcon" style="color:var(--text-secondary);font-size:20px" aria-hidden="true"></i>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px">
+      <span class="nav-icon-btn" id="modeToggle" role="button" tabindex="0" aria-label="Toggle dark mode">
+        <i class="ti ti-moon" id="modeIcon" style="color:var(--text-secondary);font-size:18px" aria-hidden="true"></i>
+      </span>
+      <span class="nav-login-text" style="color:var(--text-secondary);font-size:13px;cursor:pointer">Log in</span>
+      <span style="background:var(--accent);color:var(--on-accent);font-size:12px;font-weight:500;padding:7px 16px;border-radius:6px;cursor:pointer">Sign up</span>
+    </div>
+  </div>
+</div>
+
+<div id="mobileMenu">
+  <div class="container" style="padding-top:12px;padding-bottom:12px;display:flex;flex-direction:column;gap:14px">
+    <span style="color:var(--text-secondary);font-size:14px">Home</span>
+    <span style="color:var(--text-secondary);font-size:14px">Services</span>
+    <span style="color:var(--accent);font-size:14px">Blog</span>
+    <span style="color:var(--text-secondary);font-size:14px">Docs</span>
+    <div style="border-top:1px solid var(--border);padding-top:12px"><span style="color:var(--text-secondary);font-size:14px">Log in</span></div>
+  </div>
+</div>
+
+<div class="container">
+  <div style="padding:40px 0 20px">
+    <p style="color:var(--text-primary);font-size:26px;font-weight:500;margin:0 0 6px">Microverse blog</p>
+    <p style="color:var(--text-secondary);font-size:14px;margin:0 0 20px">Notes on building a polyglot platform in the open — architecture, design, and the odd open question.</p>
+    <div id="filters" style="display:flex;gap:8px;flex-wrap:wrap">
+      <div class="chip" role="button" tabindex="0" data-tag="all" aria-pressed="true" style="background:var(--accent);color:var(--on-accent);border-color:var(--accent)">All</div>
+      <div class="chip" role="button" tabindex="0" data-tag="engineering" aria-pressed="false">Engineering</div>
+      <div class="chip" role="button" tabindex="0" data-tag="design" aria-pressed="false">Design</div>
+      <div class="chip" role="button" tabindex="0" data-tag="product" aria-pressed="false">Product</div>
+      <div class="chip" role="button" tabindex="0" data-tag="announcements" aria-pressed="false">Announcements</div>
+    </div>
+  </div>
+
+  <div class="main-grid">
+    <div id="articleList">
+
+      <div class="art-row" data-tag="engineering">
+        <div style="width:88px;height:72px;min-width:88px;border-radius:6px;background:var(--tag-blue-bg);display:flex;align-items:center;justify-content:center"><i class="ti ti-shield-lock" style="color:var(--tag-blue-text);font-size:24px" aria-hidden="true"></i></div>
+        <div>
+          <span class="tag" style="background:var(--tag-blue-bg);color:var(--tag-blue-text)">Engineering</span>
+          <p style="color:var(--text-primary);font-size:15px;font-weight:500;margin:8px 0 4px">Two-independent-checks: a reusable authorization pattern</p>
+          <p style="color:var(--text-secondary);font-size:13px;margin:0 0 8px;line-height:1.5">How a PM authorization rule ended up reused verbatim in the search filter design.</p>
+          <span style="color:var(--text-secondary);font-size:12px">Aug 18 · 6 min read</span>
+        </div>
+      </div>
+
+      <div class="art-row" data-tag="design">
+        <div style="width:88px;height:72px;min-width:88px;border-radius:6px;background:var(--tag-purple-bg);display:flex;align-items:center;justify-content:center"><i class="ti ti-palette" style="color:var(--tag-purple-text);font-size:24px" aria-hidden="true"></i></div>
+        <div>
+          <span class="tag" style="background:var(--tag-purple-bg);color:var(--tag-purple-text)">Design</span>
+          <p style="color:var(--text-primary);font-size:15px;font-weight:500;margin:8px 0 4px">Designing Vienna: five themes, one component set</p>
+          <p style="color:var(--text-secondary);font-size:13px;margin:0 0 8px;line-height:1.5">Default, Vienna, Uhuru, Orchid, and Amethyst, built on the same nav bar, tabs, and dashboard.</p>
+          <span style="color:var(--text-secondary);font-size:12px">Aug 12 · 8 min read</span>
+        </div>
+      </div>
+
+      <div class="art-row" data-tag="engineering">
+        <div style="width:88px;height:72px;min-width:88px;border-radius:6px;background:var(--tag-blue-bg);display:flex;align-items:center;justify-content:center"><i class="ti ti-receipt" style="color:var(--tag-blue-text);font-size:24px" aria-hidden="true"></i></div>
+        <div>
+          <span class="tag" style="background:var(--tag-blue-bg);color:var(--tag-blue-text)">Engineering</span>
+          <p style="color:var(--text-primary);font-size:15px;font-weight:500;margin:8px 0 4px">Effort times rate: how rustledger computes an invoice</p>
+          <p style="color:var(--text-secondary);font-size:13px;margin:0 0 8px;line-height:1.5">Hours from elixtempo, a negotiated rate per project, and one sole owner of billing storage.</p>
+          <span style="color:var(--text-secondary);font-size:12px">Aug 5 · 5 min read</span>
+        </div>
+      </div>
+
+      <div class="art-row" data-tag="announcements">
+        <div style="width:88px;height:72px;min-width:88px;border-radius:6px;background:var(--tag-coral-bg);display:flex;align-items:center;justify-content:center"><i class="ti ti-file-text" style="color:var(--tag-coral-text);font-size:24px" aria-hidden="true"></i></div>
+        <div>
+          <span class="tag" style="background:var(--tag-coral-bg);color:var(--tag-coral-text)">Announcements</span>
+          <p style="color:var(--text-primary);font-size:15px;font-weight:500;margin:8px 0 4px">Radical documentation honesty, six months in</p>
+          <p style="color:var(--text-secondary);font-size:13px;margin:0 0 8px;line-height:1.5">What it costs, and what it buys, to only document what is actually built.</p>
+          <span style="color:var(--text-secondary);font-size:12px">Jul 30 · 4 min read</span>
+        </div>
+      </div>
+
+      <div class="art-row" data-tag="product">
+        <div style="width:88px;height:72px;min-width:88px;border-radius:6px;background:var(--tag-amber-bg);display:flex;align-items:center;justify-content:center"><i class="ti ti-robot" style="color:var(--tag-amber-text);font-size:24px" aria-hidden="true"></i></div>
+        <div>
+          <span class="tag" style="background:var(--tag-amber-bg);color:var(--tag-amber-text)">Product</span>
+          <p style="color:var(--text-primary);font-size:15px;font-weight:500;margin:8px 0 4px">Scout, but not yet an agent</p>
+          <p style="color:var(--text-secondary);font-size:13px;margin:0 0 8px;line-height:1.5">Why Scout stays a scoring query until there is enough task history to justify Scout 2.0.</p>
+          <span style="color:var(--text-secondary);font-size:12px">Jul 22 · 5 min read</span>
+        </div>
+      </div>
+
+    </div>
+
+    <div>
+      <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px">
+        <p style="color:var(--text-primary);font-size:14px;font-weight:500;margin:0 0 10px">Popular articles</p>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="padding-bottom:10px;border-bottom:1px solid var(--divider)"><p style="color:var(--text-primary);font-size:13px;margin:0">Two-independent-checks pattern</p><span style="color:var(--text-secondary);font-size:11px">Aug 18</span></div>
+          <div style="padding-bottom:10px;border-bottom:1px solid var(--divider)"><p style="color:var(--text-primary);font-size:13px;margin:0">Designing Vienna: five themes</p><span style="color:var(--text-secondary);font-size:11px">Aug 12</span></div>
+          <div style="padding-bottom:10px;border-bottom:1px solid var(--divider)"><p style="color:var(--text-primary);font-size:13px;margin:0">Effort times rate billing model</p><span style="color:var(--text-secondary);font-size:11px">Aug 5</span></div>
+          <div><p style="color:var(--text-primary);font-size:13px;margin:0">Radical documentation honesty</p><span style="color:var(--text-secondary);font-size:11px">Jul 30</span></div>
+        </div>
+      </div>
+
+      <div style="background:var(--bg-surface);border:1px dashed var(--border-dashed);border-radius:8px;padding:20px;margin-bottom:16px;text-align:center">
+        <i class="ti ti-calendar-event" style="color:var(--text-muted);font-size:22px" aria-hidden="true"></i>
+        <p style="color:var(--text-primary);font-size:13px;font-weight:500;margin:10px 0 4px">Events</p>
+        <p style="color:var(--text-secondary);font-size:12px;margin:0">Event calendar and webinars are coming soon.</p>
+      </div>
+
+      <div style="background:var(--accent);border-radius:8px;padding:16px">
+        <p style="color:var(--on-accent);font-size:14px;font-weight:500;margin:0 0 4px">Get new posts by email</p>
+        <p style="color:var(--on-accent);font-size:12px;margin:0 0 12px;opacity:0.85">One email whenever a new post goes up. No spam.</p>
+        <div style="background:var(--bg-surface);border-radius:6px;padding:9px 12px;color:var(--text-muted);font-size:13px;margin-bottom:8px">name@company.com</div>
+        <span style="display:block;text-align:center;background:var(--text-primary);color:var(--bg-surface);font-size:13px;font-weight:500;padding:9px 0;border-radius:6px;cursor:pointer">Subscribe</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="background:var(--bg-surface);border-top:1px solid var(--border)">
+  <div class="container footer-grid" style="padding-top:32px;padding-bottom:24px">
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--accent)"></div>
+        <span style="color:var(--text-primary);font-weight:500;font-size:14px">Microverse</span>
+      </div>
+      <p style="color:var(--text-secondary);font-size:13px;margin:0 0 14px;max-width:260px;line-height:1.5">A polyglot platform, built in the open — seven services, one design system.</p>
+      <div style="display:flex;gap:14px">
+        <i class="ti ti-brand-github" style="color:var(--text-secondary);font-size:18px" aria-hidden="true"></i>
+        <i class="ti ti-brand-x" style="color:var(--text-secondary);font-size:18px" aria-hidden="true"></i>
+        <i class="ti ti-brand-linkedin" style="color:var(--text-secondary);font-size:18px" aria-hidden="true"></i>
+      </div>
+    </div>
+    <div>
+      <p style="color:var(--text-primary);font-size:13px;font-weight:500;margin:0 0 12px">Services</p>
+      <span class="flink">Gofeeler</span><span class="flink">SpringPix</span><span class="flink">PyReel</span><span class="flink">Djaboard</span>
+    </div>
+    <div>
+      <p style="color:var(--text-primary);font-size:13px;font-weight:500;margin:0 0 12px">Company</p>
+      <span class="flink">About</span><span class="flink">Blog</span><span class="flink">Roadmap</span>
+    </div>
+    <div>
+      <p style="color:var(--text-primary);font-size:13px;font-weight:500;margin:0 0 12px">Resources</p>
+      <span class="flink">Docs</span><span class="flink">Status</span><span class="flink">Contact</span>
+    </div>
+  </div>
+  <div style="border-top:1px solid var(--border)">
+    <div class="container" style="padding-top:16px;padding-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <span style="color:var(--text-secondary);font-size:12px">© 2026 Microverse</span>
+      <span style="color:var(--text-secondary);font-size:12px">Privacy · Terms</span>
+    </div>
+  </div>
+</div>
+
+</div>
+<script>
+function applyTag(chip) {
+  document.querySelectorAll('.chip').forEach(function(c) {
+    c.setAttribute('aria-pressed', 'false');
+    c.style.background = 'transparent';
+    c.style.color = 'var(--text-secondary)';
+    c.style.borderColor = 'var(--border)';
+  });
+  chip.setAttribute('aria-pressed', 'true');
+  chip.style.background = 'var(--accent)';
+  chip.style.color = 'var(--on-accent)';
+  chip.style.borderColor = 'var(--accent)';
+  var tag = chip.dataset.tag;
+  document.querySelectorAll('.art-row').forEach(function(row) {
+    row.style.display = (tag === 'all' || row.dataset.tag === tag) ? '' : 'none';
+  });
+}
+document.querySelectorAll('.chip').forEach(function(chip) {
+  chip.addEventListener('click', function() { applyTag(chip); });
+  chip.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); applyTag(chip); }
+  });
+});
+function toggleMode() {
+  var root = document.getElementById('blogRoot');
+  var dark = root.getAttribute('data-mode') === 'dark';
+  root.setAttribute('data-mode', dark ? 'light' : 'dark');
+  document.getElementById('modeIcon').className = dark ? 'ti ti-moon' : 'ti ti-sun';
+}
+document.getElementById('modeToggle').addEventListener('click', toggleMode);
+document.getElementById('modeToggle').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleMode(); }
+});
+function toggleMenu() {
+  var menu = document.getElementById('mobileMenu');
+  var open = menu.style.display === 'block';
+  menu.style.display = open ? 'none' : 'block';
+  document.getElementById('hamburgerIcon').className = open ? 'ti ti-menu-2' : 'ti ti-x';
+}
+document.getElementById('hamburgerBtn').addEventListener('click', toggleMenu);
+document.getElementById('hamburgerBtn').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleMenu(); }
+});
+</script>

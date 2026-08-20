@@ -41,6 +41,8 @@ pub fn router() -> Router {
         .route("/assets/{order_id}/download-url", get(download_url))
         .route("/assets/{order_id}/content", get(content))
         .route("/assets/{order_id}", get(list_assets).delete(delete_asset))
+        .route("/assets/blog/upload-url", post(blog_upload_url))
+        .route("/assets/blog/{post_id}/{filename}", get(blog_content).delete(blog_delete))
 }
 
 async fn health() -> impl IntoResponse {
@@ -420,6 +422,101 @@ async fn delete_asset(
     }
 
     minio::delete_object(&minio::internal_client().await, &matching_key)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(StatusCode::NO_CONTENT)
+}
+
+// --- Blog images (Branch: blog integration) ---
+//
+// Deliberately not reusing upload_url/download_url/content above: those
+// are shaped for private, time-limited, order/customer-scoped access
+// (presigned GET URLs expire in 15 minutes). A blog image needs a
+// permanent, publicly embeddable, cacheable URL in indexed HTML — the
+// opposite shape. Separate key namespace (minio::blog_object_key) keeps
+// these objects out of order-attachment listing/scanning too.
+
+const MARKETING_ROLES: [&str; 2] = ["platform:marketing", "platform:admin"];
+
+#[derive(Deserialize)]
+struct BlogUploadUrlRequest {
+    post_id: String,
+    filename: String,
+    content_type: String,
+}
+
+// Upload itself stays presigned-PUT, same mechanics as upload_url — only
+// the role check and key shape differ (no order/customer concept here).
+async fn blog_upload_url(
+    headers: HeaderMap,
+    Json(body): Json<BlogUploadUrlRequest>,
+) -> Result<Json<UploadUrlResponse>, (StatusCode, String)> {
+    let claims = claims_from_headers(&headers)
+        .ok_or((StatusCode::UNAUTHORIZED, "missing or malformed token".into()))?;
+    if !MARKETING_ROLES.iter().any(|r| claims.has_role(r)) {
+        return Err((
+            StatusCode::FORBIDDEN,
+            "requires platform:marketing or platform:admin".into(),
+        ));
+    }
+
+    let key = minio::blog_object_key(&body.post_id, &body.filename);
+    minio::ensure_bucket(&minio::internal_client().await).await;
+
+    let upload_url = minio::presigned_put_url(&minio::presign_client().await, &key, &body.content_type)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(Json(UploadUrlResponse {
+        upload_url,
+        object_key: key,
+        expires_at: expires_at(Duration::from_secs(15 * 60)),
+    }))
+}
+
+// No auth check at all — this is the stable URL blog-service stores in
+// blog_posts.cover_image_url / sanitizes into body_html, meant to be
+// requested directly by anonymous browsers reading a published post.
+// Moderate (not "immutable") caching: the key is the literal filename,
+// not a content hash, so re-uploading under the same name to replace an
+// image is possible — a full-year immutable cache would keep serving
+// the old bytes long after an edit.
+async fn blog_content(
+    Path((post_id, filename)): Path<(String, String)>,
+) -> Result<impl IntoResponse, (StatusCode, String)> {
+    let key = minio::blog_object_key(&post_id, &filename);
+    let (bytes, content_type) = minio::get_object_bytes(&minio::internal_client().await, &key)
+        .await
+        .map_err(|_| (StatusCode::NOT_FOUND, "no such blog asset".to_string()))?;
+
+    Ok((
+        [
+            (
+                axum::http::header::CONTENT_TYPE,
+                content_type.unwrap_or_else(|| "application/octet-stream".to_string()),
+            ),
+            (axum::http::header::CACHE_CONTROL, "public, max-age=3600".to_string()),
+        ],
+        bytes,
+    ))
+}
+
+async fn blog_delete(
+    headers: HeaderMap,
+    Path((post_id, filename)): Path<(String, String)>,
+) -> Result<StatusCode, (StatusCode, String)> {
+    let claims = claims_from_headers(&headers)
+        .ok_or((StatusCode::UNAUTHORIZED, "missing or malformed token".into()))?;
+    if !MARKETING_ROLES.iter().any(|r| claims.has_role(r)) {
+        return Err((
+            StatusCode::FORBIDDEN,
+            "requires platform:marketing or platform:admin".into(),
+        ));
+    }
+
+    let key = minio::blog_object_key(&post_id, &filename);
+    minio::delete_object(&minio::internal_client().await, &key)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 

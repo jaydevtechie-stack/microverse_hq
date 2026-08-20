@@ -161,6 +161,15 @@
         "attributes": {}
       },
       {
+        "id": "5e819903-1d52-4077-a20e-cb37e1581f14",
+        "name": "platform:marketing",
+        "description": "",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "9e9ca4e3-1cbb-4381-8356-c255387cc21c",
+        "attributes": {}
+      },
+      {
         "id": "6e879670-4b9b-4256-83a5-6da84e903ff3",
         "name": "service:gofeeler",
         "description": "",

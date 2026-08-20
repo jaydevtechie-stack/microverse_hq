@@ -61,6 +61,17 @@ pub fn object_key(service: &str, username: &str, order_id: &str, filename: &str)
     format!("{service}/{username}/{order_id}/v1/{filename}")
 }
 
+// Separate top-level prefix from the order-attachment shape above — blog
+// images aren't scoped to a service/username/order_id, and (unlike every
+// other object in this bucket) are meant to be read back with no auth
+// and no expiry at all, embedded permanently in indexed public HTML. See
+// api.rs's blog_upload_url/blog_content/blog_delete for why this can't
+// reuse upload_url/download_url/content's presigned-and-time-limited
+// posture.
+pub fn blog_object_key(post_id: &str, filename: &str) -> String {
+    format!("blog/{post_id}/{filename}")
+}
+
 pub async fn ensure_bucket(client: &Client) {
     let bucket = bucket_name();
     if client.head_bucket().bucket(&bucket).send().await.is_err() {

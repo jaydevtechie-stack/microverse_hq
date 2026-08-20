@@ -76,6 +76,7 @@ const Navbar = ({ keycloak }) => {
   // 4.3 — new role, not yet provisioned in Keycloak. Nav item is
   // future-ready: it'll just start rendering once someone holds it.
   const isAccountManager = keycloak.hasRealmRole('platform:account-manager');
+  const isMarketing = keycloak.hasRealmRole('platform:marketing');
 
   const navLinks = (
     <>
@@ -134,6 +135,16 @@ const Navbar = ({ keycloak }) => {
             {t('billing')}
           </PlatformNavLink>
         </>
+      )}
+
+      {/* Self-hosted blog — marketing/admin only, points at the
+          WYSIWYG editor (/blog/manage), not the public reading
+          page (that's "/" itself now, and has no nav link at all:
+          Navbar never renders for anonymous visitors — see App.js). */}
+      {(isMarketing || isAdmin) && (
+        <PlatformNavLink to="/blog/manage" active={pathname.startsWith('/blog/manage')}>
+          {t('blog')}
+        </PlatformNavLink>
       )}
 
       {/* 4.3 — Admin stays one top-level item, no longer holding global
@@ -303,9 +314,10 @@ const Navbar = ({ keycloak }) => {
   return (
     <nav
       style={{
-        // Explicit stacking context so this renders above LandingPage's
-        // position:fixed background image rather than behind it — plain
-        // static-position siblings otherwise lose to a fixed element.
+        // Explicit stacking context so this renders above any
+        // position:fixed content in the routed page below it rather
+        // than behind it — plain static-position siblings otherwise
+        // lose to a fixed element.
         position: 'relative',
         zIndex: 1,
         background: 'var(--mv-bg-elevated)',

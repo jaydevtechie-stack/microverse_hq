@@ -18,6 +18,7 @@ import enGofeeler from './locales/en/gofeeler.json';
 import enProjectHub from './locales/en/projectHub.json';
 import enProfile from './locales/en/profile.json';
 import enSearch from './locales/en/search.json';
+import enBlog from './locales/en/blog.json';
 
 i18n.use(initReactI18next).init({
   resources: {
@@ -33,6 +34,7 @@ i18n.use(initReactI18next).init({
       projectHub: enProjectHub,
       profile: enProfile,
       search: enSearch,
+      blog: enBlog,
     },
   },
   lng: 'en',
@@ -50,6 +52,7 @@ i18n.use(initReactI18next).init({
     'projectHub',
     'profile',
     'search',
+    'blog',
   ],
   interpolation: {
     escapeValue: false, // React already escapes output
