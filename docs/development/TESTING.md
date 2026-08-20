@@ -601,6 +601,33 @@ microverse-rustledger"` that the printed IP matches
 retrying. Not a code bug, purely a container-recreation/DNS-caching
 artifact — don't go looking for it in application logs.
 
+**`--force-recreate` alone does not rebuild the image.** It only
+recreates the *container* from whatever image is already cached locally
+for that service — source changes since the last build are silently not
+included, with no warning. If you've edited rustledger's Rust source and
+recreated the container but new `tracing::` logging isn't showing up (or
+old bugs seem to persist unchanged), suspect a stale image before
+suspecting the code: `docker images microverse_hq-microverse-rustledger`
+shows the image's actual build timestamp. `docker compose build
+microverse-rustledger` (or `up -d --build --force-recreate ...`) forces a
+real rebuild.
+
+**A live Stripe account's default API version can outrun a pinned Rust
+client.** `async-stripe` 0.41.0 generates its typed `Event`/
+`CheckoutSession` structs against a fixed Stripe API version
+(`resources/generated/version.rs`, `2023-10-16`). A live test-mode
+account defaults to whatever its *current* API version is, and `stripe
+listen` has no flag to pin an older one when forwarding — so incoming
+webhook payloads can be shaped for a newer schema than the crate expects,
+and `Webhook::construct_event` fails with a generic "error parsing event
+object" even though the HMAC signature itself is valid. Symptom: some
+event types 200 (their payload happens to still deserialize) while
+`checkout.session.completed` specifically 400s, with no useful detail in
+the error. rustledger's `stripe_client.rs` no longer depends on the
+typed model for webhook parsing — it verifies the signature manually
+(same HMAC scheme, version-independent) and reads the 3 needed fields
+off untyped JSON instead.
+
 Drive the actual flow with real bearer tokens (a Keycloak login, or an
 unsigned `header.payload.sig` JWT with the right `sub`/`email`/
 `realm_access.roles`, same approach as other branches' manual checks
