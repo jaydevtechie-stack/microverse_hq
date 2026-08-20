@@ -9,7 +9,11 @@ defmodule ElixTempo.Sessions.Session do
   State lives only here — in memory. Durability comes from Kafka: every
   transition publishes an event before this process's state changes.
   """
-  use GenServer
+  # restart: :temporary — a stopped session is done, not a crash to
+  # recover from. The default :permanent would make DynamicSupervisor
+  # respawn it with fresh state (status: :running, elapsed_seconds: 0)
+  # under the same id the instant it exits normally after `stop`.
+  use GenServer, restart: :temporary
 
   defstruct [:id, :analyst_id, :quest_id, :status, :accumulated_seconds, :running_since]
 

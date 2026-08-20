@@ -3,6 +3,7 @@ defmodule ElixTempoWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
+    plug ElixTempoWeb.Auth
   end
 
   get "/health", ElixTempoWeb.HealthController, :show
