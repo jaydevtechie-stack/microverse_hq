@@ -133,7 +133,7 @@ GoFeeler stays one service, one analyst-facing interface — the LLM upgrade is 
 
 **Branch 9 — Billing & payouts**
 
-Customer billing/collection only (scope decision: payouts split out below, deferred). On `feature/gofeeler-billing-collection-9`, not yet merged:
+Customer billing/collection only (scope decision: payouts split out below, deferred). Merged to `develop` via PR #66:
 
 - ✅ rustledger: new `bills` table (one row per task) + `POST /api/billing/bills`, `GET /api/billing/bills/by-task/:id`, `POST /api/billing/bills/by-task/:id/publish`, `POST /api/billing/bills/by-task/:id/checkout-session`, `POST /api/billing/webhooks/stripe` — `cargo check` clean
 - ✅ rustledger owns Stripe collection directly (`async-stripe` crate: Checkout Session creation + raw-body webhook verification) and the task-service ownership/status validation call (`task_client.rs`, unauthenticated internal GET, same posture as `asset-service`'s). **Revised from this branch's first pass**, which split Stripe collection into a separate `platform-services/billing-service` Node service in front of rustledger — folded back in since rustledger already owned the billing domain by name and by its existing analyst-payout `line_items` ledger. `docs/architecture/1.0/platform-services.md`'s billing-service row (and its "Python" correction) no longer applies, removed.
