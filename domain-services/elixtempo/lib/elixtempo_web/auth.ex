@@ -34,4 +34,18 @@ defmodule ElixTempoWeb.Auth do
 
   @doc "The caller's own subject claim (Keycloak user id), or nil if unauthenticated/unparseable."
   def caller_id(conn), do: (conn.assigns[:claims] || %{})["sub"]
+
+  @doc """
+  Checks the caller's token subject against `analyst_id` — the
+  ownership rule every analyst-scoped endpoint uses (session actions,
+  the hours query). :ok, {:error, :unauthorized} (no/invalid token),
+  or {:error, :forbidden} (authenticated as someone else).
+  """
+  def authorize_analyst(conn, analyst_id) do
+    case caller_id(conn) do
+      nil -> {:error, :unauthorized}
+      ^analyst_id -> :ok
+      _other -> {:error, :forbidden}
+    end
+  end
 end

@@ -35,10 +35,10 @@ defmodule ElixTempoWeb.SessionController do
   end
 
   defp with_authorized_analyst(conn, analyst_id, action) do
-    case Auth.caller_id(conn) do
-      nil -> unauthorized(conn)
-      ^analyst_id -> action.()
-      _other -> forbidden(conn)
+    case Auth.authorize_analyst(conn, analyst_id) do
+      :ok -> action.()
+      {:error, :unauthorized} -> unauthorized(conn)
+      {:error, :forbidden} -> forbidden(conn)
     end
   end
 
