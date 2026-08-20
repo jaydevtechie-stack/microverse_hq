@@ -2,18 +2,32 @@
 //
 // The Microverse site footer — not blog-specific, even though the blog
 // pages are its only callers today (full mock-up markup,
-// microverse_blog_landing_v4.html). Services/Company/Resources columns
-// and the social icons are static, same as the mock-up itself (plain
-// text/icons, not real hrefs): none of those destination pages exist in
-// this app yet (no /about, /roadmap, /docs, /status, /contact route, no
-// real social URLs), so rendering them as live links would just be dead
-// ones. Swap to real <Link>s if/when those pages exist.
+// microverse_blog_landing_v4.html). Company/Resources columns and the
+// social icons stay static (plain text/icons, not real hrefs): none of
+// those destination pages exist in this app yet (no /about, /roadmap,
+// /docs, /status, /contact route, no real social URLs), so rendering
+// them as live links would just be dead ones. Services links are real,
+// though — each domain service already has its own subdomain microsite
+// (ServiceLandingPage.js), so those go through the same
+// hostUrlForSubdomain() helper Navbar/the dashboard's ServiceCard
+// already use rather than hardcoding a host.
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { IconBrandGithub, IconBrandX, IconBrandLinkedin } from '@tabler/icons-react';
+import { hostUrlForSubdomain } from '../services/keycloak';
 
 const footerLinkStyle = { color: 'var(--mv-text-muted)', fontSize: 13, display: 'block', marginBottom: 8 };
 const footerColumnTitleStyle = { color: 'var(--mv-text)', fontSize: 13, fontWeight: 500, margin: '0 0 12px' };
+
+// Same representative subset the mock-up shows — not every domain
+// service (elixtempo/rustledger/rubykudos also have subdomains, but
+// aren't customer-facing products in the way these 4 are).
+const FOOTER_SERVICES = [
+  { name: 'Gofeeler', subdomain: 'gofeeler' },
+  { name: 'SpringPix', subdomain: 'springpix' },
+  { name: 'PyReel', subdomain: 'pyreel' },
+  { name: 'Djaboard', subdomain: 'djaboard' },
+];
 
 const Footer = () => {
   const { t } = useTranslation('blog');
@@ -52,10 +66,11 @@ const Footer = () => {
 
         <div>
           <p style={footerColumnTitleStyle}>{t('list.footer.servicesTitle')}</p>
-          <span style={footerLinkStyle}>Gofeeler</span>
-          <span style={footerLinkStyle}>SpringPix</span>
-          <span style={footerLinkStyle}>PyReel</span>
-          <span style={footerLinkStyle}>Djaboard</span>
+          {FOOTER_SERVICES.map((service) => (
+            <a key={service.subdomain} href={hostUrlForSubdomain(service.subdomain)} style={footerLinkStyle}>
+              {service.name}
+            </a>
+          ))}
         </div>
 
         <div>
