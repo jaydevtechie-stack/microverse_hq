@@ -5,13 +5,33 @@ defmodule ElixTempoWeb.SessionController do
   alias ElixTempoWeb.Auth
 
   def create(conn, %{"analyst_id" => analyst_id, "quest_id" => quest_id}) do
-    with_authorized_analyst(conn, analyst_id, fn ->
-      {:ok, session} = Sessions.start_session(analyst_id, quest_id)
+    with_authorized_analyst(conn, analyst_id, fn -> start(conn, analyst_id, quest_id) end)
+  end
 
-      conn
-      |> put_status(:created)
-      |> render(:show, session: session)
-    end)
+  defp start(conn, analyst_id, quest_id) do
+    case Sessions.start_session(analyst_id, quest_id, Auth.caller_email(conn)) do
+      {:ok, session} ->
+        conn |> put_status(:created) |> render(:show, session: session)
+
+      {:error, :quest_not_found} ->
+        conn |> put_status(:not_found) |> json(%{error: "quest_id does not exist"})
+
+      {:error, :not_assigned} ->
+        conn
+        |> put_status(:forbidden)
+        |> json(%{error: "caller is not the assigned analyst for this quest_id"})
+
+      {:error, :quest_not_assignable} ->
+        conn |> put_status(:conflict) |> json(%{error: "quest_id is not currently in analyst status"})
+
+      {:error, :task_service_unavailable} ->
+        conn
+        |> put_status(:service_unavailable)
+        |> json(%{error: "could not validate quest_id against task-service"})
+
+      {:error, reason} ->
+        conn |> put_status(:conflict) |> json(%{error: to_string(reason)})
+    end
   end
 
   def show(conn, %{"id" => id}), do: act_as_owner(conn, id, fn -> Sessions.get_session(id) end)

@@ -348,9 +348,13 @@ services:
       # schema on the shared instance, same convention as rustledger/
       # task-service.
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@microverse-postgis:5432/${POSTGRES_DB}
+      # quest_id validation (Phase 4) — same internal, unauthenticated
+      # GET as rustledger/asset-service's own task_client
+      TASK_SERVICE_URL: http://microverse-task-service:3000
     depends_on:
       - microverse-kafka
       - microverse-postgis
+      - microverse-task-service
     networks:
       - microverse-network
 

@@ -98,12 +98,21 @@ defmodule ElixTempo.Sessions.Store do
         id: id,
         analyst_id: analyst_id,
         quest_id: quest_id,
-        status: String.to_existing_atom(status),
+        status: status_atom(status),
         accumulated_seconds: accumulated_seconds,
         running_since: running_since
       }
     end)
   end
+
+  # Not String.to_existing_atom/1 — this runs at boot, inside
+  # ElixTempo.Sessions.Supervisor.start_link, before anything has ever
+  # referenced ElixTempo.Sessions.Session. Elixir loads a module's atom
+  # literals lazily, on first real reference to that module, not just
+  # because it's compiled — so :running/:paused wouldn't exist as
+  # atoms yet at this exact point, and to_existing_atom would raise.
+  defp status_atom("running"), do: :running
+  defp status_atom("paused"), do: :paused
 
   @doc """
   Per-quest worked seconds for an analyst, summed only over stopped

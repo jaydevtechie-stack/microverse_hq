@@ -3,12 +3,21 @@ defmodule ElixTempo.SessionsTest do
 
   alias ElixTempo.Sessions
   alias ElixTempo.Sessions.Store
+  alias ElixTempo.TaskFixtures
+
+  import TaskFixtures, only: [seed_analyst_task: 1, seed_analyst_task: 2, email_for: 1]
+
+  defp start_test_session(analyst_id) do
+    quest_id = seed_analyst_task(analyst_id)
+    Sessions.start_session(analyst_id, quest_id, email_for(analyst_id))
+  end
 
   test "start_session returns a running view and get_session returns the same session" do
-    {:ok, started} = Sessions.start_session("analyst-1", "quest-1")
+    quest_id = seed_analyst_task("analyst-1")
+    {:ok, started} = Sessions.start_session("analyst-1", quest_id, email_for("analyst-1"))
 
     assert started.analyst_id == "analyst-1"
-    assert started.quest_id == "quest-1"
+    assert started.quest_id == quest_id
     assert started.status == :running
     assert started.elapsed_seconds >= 0
 
@@ -18,7 +27,7 @@ defmodule ElixTempo.SessionsTest do
   end
 
   test "pause then resume round-trips status without losing accumulated time" do
-    {:ok, %{id: id}} = Sessions.start_session("analyst-a", "quest-a")
+    {:ok, %{id: id}} = start_test_session("analyst-a")
 
     assert {:ok, paused} = Sessions.pause_session(id)
     assert paused.status == :paused
@@ -29,20 +38,20 @@ defmodule ElixTempo.SessionsTest do
   end
 
   test "pausing an already-paused session errors instead of double-pausing" do
-    {:ok, %{id: id}} = Sessions.start_session("analyst-b", "quest-b")
+    {:ok, %{id: id}} = start_test_session("analyst-b")
     {:ok, _} = Sessions.pause_session(id)
 
     assert Sessions.pause_session(id) == {:error, :not_running}
   end
 
   test "resuming a running session errors" do
-    {:ok, %{id: id}} = Sessions.start_session("analyst-c", "quest-c")
+    {:ok, %{id: id}} = start_test_session("analyst-c")
 
     assert Sessions.resume_session(id) == {:error, :not_paused}
   end
 
   test "stop terminates the session — it can no longer be found afterward" do
-    {:ok, %{id: id}} = Sessions.start_session("analyst-d", "quest-d")
+    {:ok, %{id: id}} = start_test_session("analyst-d")
 
     assert {:ok, stopped} = Sessions.stop_session(id)
     assert stopped.status == :stopped
@@ -50,7 +59,7 @@ defmodule ElixTempo.SessionsTest do
   end
 
   test "every transition write-behinds to the sessions table" do
-    {:ok, %{id: id}} = Sessions.start_session("analyst-e", "quest-e")
+    {:ok, %{id: id}} = start_test_session("analyst-e")
     assert %Postgrex.Result{rows: [["running", 0]]} = row(id, "status, accumulated_seconds")
 
     {:ok, _} = Sessions.pause_session(id)
@@ -58,6 +67,25 @@ defmodule ElixTempo.SessionsTest do
 
     {:ok, _} = Sessions.stop_session(id)
     assert %Postgrex.Result{rows: [["stopped"]]} = row(id, "status")
+  end
+
+  test "start_session rejects an unknown quest_id" do
+    assert Sessions.start_session("analyst-f", Uniq.UUID.uuid4(), email_for("analyst-f")) ==
+             {:error, :quest_not_found}
+  end
+
+  test "start_session rejects a quest not in analyst status" do
+    quest_id = seed_analyst_task("analyst-g", "unassigned")
+
+    assert Sessions.start_session("analyst-g", quest_id, email_for("analyst-g")) ==
+             {:error, :quest_not_assignable}
+  end
+
+  test "start_session rejects a caller who isn't the assigned analyst" do
+    quest_id = seed_analyst_task("analyst-h")
+
+    assert Sessions.start_session("analyst-h", quest_id, "someone-else@example.com") ==
+             {:error, :not_assigned}
   end
 
   defp row(id, columns) do
