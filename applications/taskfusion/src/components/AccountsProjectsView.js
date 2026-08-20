@@ -760,9 +760,24 @@ const AccountsProjectsView = ({
   const [accounts, setAccounts] = useState(null);
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState(new Set());
-  const [selection, setSelection] = useState(null); // { type: 'project', id } | { type: 'task', id, projectId } | { type: 'newProject', accountId } | { type: 'newAccount' }
+  const [selection, setSelectionRaw] = useState(null); // { type: 'project', id } | { type: 'task', id, projectId } | { type: 'newProject', accountId } | { type: 'newAccount' }
   const [detail, setDetail] = useState(null);
   const [approving, setApproving] = useState(false);
+
+  // `selection` (sync) and `detail` (fetched, async) are separate state —
+  // changing selection.type without also clearing detail leaves one
+  // render where the JSX already branches on the new type but detail
+  // still holds the previous type's shape (e.g. an Account with no
+  // .tasks, or a Project with no .pms), crashing ProjectDetail/
+  // AccountDetail on a property read they assume is always present.
+  // Clearing detail in the same synchronous call batches with the
+  // selection update (same React 18 event-handler batching the fetch
+  // effect's own stale-response guard relies on), so that frame never
+  // renders.
+  const setSelection = (next) => {
+    setDetail(null);
+    setSelectionRaw(next);
+  };
 
   const refetchAccounts = () =>
     fetch('/api/accounts', { headers: authHeaders() })
