@@ -48,7 +48,8 @@ defmodule ElixTempo.MixProject do
       {:bandit, "~> 1.5"},
       {:brod, "~> 4.5"},
       {:uniq, "~> 0.6"},
-      {:postgrex, "~> 0.19"}
+      {:postgrex, "~> 0.19"},
+      {:req, "~> 0.5"}
     ]
   end
 

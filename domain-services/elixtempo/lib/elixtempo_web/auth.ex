@@ -36,6 +36,14 @@ defmodule ElixTempoWeb.Auth do
   def caller_id(conn), do: (conn.assigns[:claims] || %{})["sub"]
 
   @doc """
+  The caller's own email claim, or nil if unauthenticated/unparseable.
+  task-service's tasks.assignee is stored as an email (its own
+  "Keycloak usernames stand in" MVP shape), not a sub — this is the
+  claim quest_id ownership validation needs, distinct from caller_id/1.
+  """
+  def caller_email(conn), do: (conn.assigns[:claims] || %{})["email"]
+
+  @doc """
   Checks the caller's token subject against `analyst_id` — the
   ownership rule every analyst-scoped endpoint uses (session actions,
   the hours query). :ok, {:error, :unauthorized} (no/invalid token),

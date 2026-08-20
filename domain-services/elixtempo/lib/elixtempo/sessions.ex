@@ -10,6 +10,7 @@ defmodule ElixTempo.Sessions do
   alias ElixTempo.KafkaProducer
   alias ElixTempo.Sessions.Session
   alias ElixTempo.Sessions.Store
+  alias ElixTempo.TaskClient
 
   @doc """
   Called once at boot, from ElixTempo.Sessions.Supervisor's start_link
@@ -64,21 +65,42 @@ defmodule ElixTempo.Sessions do
     }
   end
 
-  def start_session(analyst_id, quest_id) do
-    id = Uniq.UUID.uuid4()
+  @doc """
+  Starting a session validates quest_id against task-service — its
+  existence and that the caller (by email; task-service's assignee is
+  an email, not a sub) is the currently-assigned analyst on it, status
+  'analyst'. Checked once, here, not re-checked by pause/resume/stop —
+  a task getting reassigned mid-session is an edge case explicitly out
+  of scope for this pass (see docs/roadmap/1.1/domain-services.md's
+  Phase 4).
+  """
+  def start_session(analyst_id, quest_id, caller_email) do
+    with :ok <- validate_quest(quest_id, caller_email) do
+      id = Uniq.UUID.uuid4()
 
-    case DynamicSupervisor.start_child(
-           ElixTempo.Sessions.Supervisor,
-           {Session, {id, analyst_id, quest_id}}
-         ) do
-      {:ok, _pid} ->
-        {:ok, view} = Session.view(id)
-        Store.upsert(view)
-        publish(view, "session.started")
-        {:ok, view}
+      case DynamicSupervisor.start_child(
+             ElixTempo.Sessions.Supervisor,
+             {Session, {id, analyst_id, quest_id}}
+           ) do
+        {:ok, _pid} ->
+          {:ok, view} = Session.view(id)
+          Store.upsert(view)
+          publish(view, "session.started")
+          {:ok, view}
 
-      {:error, reason} ->
-        {:error, reason}
+        {:error, reason} ->
+          {:error, reason}
+      end
+    end
+  end
+
+  defp validate_quest(quest_id, caller_email) do
+    case TaskClient.fetch_task(quest_id) do
+      {:ok, nil} -> {:error, :quest_not_found}
+      {:ok, %{"status" => "analyst", "assignee" => ^caller_email}} -> :ok
+      {:ok, %{"status" => "analyst"}} -> {:error, :not_assigned}
+      {:ok, _task} -> {:error, :quest_not_assignable}
+      {:error, _reason} -> {:error, :task_service_unavailable}
     end
   end
 
