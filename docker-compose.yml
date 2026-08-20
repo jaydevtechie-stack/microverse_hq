@@ -385,6 +385,24 @@ services:
       - microverse-network
 
 
+  # Self-hosted blog: platform:marketing (or admin) writes/publishes
+  # articles via a WYSIWYG editor in taskfusion, read publicly at /blog —
+  # see docs/schema.md's blog_posts entry. Images go through
+  # asset-service's new /assets/blog/... routes, not this service.
+  microverse-blog-service:
+    profiles: ["gofeeler", "blog-service"]
+    build:
+      context: ./platform-services/blog-service
+    container_name: microverse-blog-service
+    environment:
+      PORT: 4003
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@microverse-postgis:5432/${POSTGRES_DB}
+    depends_on:
+      - microverse-postgis
+    networks:
+      - microverse-network
+
+
   microverse-mailhog:
     profiles: ["gofeeler", "mailhog"]
     image: mailhog/mailhog:latest

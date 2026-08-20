@@ -98,9 +98,26 @@
         }
       ]
     },
+    "platform:marketing": {
+      "nav": [
+        { "id": "dashboard", "label": "Dashboard", "route": "/dashboard" },
+        {
+          "id": "blog",
+          "label": "Blog",
+          "route": "/blog/manage",
+          "notes": "New role — writes/edits/publishes articles via a WYSIWYG editor (BlogEditor.js, TipTap), backed by the new blog-service platform-service. Not the same page as the public /blog reading route: anonymous visitors never see this nav item at all (Navbar doesn't render without a session), they reach /blog via LandingPage's own 'read our blog' link or a shared/indexed URL. published_at IS NULL is the draft/publish switch, same convention as rustledger's bills.published_at. Also visible to platform:admin, see that role's entry below."
+        }
+      ]
+    },
     "platform:admin": {
       "nav": [
         { "id": "dashboard", "label": "Dashboard", "route": "/dashboard" },
+        {
+          "id": "blog",
+          "label": "Blog",
+          "route": "/blog/manage",
+          "notes": "Same route as platform:marketing above — admin can also write/publish articles, not just marketing."
+        },
         {
           "id": "admin",
           "label": "Admin",

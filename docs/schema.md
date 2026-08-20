@@ -325,6 +325,8 @@ Doc `_id = task_id` (REFERENCES `task-service`'s `tasks.id`, cross-service refer
 
 Object keys only: `{service}/{account_id}/{order_id}/{version}/{filename}`. No dedicated Postgres metadata table (stateless-first — see [docs/roadmap/1.0/platform-services.md](roadmap/1.0/platform-services.md) Proposals); relies on MinIO's native `ListObjects` prefix listing and custom object metadata headers instead.
 
+A second, separate key prefix, `blog/{post_id}/{filename}`, holds blog images (cover images and inline editor images) — kept out of the `{service}/...` shape above since it's not order/customer-scoped at all. The read side is also fundamentally different: every route above (`upload_url`/`download_url`/`content`) is private and time-limited (15-minute presigned URLs, order-status-gated); `GET /assets/blog/{post_id}/{filename}` has **no auth check and no expiry** — it's the stable, permanently embeddable URL `blog-service` stores in `blog_posts.cover_image_url` and sanitizes into `body_html`, meant to be requested directly by anonymous visitors reading a published post. Upload (`POST /assets/blog/upload-url`) stays presigned-PUT, gated `platform:marketing`/`platform:admin` instead of `platform:customer`.
+
 ---
 
 # notification-service database
@@ -375,3 +377,35 @@ A third independent Kafka consumer group (`audit-service-events`) on `task-servi
 `sentiment.analyzed` — GoFeeler's own new event, published from a Kafka producer added directly to GoFeeler's Go backend (`domain-services/gofeeler/app/events/kafka.go`) — deliberately lands on a **separate** topic, `gofeeler.sentiment`, not `task-service.tasks`: `search-service`'s indexing consumer treats every message on that topic as a full task-state upsert with no event-name filtering (Branch 6.2), and a `sentiment.analyzed` payload (`task_id`/`sentiment`/`confidence`/`engine_used`/`duration_ms`/`analyzed_at`) shares none of `taskToEvent`'s fields — landing it there would blank real Elasticsearch documents on the next re-index. `audit-service` subscribes to both topics from the same consumer group, dispatching on Kafka's `topic` field per message. `duration_ms` is GoFeeler's own processing-time efficiency metric, measured at the source (wrapping the existing `eng.Analyze` call) rather than inferred later from two separate events — this is also how Branch 8's open question ("does the analyze step need its own persisted task status?") got resolved: no, the frontend's loading state stays UI-only, and the real timing lives on this event instead.
 
 `GET /audit/events` (recent activity feed, newest first, `?limit=`), `GET /audit/tasks/:taskId` (timeline), `GET /audit/metrics/processing-time`, `GET /audit/metrics/reaction-time` — all gated `platform:admin` OR `platform:project-manager` (see roadmap's 4.3 resolution, which already earmarked the eventual audit log as Admin's cross-account visibility tool). Backend shipped first as an explicit documented gap (no frontend); the gap is now closed by `AdminAuditLogPage.js`, filling in the `/admin/audit-log` Subnav tab [nav-config.json](architecture/1.0/nav-config.json) already reserved for it — metric cards (processing/reaction time) above a list+detail `SplitView` (`/audit/events` list, drilling into `/audit/tasks/:taskId`'s timeline on click). See [docs/roadmap/1.0/domain-services.md](roadmap/1.0/domain-services.md)'s Branch 8 and its Proposals entry.
+
+---
+
+# blog-service database
+
+**PostgreSQL** — same shared instance as `task-service`/`audit-service` (`microverse-postgis`).
+
+## blog_posts — ✅ live
+
+```sql
+CREATE TABLE blog_posts (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title             TEXT NOT NULL,
+  slug              TEXT NOT NULL UNIQUE,
+  excerpt           TEXT,
+  body_html         TEXT NOT NULL,   -- sanitized server-side on every write, see lib/sanitize.js
+  tags              TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+  author_id         UUID,            -- Keycloak sub, cross-service, not FK-enforced
+  author_name       TEXT,            -- denormalized at create time — no local users table to join
+  cover_image_url   TEXT,            -- asset-service's /assets/blog/... public URL
+  view_count        INTEGER NOT NULL DEFAULT 0,  -- no unique-visitor dedup, see below
+  published_at      TIMESTAMPTZ,     -- NULL = draft; the only draft/publish switch, no separate status column
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+`published_at IS NULL` is the entire draft/publish state machine, same convention as `rustledger.bills.published_at` — deliberately no `status` column duplicating it, since two overlapping switches with no constraint tying them together is a drift bug waiting to happen. `GET /api/blog/posts` and `GET /api/blog/posts/:slug` are one path each, scoped server-side by the caller's role (`platform:marketing`/`platform:admin` see every post including drafts; everyone else sees published-only, and a draft or missing slug both 404 identically — no leak) — same "clean paths, scoped server-side" posture as rustledger's `GET /api/billing/bills`. `author_id`/`author_name` are captured from the caller's JWT claims at create time, never client-supplied, same as `bills.created_by_id`.
+
+`tags` deliberately matches `task-service.tasks.tags` exactly (native array, GIN index, no join table) — reuses the same Elasticsearch-backed vocabulary/autocomplete (`GET/POST /api/tags`, search-service) and the same `TagInput.js` component GoFeeler's Create Order form already uses, rather than a separate fixed-category system. `GET /api/blog/posts?tag=` filters via array containment (`tags @> ARRAY[...]`); `GET /api/blog/posts/tags/popular` (public, published-only) powers the blog's filter-chip row via `unnest(tags)` + `GROUP BY`. `view_count` increments on every fetch of a *published* post via `GET /api/blog/posts/:slug` (fire-and-forget, not awaited into the response) — there's no session/cookie-based unique-visitor tracking anywhere in this app, so this is a "good enough for a Popular-articles sidebar" count, not real analytics; `GET /api/blog/posts/popular` ranks on it.
+
+Body HTML is user-authored rich text (TipTap, in `applications/taskfusion/src/components/BlogEditor.js`) rendered via `dangerouslySetInnerHTML` to anonymous public visitors — sanitized server-side on every write (create *and* update, not just intake) via an allowlist (`sanitize-html`, see `lib/sanitize.js`) that excludes `style`, `javascript:`/`data:` URI schemes, and restricts `img[src]` to same-origin `/api/assets/blog/...` paths only (see the asset-service section above). Two policy defaults: a post's `slug` is only editable while it's a draft (changing it after publish breaks shared/indexed links), and `DELETE` only works on drafts (a published post must be unpublished first).
