@@ -91,6 +91,15 @@
       "movingToReview": "Moving to review…",
       "moveToReviewError": "Couldn't move to review: {{error}}"
     },
+    "workTimer": {
+      "title": "Work timer",
+      "start": "Start",
+      "starting": "Starting…",
+      "pause": "Pause",
+      "resume": "Resume",
+      "stop": "Stop",
+      "actionError": "Couldn't update timer: {{error}}"
+    },
     "reviewer": {
       "analystResults": "Analyst's results",
       "reassignReviewer": "Reassign reviewer",
