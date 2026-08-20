@@ -169,4 +169,41 @@ router.delete('/posts/:id', requireAnyRealmRole('platform:marketing', 'platform:
   res.status(204).end();
 });
 
+// Public — forwards to Listmonk's own public subscription API
+// server-side, so the browser never talks to that container directly
+// (no CORS setup needed there) and the list UUID stays out of the
+// frontend bundle. LISTMONK_PUBLIC_LIST_UUID is a one-time manual step
+// (create the public list in the Listmonk admin UI, paste its UUID into
+// .env) — until that's done this responds 503 rather than pretending
+// to succeed.
+router.post('/subscribe', async (req, res) => {
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ message: 'A valid email is required' });
+  }
+
+  const listUuid = process.env.LISTMONK_PUBLIC_LIST_UUID;
+  if (!listUuid) {
+    return res.status(503).json({ message: 'Newsletter signup is not configured yet' });
+  }
+
+  let listmonkRes;
+  try {
+    listmonkRes = await fetch(`${process.env.LISTMONK_URL}/api/public/subscription`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, list_uuids: [listUuid] }),
+    });
+  } catch {
+    return res.status(502).json({ message: 'Could not reach the newsletter service' });
+  }
+
+  // Listmonk 200s a re-subscribe of an already-subscribed address too —
+  // both count as success from the visitor's point of view.
+  if (!listmonkRes.ok) {
+    return res.status(502).json({ message: 'Could not reach the newsletter service' });
+  }
+  res.status(204).end();
+});
+
 module.exports = router;

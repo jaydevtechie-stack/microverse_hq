@@ -8,11 +8,8 @@ import { BlogHeader, TagChip, TagBadge, shortDate } from '../components/BlogChro
 import Footer from '../components/Footer';
 import { colorForTag } from '../utils/tagColor';
 
-// Static — no events feature or newsletter/subscribe pipeline exists
-// anywhere in this app yet (the latter's real version is a separate,
-// planned Listmonk integration). Visual-only, matching the mock-up
-// exactly: the input/button below are plain styled elements, not a real
-// form — no onSubmit, nothing to wire up yet.
+// Static — no events feature exists anywhere in this app yet.
+// Visual-only, matching the mock-up exactly: nothing to wire up here.
 const EventsWidget = () => {
   const { t } = useTranslation('blog');
   return (
@@ -33,31 +30,77 @@ const EventsWidget = () => {
   );
 };
 
+// Backed by blog-service's POST /subscribe, which itself forwards to a
+// self-hosted Listmonk (docker-compose.yml's microverse-listmonk) — see
+// that route's comment for why the browser never calls Listmonk
+// directly. Same visual shape as the mock-up, now a real controlled
+// form instead of styled placeholder elements.
 const NewsletterWidget = () => {
   const { t } = useTranslation('blog');
+  const [email, setEmail] = useState('');
+  const [status, setStatus] = useState('idle'); // idle | loading | success | error
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setStatus('loading');
+    fetch('/api/blog/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error();
+        setStatus('success');
+      })
+      .catch(() => setStatus('error'));
+  };
+
+  if (status === 'success') {
+    return (
+      <div style={{ background: 'var(--mv-color-primary)', borderRadius: 8, padding: 16, marginTop: 16 }}>
+        <p style={{ color: 'var(--mv-color-primary-contrast)', fontSize: 13, fontWeight: 500, margin: 0 }}>
+          {t('list.sidebar.newsletterSuccess')}
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ background: 'var(--mv-color-primary)', borderRadius: 8, padding: 16, marginTop: 16 }}>
+    <form
+      onSubmit={handleSubmit}
+      style={{ background: 'var(--mv-color-primary)', borderRadius: 8, padding: 16, marginTop: 16 }}
+    >
       <p style={{ color: 'var(--mv-color-primary-contrast)', fontSize: 14, fontWeight: 500, margin: '0 0 4px' }}>
         {t('list.sidebar.newsletterTitle')}
       </p>
       <p style={{ color: 'var(--mv-color-primary-contrast)', fontSize: 12, margin: '0 0 12px', opacity: 0.85 }}>
         {t('list.sidebar.newsletterBody')}
       </p>
-      <div
+      <input
+        type="email"
+        required
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder={t('list.sidebar.newsletterPlaceholder')}
         style={{
+          display: 'block',
+          width: '100%',
+          boxSizing: 'border-box',
           background: 'var(--mv-bg)',
+          border: 'none',
           borderRadius: 6,
           padding: '9px 12px',
-          color: 'var(--mv-text-muted)',
+          color: 'var(--mv-text)',
           fontSize: 13,
           marginBottom: 8,
         }}
-      >
-        {t('list.sidebar.newsletterPlaceholder')}
-      </div>
-      <span
+      />
+      <button
+        type="submit"
+        disabled={status === 'loading'}
         style={{
           display: 'block',
+          width: '100%',
           textAlign: 'center',
           background: 'var(--mv-text)',
           color: 'var(--mv-bg)',
@@ -65,11 +108,18 @@ const NewsletterWidget = () => {
           fontWeight: 500,
           padding: '9px 0',
           borderRadius: 6,
+          border: 'none',
+          cursor: status === 'loading' ? 'default' : 'pointer',
         }}
       >
-        {t('list.sidebar.newsletterSubscribe')}
-      </span>
-    </div>
+        {status === 'loading' ? t('list.sidebar.newsletterSubscribing') : t('list.sidebar.newsletterSubscribe')}
+      </button>
+      {status === 'error' && (
+        <p style={{ color: 'var(--mv-color-primary-contrast)', fontSize: 11, margin: '8px 0 0' }}>
+          {t('list.sidebar.newsletterError')}
+        </p>
+      )}
+    </form>
   );
 };
 
@@ -211,6 +261,9 @@ const BlogListPage = () => {
                 </div>
               </div>
             )}
+
+            <EventsWidget />
+            <NewsletterWidget />
           </div>
         </div>
       </div>

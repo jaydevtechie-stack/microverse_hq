@@ -397,6 +397,68 @@ services:
     environment:
       PORT: 4003
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@microverse-postgis:5432/${POSTGRES_DB}
+      # POST /blog/subscribe forwards to Listmonk's own public
+      # subscription API server-side — the browser never calls Listmonk
+      # directly, so no CORS setup is needed on its end. The list UUID
+      # is a one-time manual step: create the public list in the
+      # Listmonk admin UI (listmonk.microverse.local) after first boot,
+      # then paste its UUID into .env and restart this service.
+      LISTMONK_URL: http://microverse-listmonk:9000
+      LISTMONK_PUBLIC_LIST_UUID: ${LISTMONK_PUBLIC_LIST_UUID}
+    depends_on:
+      - microverse-postgis
+      - microverse-listmonk
+    networks:
+      - microverse-network
+
+
+  # Self-hosted newsletter — backs the blog's "Get new posts by email"
+  # sidebar widget (BlogListPage.js). Only blog-service talks to it from
+  # application code; this container's own admin UI (managing lists,
+  # campaigns, subscribers by hand) is reachable directly at
+  # listmonk.microverse.local, same "own subdomain, dev-only" treatment
+  # as mailhog.
+  #
+  # Two things only exist as one-time manual setup on a fresh install,
+  # not as anything env-configurable here — Listmonk's env/config.toml
+  # only covers db/app, everything else (SMTP, from-address, etc.) lives
+  # exclusively in its own runtime settings table, edited via the admin
+  # UI or PUT /api/settings:
+  #   1. LISTMONK_PUBLIC_LIST_UUID (below) — create a public list in the
+  #      admin UI, paste its UUID into .env, restart blog-service.
+  #   2. Settings > SMTP — point a server entry at microverse-mailhog:1025,
+  #      auth protocol "none", TLS type "none", enabled — and set
+  #      Settings > General > "From email" to
+  #      no-reply@microverse.local, same no-reply convention as
+  #      email-service's own From header — otherwise campaigns fail
+  #      silently against the shipped smtp.yoursite.com placeholder.
+  microverse-listmonk:
+    profiles: ["gofeeler", "listmonk"]
+    image: listmonk/listmonk:latest
+    container_name: microverse-listmonk
+    # Official image ships with no schema until `--install` runs once;
+    # `--idempotent` makes it safe to re-run on every container start
+    # instead of only on a brand-new volume, and `--upgrade` covers
+    # picking up a newer image against an already-installed database.
+    # `--config ''` forces config from environment variables only (no
+    # config.toml baked into the image).
+    command:
+      - sh
+      - -c
+      - "./listmonk --install --idempotent --yes --config '' && ./listmonk --upgrade --yes --config '' && ./listmonk --config ''"
+    environment:
+      TZ: Etc/UTC
+      LISTMONK_app__address: 0.0.0.0:9000
+      LISTMONK_db__host: microverse-postgis
+      LISTMONK_db__port: 5432
+      LISTMONK_db__user: ${POSTGRES_USER}
+      LISTMONK_db__password: ${POSTGRES_PASSWORD}
+      LISTMONK_db__database: listmonk
+      LISTMONK_db__ssl_mode: disable
+      # Bootstraps the first admin login on --install; blank on later
+      # runs is a no-op since the database is already installed.
+      LISTMONK_ADMIN_USER: ${LISTMONK_ADMIN_USER}
+      LISTMONK_ADMIN_PASSWORD: ${LISTMONK_ADMIN_PASSWORD}
     depends_on:
       - microverse-postgis
     networks:
