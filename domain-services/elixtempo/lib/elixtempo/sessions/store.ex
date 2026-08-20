@@ -105,6 +105,34 @@ defmodule ElixTempo.Sessions.Store do
     end)
   end
 
+  @doc """
+  Per-quest worked seconds for an analyst, summed only over stopped
+  sessions — a still-running/paused session isn't "worked" yet for
+  payout purposes. `from`/`to` (DateTime or nil) bound on when a
+  session was stopped (its updated_at), not when it started.
+  """
+  def hours_for(analyst_id, from, to) do
+    %Postgrex.Result{rows: rows} =
+      Postgrex.query!(
+        @name,
+        """
+        SELECT quest_id, SUM(accumulated_seconds)::bigint, COUNT(*)::bigint
+        FROM elixtempo.sessions
+        WHERE analyst_id = $1
+          AND status = 'stopped'
+          AND ($2::timestamptz IS NULL OR updated_at >= $2)
+          AND ($3::timestamptz IS NULL OR updated_at <= $3)
+        GROUP BY quest_id
+        ORDER BY quest_id
+        """,
+        [analyst_id, from, to]
+      )
+
+    Enum.map(rows, fn [quest_id, seconds, session_count] ->
+      %{quest_id: quest_id, seconds: seconds, session_count: session_count}
+    end)
+  end
+
   defp connection_opts do
     url = System.get_env("DATABASE_URL") || "postgres://postgres:postgres@localhost:5432/microverse"
     uri = URI.parse(url)

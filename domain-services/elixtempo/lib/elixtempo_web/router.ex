@@ -16,5 +16,7 @@ defmodule ElixTempoWeb.Router do
     post "/sessions/:id/pause", SessionController, :pause
     post "/sessions/:id/resume", SessionController, :resume
     post "/sessions/:id/stop", SessionController, :stop
+
+    get "/analysts/:analyst_id/hours", HoursController, :index
   end
 end

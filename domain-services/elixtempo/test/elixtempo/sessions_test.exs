@@ -132,6 +132,84 @@ defmodule ElixTempo.SessionsTest do
     assert Sessions.get_session(id) == {:error, :not_found}
   end
 
+  defp seed_stopped(analyst_id, quest_id, seconds) do
+    Store.upsert(%{
+      id: Uniq.UUID.uuid4(),
+      analyst_id: analyst_id,
+      quest_id: quest_id,
+      status: :stopped,
+      accumulated_seconds: seconds,
+      running_since: nil
+    })
+  end
+
+  defp seed_running(analyst_id, quest_id, seconds) do
+    Store.upsert(%{
+      id: Uniq.UUID.uuid4(),
+      analyst_id: analyst_id,
+      quest_id: quest_id,
+      status: :running,
+      accumulated_seconds: seconds,
+      running_since: DateTime.utc_now()
+    })
+  end
+
+  defp cleanup_analyst(analyst_id) do
+    Postgrex.query(Store, "DELETE FROM elixtempo.sessions WHERE analyst_id = $1", [analyst_id])
+  end
+
+  test "hours_for sums only stopped sessions, grouped by quest" do
+    analyst = "analyst-hours-#{Uniq.UUID.uuid4()}"
+    on_exit(fn -> cleanup_analyst(analyst) end)
+
+    seed_stopped(analyst, "quest-x", 3600)
+    seed_stopped(analyst, "quest-x", 1800)
+    seed_stopped(analyst, "quest-y", 900)
+    # running — should be excluded, not "worked" yet for payout purposes
+    seed_running(analyst, "quest-z", 100)
+
+    result = Sessions.hours_for(analyst)
+
+    assert result.analyst_id == analyst
+    assert result.total_seconds == 6300
+    assert result.session_count == 3
+
+    assert Enum.sort(result.by_quest) ==
+             Enum.sort([
+               %{quest_id: "quest-x", seconds: 5400, session_count: 2},
+               %{quest_id: "quest-y", seconds: 900, session_count: 1}
+             ])
+  end
+
+  test "hours_for respects from/to bounds on when a session stopped" do
+    analyst = "analyst-hours-range-#{Uniq.UUID.uuid4()}"
+    on_exit(fn -> cleanup_analyst(analyst) end)
+
+    old_id = Uniq.UUID.uuid4()
+
+    Store.upsert(%{
+      id: old_id,
+      analyst_id: analyst,
+      quest_id: "q",
+      status: :stopped,
+      accumulated_seconds: 1000,
+      running_since: nil
+    })
+
+    Postgrex.query!(
+      Store,
+      "UPDATE elixtempo.sessions SET updated_at = now() - interval '10 days' WHERE id = $1",
+      [old_id]
+    )
+
+    seed_stopped(analyst, "q", 2000)
+
+    assert Sessions.hours_for(analyst).total_seconds == 3000
+
+    recent_only = Sessions.hours_for(analyst, from: DateTime.add(DateTime.utc_now(), -1, :day))
+    assert recent_only.total_seconds == 2000
+  end
+
   test "get_session on an unknown id returns not_found" do
     assert Sessions.get_session(Uniq.UUID.uuid4()) == {:error, :not_found}
   end

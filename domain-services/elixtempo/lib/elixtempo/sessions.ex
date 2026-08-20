@@ -43,6 +43,27 @@ defmodule ElixTempo.Sessions do
     end
   end
 
+  @doc """
+  Aggregate worked hours for an analyst — stopped sessions only,
+  grouped by quest_id, plus a running total. This is Phase 3's query
+  surface: what Payouts' "hourly off elixtempo's tracked time" basis
+  reads. `opts` takes `:from`/`:to` (DateTime or nil) to bound on when
+  a session stopped.
+  """
+  def hours_for(analyst_id, opts \\ []) do
+    from = Keyword.get(opts, :from)
+    to = Keyword.get(opts, :to)
+
+    by_quest = Store.hours_for(analyst_id, from, to)
+
+    %{
+      analyst_id: analyst_id,
+      total_seconds: Enum.reduce(by_quest, 0, &(&1.seconds + &2)),
+      session_count: Enum.reduce(by_quest, 0, &(&1.session_count + &2)),
+      by_quest: by_quest
+    }
+  end
+
   def start_session(analyst_id, quest_id) do
     id = Uniq.UUID.uuid4()
 
