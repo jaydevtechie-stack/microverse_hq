@@ -2,13 +2,14 @@
 import React, { useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { IconBell, IconSun, IconMoon, IconMenu2, IconX, IconUser, IconLogout } from '@tabler/icons-react';
+import { IconSun, IconMoon, IconMenu2, IconX, IconUser, IconLogout } from '@tabler/icons-react';
 import { logout, landingUrl, hostUrlForSubdomain, isOnMicrosite } from '../services/keycloak';
 import { useTheme } from '../context/ThemeContext';
 import { avatarColorsForKeycloak } from '../utils/avatarColors';
 import useIsMobile from '../hooks/useIsMobile';
 import useClickOutside from '../hooks/useClickOutside';
 import NavSearch from './NavSearch';
+import NotificationBell from './NotificationBell';
 
 function initialsFor(keycloak) {
   const claims = keycloak.tokenParsed || {};
@@ -105,6 +106,13 @@ const Navbar = ({ keycloak }) => {
           <PlatformNavLink to="/pm/delivery-team/analysts" active={pathname.startsWith('/pm/delivery-team')}>
             {t('deliveryTeam')}
           </PlatformNavLink>
+          {/* Branch 9 — shared with account-manager below (BillsPage.js,
+              one route/one page, not /pm/billing — see
+              docs/architecture/1.0/nav-config.json's Bills entry). PM
+              creates bills here; publishing them is the AM's action. */}
+          <PlatformNavLink to="/billing" active={pathname === '/billing'}>
+            {t('bills')}
+          </PlatformNavLink>
         </>
       )}
 
@@ -115,7 +123,14 @@ const Navbar = ({ keycloak }) => {
           <PlatformNavLink to="/projects/manage" active={pathname === '/projects/manage'}>
             {t('accounts')}
           </PlatformNavLink>
-          <PlatformNavLink to="/am/billing" active={pathname === '/am/billing'}>
+          {/* Branch 9 — replaces the old /am/billing placeholder
+              (AmBillingPage, never shipped real content) entirely; now
+              points at the real BillsPage.js, shared with
+              project-manager above. Deliberately unscoped — every bill
+              across every service, matching AM's other unscoped views —
+              unlike this role's other ownership-scoped pages (6.2.5).
+              Where the AM actually publishes a bill a PM created. */}
+          <PlatformNavLink to="/billing" active={pathname === '/billing'}>
             {t('billing')}
           </PlatformNavLink>
         </>
@@ -350,7 +365,7 @@ const Navbar = ({ keycloak }) => {
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginLeft: 'auto' }}>
               <NavSearch />
               {themeToggleButton}
-              <IconBell size={16} color="var(--mv-text-muted)" aria-hidden="true" />
+              <NotificationBell keycloak={keycloak} />
               {avatarMenu}
             </div>
           </div>
@@ -390,7 +405,7 @@ const Navbar = ({ keycloak }) => {
           >
             <NavSearch />
             {themeToggleButton}
-            <IconBell size={16} color="var(--mv-text-muted)" aria-hidden="true" />
+            <NotificationBell keycloak={keycloak} />
             {avatarChip}
             <span style={{ color: 'var(--mv-text-muted)', fontSize: 13 }}>
               {keycloak.tokenParsed.preferred_username}

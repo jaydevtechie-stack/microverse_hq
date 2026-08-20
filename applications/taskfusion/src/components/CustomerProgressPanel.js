@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IconCheck, IconLock } from '@tabler/icons-react';
+import { authHeaders } from '../services/keycloak';
 
 const STEP_KEYS = ['submitted', 'analysed', 'reviewed', 'paid'];
 
@@ -16,6 +17,81 @@ const CustomerProgressPanel = ({ task }) => {
   const { t } = useTranslation('gofeeler');
   const done = completedCount(task.status);
   const unlocked = task.status === 'paid' || task.status === 'closed';
+  const [working, setWorking] = useState(false);
+  const [error, setError] = useState(null);
+
+  // "View invoice" — creates a Stripe Checkout Session for this task's
+  // bill and redirects the browser there. Always a fresh session, no
+  // reuse of a prior unpaid one — re-clicking after abandoning checkout
+  // just mints another (Stripe sessions expire on their own). A 404 here
+  // means the PM hasn't created the bill yet (CreateBillPanel.js) — surfaced
+  // as a distinct message rather than a generic error.
+  const payInvoice = async () => {
+    setWorking(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/billing/bills/by-task/${task.id}/checkout-session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      });
+      const body = await res.json();
+      if (res.status === 404) throw new Error(t('panels.customerProgress.notYetInvoiced'));
+      if (!res.ok) throw new Error(body.message || `rustledger returned ${res.status}`);
+      window.location.href = body.url;
+      // No setWorking(false) on the success path — the browser is
+      // navigating away to Stripe, so there's no more UI here to
+      // un-disable. Only the error path resets it (contrast
+      // downloadResults below, which stays on the page on success and
+      // resets in a finally).
+    } catch (err) {
+      setError(err.message);
+      setWorking(false);
+    }
+  };
+
+  // "Download results" — lists the task's files (asset-service, same
+  // endpoint TaskFilesList.js reads) then resolves + opens each one's
+  // presigned download-url. asset-service itself re-checks status ===
+  // paid/closed server-side (api.rs's download_url) — this call would
+  // 403 if it somehow ran before that were true.
+  //
+  // Resolves every file's URL in parallel first (Promise.all), then opens
+  // them all in one synchronous burst — not one fetch-then-open per file
+  // in sequence. Besides being slower (N round trips instead of one
+  // parallel wait), a window.open() call after an intervening await loses
+  // the original click's "user gesture" context, so browsers' popup
+  // blockers let the first one through and silently block the rest.
+  // Opening them back to back with no await in between, right after the
+  // one Promise.all, is the standard mitigation (not a full guarantee on
+  // every browser, but far better than one-open-per-await).
+  const downloadResults = async () => {
+    setWorking(true);
+    setError(null);
+    try {
+      const listRes = await fetch(`/api/assets/${task.id}?service=${task.service}`, { headers: authHeaders() });
+      const files = await listRes.json();
+      if (!listRes.ok) throw new Error(files.message || `asset-service returned ${listRes.status}`);
+      if (files.length === 0) throw new Error(t('panels.customerProgress.noFiles'));
+
+      const urls = await Promise.all(
+        files.map(async (file) => {
+          const urlRes = await fetch(
+            `/api/assets/${task.id}/download-url?filename=${encodeURIComponent(file.filename)}&service=${task.service}`,
+            { headers: authHeaders() }
+          );
+          const urlBody = await urlRes.json();
+          if (!urlRes.ok) throw new Error(urlBody.message || `asset-service returned ${urlRes.status}`);
+          return urlBody.download_url;
+        })
+      );
+
+      urls.forEach((url) => window.open(url, '_blank', 'noopener,noreferrer'));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setWorking(false);
+    }
+  };
 
   return (
     <div>
@@ -75,6 +151,8 @@ const CustomerProgressPanel = ({ task }) => {
 
       <button
         type="button"
+        onClick={unlocked ? downloadResults : payInvoice}
+        disabled={working}
         style={{
           width: '100%',
           padding: '10px 0',
@@ -84,11 +162,20 @@ const CustomerProgressPanel = ({ task }) => {
           fontSize: 13,
           border: 'none',
           borderRadius: 8,
-          cursor: 'pointer',
+          cursor: working ? 'default' : 'pointer',
+          opacity: working ? 0.6 : 1,
         }}
       >
-        {unlocked ? t('panels.customerProgress.downloadResults') : t('panels.customerProgress.viewInvoice')}
+        {working
+          ? t('panels.customerProgress.working')
+          : unlocked
+            ? t('panels.customerProgress.downloadResults')
+            : t('panels.customerProgress.viewInvoice')}
       </button>
+
+      {error && (
+        <p style={{ color: 'var(--mv-color-danger)', fontSize: 12, margin: '8px 0 0' }}>{error}</p>
+      )}
     </div>
   );
 };

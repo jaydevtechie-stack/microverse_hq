@@ -1,6 +1,9 @@
 package config
 
-import "os"
+import (
+	"os"
+	"strings"
+)
 
 type Config struct {
 	Port            string
@@ -9,6 +12,7 @@ type Config struct {
 	OpenAIAPIKey    string
 	LLMModel        string
 	AssetServiceURL string
+	KafkaBrokers    []string
 }
 
 func Load() Config {
@@ -19,6 +23,7 @@ func Load() Config {
 		OpenAIAPIKey:    os.Getenv("OPENAI_API_KEY"),
 		LLMModel:        getEnv("GOFEELER_LLM_MODEL", "gpt-4o-mini"),
 		AssetServiceURL: getEnv("ASSET_SERVICE_URL", "http://microverse-asset-service:8080"),
+		KafkaBrokers:    strings.Split(getEnv("KAFKA_BROKERS", "microverse-kafka:9092"), ","),
 	}
 }
 

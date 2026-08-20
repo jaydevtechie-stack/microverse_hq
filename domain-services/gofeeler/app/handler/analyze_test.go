@@ -32,7 +32,7 @@ func newTestRouter(engines map[string]engine.SentimentEngine) *gin.Engine {
 
 func newTestRouterWithAssets(engines map[string]engine.SentimentEngine, assets *assetclient.Client) *gin.Engine {
 	gin.SetMode(gin.TestMode)
-	h := NewSentimentHandler(engines, nil, assets)
+	h := NewSentimentHandler(engines, nil, assets, nil)
 	r := gin.New()
 	r.POST("/analyze", h.AnalyzeSentiment)
 	return r

@@ -4,7 +4,7 @@ import { IconLink, IconMail, IconPencil, IconShare2 } from '@tabler/icons-react'
 import { getKeycloak, authHeaders } from '../services/keycloak';
 import TaskStatusBadge from './TaskStatusBadge';
 import PmAssignPanel from './PmAssignPanel';
-import PmBillPanel from './PmBillPanel';
+import CreateBillPanel from './CreateBillPanel';
 import AnalysisPanel from './AnalysisPanel';
 import ReviewerPanel from './ReviewerPanel';
 import CustomerProgressPanel from './CustomerProgressPanel';
@@ -43,7 +43,7 @@ function actionPanelFor({ task, isPM, isAnalyst, isReviewer, isCustomer, usernam
     return <PmAssignPanel task={task} onAssigned={onTaskUpdated} />;
   }
   if (isPM && task.status === 'done' && task.owner === username) {
-    return <PmBillPanel />;
+    return <CreateBillPanel task={task} onBilled={onTaskUpdated} />;
   }
   if (isAnalyst && task.status === 'analyst' && task.assignee === username) {
     return <AnalysisPanel task={task} onTaskUpdated={onTaskUpdated} />;
@@ -110,8 +110,9 @@ const ShareIconGroup = ({ task }) => {
   );
 };
 
-// The task info + role-specific action panel — shared by the standalone
-// TaskDetailPage and GofeelerSplitView's embedded detail panel.
+// The task info + role-specific action panel — rendered inside
+// GofeelerSplitView's embedded detail panel (the only place /task/:id
+// renders now, on every host — see App.js).
 const TaskDetailContent = ({ id }) => {
   const { t } = useTranslation('gofeeler');
   const keycloak = getKeycloak();

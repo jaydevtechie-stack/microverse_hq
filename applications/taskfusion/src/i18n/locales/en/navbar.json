@@ -5,6 +5,7 @@
   "orders": "Orders",
   "deliveryTeam": "Delivery team",
   "billing": "Billing",
+  "bills": "Bills",
   "admin": "Admin",
   "myProfile": "My Profile",
   "logout": "Logout",
@@ -13,5 +14,11 @@
   "switchToDarkTheme": "Switch to dark theme",
   "accountMenu": "Account menu",
   "openMenu": "Open menu",
-  "closeMenu": "Close menu"
+  "closeMenu": "Close menu",
+  "notifications.ariaLabel": "Notifications",
+  "notifications.empty": "No notifications yet",
+  "notifications.unreadAriaLabel": "{{count}} unread notifications",
+  "notifications.title": "Notifications",
+  "notifications.close": "Close notifications",
+  "notifications.markAllRead": "Mark all as read"
 }

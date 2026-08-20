@@ -13,7 +13,6 @@ import Dashboard from './pages/Dashboard';  // Example protected page
 import AccountsViewPage from './pages/AccountsViewPage';
 import GofeelerSplitView from './pages/GofeelerSplitView';
 import CreateOrderPage from './pages/CreateOrderPage';
-import TaskDetailPage from './pages/TaskDetailPage';
 import AdminPage from './pages/AdminPage';
 import ProjectHubPage from './pages/ProjectHubPage';
 import MyProfilePage from './pages/MyProfilePage';
@@ -22,7 +21,7 @@ import InactiveUserScrim from './components/InactiveUserScrim';
 import PmOrdersPage from './pages/PmOrdersPage';
 import DeliveryTeamPage from './pages/DeliveryTeamPage';
 import AccountsManagePage from './pages/AccountsManagePage';
-import AmBillingPage from './pages/AmBillingPage';
+import BillsPage from './pages/BillsPage';
 import SearchResultsPage from './pages/SearchResultsPage';
 
 // microverse.local carries everything platform-side (landing page,
@@ -260,18 +259,29 @@ const App = () => {
                 />
               }
             />
+            {/* Shared route, deliberately not /pm/billing or /am/billing —
+                rustledger's GET /api/billing/bills already scopes the
+                response by the caller's role (a PM's own bills vs. AM's
+                every bill), so one page/one path covers both instead of
+                two near-identical routes. Replaces the old /am/billing
+                placeholder (AmBillingPage) entirely — that stub never
+                shipped real content, this is the real page. */}
             <Route
-              path="/am/billing"
+              path="/billing"
               element={
-                <PrivateRoute element={<AmBillingPage />} keycloak={keycloak} roles={['platform:account-manager']} />
+                <PrivateRoute
+                  element={<BillsPage />}
+                  keycloak={keycloak}
+                  roles={['platform:project-manager', 'platform:account-manager', 'platform:admin']}
+                />
               }
             />
 
-            {/* On the gofeeler microsite, /create and /task/:id render
-                inside the same split-view shell as "/" (a panel next to
-                the list, not a whole new page) — elsewhere they're
-                standalone full pages, e.g. CustomerPage's "+ New order"
-                link on the platform host */}
+            {/* On the gofeeler microsite, /create renders inside the same
+                split-view shell as "/" (a panel next to the list, not a
+                whole new page) — elsewhere it's a standalone full page,
+                e.g. CustomerPage's "+ New order" link on the platform
+                host */}
             <Route
               path="/create"
               element={
@@ -283,19 +293,17 @@ const App = () => {
               }
             />
 
-            {/* Only gofeeler tasks exist right now, so this is gated the
-                same as the gofeeler task list itself — will need to key
-                off the fetched task's own `service` field once other
-                domain services have tasks too */}
+            {/* Always the split view (list + detail), regardless of host
+                or how the viewer arrived — a notification, an email
+                link, or a bookmark should land the same as clicking a
+                row from the list itself, not a bare detail panel with no
+                list beside it. Only gofeeler tasks exist right now, so
+                this is gated the same as the gofeeler task list itself —
+                will need to key off the fetched task's own `service`
+                field once other domain services have tasks too. */}
             <Route
               path="/task/:id"
-              element={
-                <PrivateRoute
-                  element={isGofeelerHost ? <GofeelerSplitView /> : <TaskDetailPage />}
-                  keycloak={keycloak}
-                  roles={['service:gofeeler']}
-                />
-              }
+              element={<PrivateRoute element={<GofeelerSplitView />} keycloak={keycloak} roles={['service:gofeeler']} />}
             />
           </Routes>
         </div>

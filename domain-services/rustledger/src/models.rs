@@ -36,3 +36,33 @@ pub struct AnalystTotal {
     pub total_cents: i64,
     pub currency: String,
 }
+
+#[derive(Debug, Serialize, sqlx::FromRow)]
+pub struct Bill {
+    pub id: Uuid,
+    pub task_id: Uuid,
+    pub customer_id: Uuid,
+    pub amount_cents: i64,
+    pub currency: String,
+    pub status: String,
+    pub stripe_checkout_session_id: Option<String>,
+    pub stripe_payment_intent_id: Option<String>,
+    pub created_at: DateTime<Utc>,
+    // The creating PM's Keycloak subject (claims.sub(), same stable-id
+    // convention customer_id already uses) — scopes a PM's own view of
+    // GET /api/billing/bills (api.rs's list_bills) without a task-service
+    // round trip per bill. A UUID, not email/username: both can change
+    // (Keycloak email updates, a username migration) and would silently
+    // orphan old bills from a PM's own view if used instead. Nullable
+    // since it's a later addition (see db.rs's ALTER) and an admin-
+    // created bill may have no sub claim.
+    pub created_by_id: Option<Uuid>,
+    // NULL = still a draft, invisible/unpayable to the customer (api.rs's
+    // fetch_authorized_bill gates on this). Set by publish_bill — the
+    // account manager's explicit "release this to the customer" action,
+    // distinct from create_bill (a PM action). Moved from PM to AM after
+    // this branch's first pass — see docs/roadmap/1.0/domain-services.md's
+    // Branch 9 for why.
+    pub published_at: Option<DateTime<Utc>>,
+    pub paid_at: Option<DateTime<Utc>>,
+}

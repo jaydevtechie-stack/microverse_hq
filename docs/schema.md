@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS tasks (
 CREATE INDEX IF NOT EXISTS idx_tasks_tags ON tasks USING GIN (tags);
 ```
 
-**`assigned_at` — set once, on assignment, not a general status-transition log.** Scout's recommendation query (`models/scout.js`) uses it as a proxy for analyst availability: no active task → fully available; among analysts with one, the longer since `assigned_at`, the more available they're assumed to be. This is explicitly a starting signal, not real response-time measurement — there's no `completed_at` or first-action timestamp anywhere yet to compute that from. Real response-time tracking is Branch 8's job (event-bus-driven audit log).
+**`assigned_at` — set once, on assignment, not a general status-transition log.** Scout's recommendation query (`models/scout.js`) uses it as a proxy for analyst availability: no active task → fully available; among analysts with one, the longer since `assigned_at`, the more available they're assumed to be. This is explicitly a starting signal, not real response-time measurement — there's no `completed_at` or first-action timestamp on `tasks` itself. Real response-time tracking is the `audit_log` table below (Branch 8) — it doesn't need a new `tasks` column, since `task.assigned`'s own Kafka event timestamp becomes the reaction-time baseline.
 
 **Tags — reconciled with the Elasticsearch `tags` index (search-service):** the two stores do different jobs, on purpose. Elasticsearch's `tags` index is the shared *vocabulary* — what exists, fuzzy-matched for autocomplete while someone's typing. `tasks.tags` stores which tag *names* are actually applied to this specific task — plain strings in a Postgres array, not a join table. A handful of short tag names per task doesn't need its own relational identity the way `task_comments` does; storing the name directly (not a numeric tag ID) also matches how ES already treats tag identity via `name.keyword` — the tag *is* its name, there's no separate ID anywhere in the design that Postgres would need to reference. The GIN index makes `tags @> ARRAY['Negative']`-style lookups cheap once you want "show me every task tagged Urgency."
 
@@ -238,9 +238,14 @@ Older versions aren't deleted — they're just not what this query returns, whic
 
 # rustledger database
 
-**PostgreSQL** — `${POSTGRES_DB}` on `microverse-postgis` (shared instance with `task-service`/`springpix`, by decision)
+**PostgreSQL** — `${POSTGRES_DB}` on `microverse-postgis` (shared instance with `task-service`/`springpix`, by decision), own `rustledger` schema namespace
 
-Not yet designed. Will need at minimum an `invoices` table and a way to consume elixtempo's `time_entry.completed` events off the Kafka scroll — see [docs/architecture/1.0/core.md](architecture/1.0/core.md)'s Kafka vs RabbitMQ section.
+Two tables, two different flows — analyst payout (existing) and customer billing (Branch 9), not opposite sides of the same one (see [docs/business/1.0/overview.md](business/1.0/overview.md)'s Payouts section on why):
+
+- `line_items` — one row per completed elixtempo tracked-work session, consumed off `elixtempo.sessions`' `session.stopped` events (`id`, `session_id` UNIQUE, `analyst_id`, `quest_id`, `elapsed_seconds`, `rate_cents_per_hour`, `amount_cents`, `currency`, `created_at`). Flat rate from `DEFAULT_HOURLY_RATE_CENTS`/`DEFAULT_CURRENCY` env vars — real per-analyst/contract rates are a follow-up. This is payout-basis groundwork only; there's no Stripe Connect disbursement yet, and no PM payout equivalent — both remain the open question flagged in Branch 9.
+- `bills` (Branch 9) — one row per customer bill, one bill per `task_id` (`UNIQUE`): `id`, `task_id`, `customer_id`, `amount_cents`, `currency`, `status` (`unpaid`/`paid`), `stripe_checkout_session_id`, `stripe_payment_intent_id`, `created_at`, `created_by_id`, `published_at`, `paid_at`. `task_id`/`customer_id`/`created_by_id` are cross-service references (task-service's `tasks.id`/`tasks.customer_id`, and the creating PM's `users.id`), not FK-enforced — same posture as `audit_log.task_id`. Amount is entered manually by the PM at bill-creation time; no price/rate field exists on `tasks`/`projects` to compute it from. `created_by_id` is the creating PM's Keycloak subject (`claims.sub()`, the same stable-id convention `customer_id` already uses) — scopes `GET /api/billing/bills` to a PM's own bills without a task-service round trip. Deliberately not email or username: either can change (a Keycloak email update, a username migration) and would silently orphan a PM's own past bills from their view if used as the scoping key instead. An AM/admin caller gets every bill instead, unscoped by design. `published_at` is `NULL` until the account manager explicitly publishes the bill (`POST /api/billing/bills/by-task/:id/publish` — a separate action and a separate role from creating it: the PM creates, the AM releases) — a draft bill is invisible and unpayable to the customer (`api.rs`'s `fetch_authorized_bill` gates on this for any non-staff caller), and publishing is what triggers `bill.published` on Kafka, notification-service's first-ever customer-facing (rather than internal-staff) notification.
+
+rustledger owns Stripe collection directly — Checkout Session creation and webhook verification (`async-stripe` crate) live in `domain-services/rustledger/src/stripe_client.rs`, alongside the ledger itself. An earlier iteration split that into a separate stateless `platform-services/billing-service` Node middleware in front of rustledger; folded back in since rustledger already owned the billing domain by name and by `line_items`. The original "Python (Stripe SDK)" spec for a standalone billing-service in [docs/architecture/1.0/platform-services.md](architecture/1.0/platform-services.md) no longer applies — that row has been removed, there is no billing-service anymore.
 
 ---
 
@@ -319,3 +324,54 @@ Doc `_id = task_id` (REFERENCES `task-service`'s `tasks.id`, cross-service refer
 **Object storage** — no schema, one shared bucket
 
 Object keys only: `{service}/{account_id}/{order_id}/{version}/{filename}`. No dedicated Postgres metadata table (stateless-first — see [docs/roadmap/1.0/platform-services.md](roadmap/1.0/platform-services.md) Proposals); relies on MinIO's native `ListObjects` prefix listing and custom object metadata headers instead.
+
+---
+
+# notification-service database
+
+**PostgreSQL** — same shared instance as `task-service`/`rustledger`/`springpix` (`microverse-postgis`), by the same decision noted at the top of this file.
+
+## notifications — ✅ live (Branch 7)
+
+```sql
+CREATE TABLE notifications (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  recipient_email  TEXT NOT NULL,
+  type             TEXT NOT NULL,   -- 'task.created' | 'task.assigned' | 'bill.published'
+  task_id          UUID NOT NULL,   -- REFERENCES task-service's tasks.id, cross-service, not FK-enforced
+  message          TEXT NOT NULL,
+  read             BOOLEAN NOT NULL DEFAULT false,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+Keyed by `recipient_email`, not a `users.id` FK — matches `task-service.tasks.assignee`'s own "Keycloak usernames stand in" MVP posture, and lets both the WebSocket handshake and the REST reads key off the same unverified JWT `email` claim without notification-service needing a `users` lookup of its own for the common case, for `task.created`/`task.assigned`. `bill.published` (Branch 9) is the exception — the first customer-facing (not internal-staff) trigger, off rustledger's own `rustledger.bills` topic rather than `task-service.tasks`, and the only case where notification-service needs a `users.id → email` lookup (`models/recipients.js`'s `emailForUserId`, since the event only carries `customer_id`). See [docs/roadmap/1.0/domain-services.md](roadmap/1.0/domain-services.md)'s Branch 7 for how rows get created (now a second consumer group across *two* topics) and read (`GET`/`PATCH /notifications`, both scoped to the caller's own `recipient_email`).
+
+---
+
+# audit-service database
+
+**PostgreSQL** — same shared instance as `task-service`/`notification-service` (`microverse-postgis`).
+
+## audit_log — ✅ live (Branch 8)
+
+```sql
+CREATE TABLE audit_log (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  task_id      UUID NOT NULL,   -- task-service tasks.id, cross-service, not FK-enforced
+  service      TEXT NOT NULL,   -- 'gofeeler' only for this PoC
+  event        TEXT NOT NULL,   -- 'task.created' | ... | 'task.no-index-changed' | 'sentiment.analyzed'
+  status       TEXT,            -- task status after this event; null for sentiment.analyzed
+  owner        TEXT,
+  assignee     TEXT,
+  duration_ms  INTEGER,         -- sentiment.analyzed only
+  occurred_at  TIMESTAMPTZ NOT NULL,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+A third independent Kafka consumer group (`audit-service-events`) on `task-service`'s existing `task-service.tasks` topic — standard fan-out, same as notification-service's own addition in Branch 7, no change needed to that topic's other consumers. Every row is written verbatim off whichever event arrives, with no diffing against a "previous" row and no extra state lookup: the event name already encodes the transition semantics (`task.assigned` is always `unassigned`→`analyst`, etc — see `task-service`'s `kafka-producer.js`), and each event already carries its own post-transition `status`/`owner`/`assignee_ids` (full snapshot). "Time-in-status" and "how fast an analyst reacts to a new assignment" are both derived at query time via `LEAD()` window functions over consecutive rows per `task_id`, not stored — the roadmap's own framing, "audit trail is built from this stream, not a separate write path."
+
+`sentiment.analyzed` — GoFeeler's own new event, published from a Kafka producer added directly to GoFeeler's Go backend (`domain-services/gofeeler/app/events/kafka.go`) — deliberately lands on a **separate** topic, `gofeeler.sentiment`, not `task-service.tasks`: `search-service`'s indexing consumer treats every message on that topic as a full task-state upsert with no event-name filtering (Branch 6.2), and a `sentiment.analyzed` payload (`task_id`/`sentiment`/`confidence`/`engine_used`/`duration_ms`/`analyzed_at`) shares none of `taskToEvent`'s fields — landing it there would blank real Elasticsearch documents on the next re-index. `audit-service` subscribes to both topics from the same consumer group, dispatching on Kafka's `topic` field per message. `duration_ms` is GoFeeler's own processing-time efficiency metric, measured at the source (wrapping the existing `eng.Analyze` call) rather than inferred later from two separate events — this is also how Branch 8's open question ("does the analyze step need its own persisted task status?") got resolved: no, the frontend's loading state stays UI-only, and the real timing lives on this event instead.
+
+`GET /audit/events` (recent activity feed, newest first, `?limit=`), `GET /audit/tasks/:taskId` (timeline), `GET /audit/metrics/processing-time`, `GET /audit/metrics/reaction-time` — all gated `platform:admin` OR `platform:project-manager` (see roadmap's 4.3 resolution, which already earmarked the eventual audit log as Admin's cross-account visibility tool). Backend shipped first as an explicit documented gap (no frontend); the gap is now closed by `AdminAuditLogPage.js`, filling in the `/admin/audit-log` Subnav tab [nav-config.json](architecture/1.0/nav-config.json) already reserved for it — metric cards (processing/reaction time) above a list+detail `SplitView` (`/audit/events` list, drilling into `/audit/tasks/:taskId`'s timeline on click). See [docs/roadmap/1.0/domain-services.md](roadmap/1.0/domain-services.md)'s Branch 8 and its Proposals entry.

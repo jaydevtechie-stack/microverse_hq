@@ -279,10 +279,15 @@ services:
       # container-to-container URL, not the public storage.microverse.local
       # host (see asset-service's own S3_ENDPOINT comment above for why).
       ASSET_SERVICE_URL: http://microverse-asset-service:8080
+      # Branch 8: sentiment.analyzed publisher (events/kafka.go) — its own
+      # topic, not task-service.tasks (see docs/schema.md's audit-service
+      # section for why).
+      KAFKA_BROKERS: microverse-kafka:9092
     depends_on:
       - microverse-mongodb
       - microverse-postgis
       - microverse-asset-service
+      - microverse-kafka
     networks:
       - microverse-network
 
@@ -345,8 +350,17 @@ services:
       - microverse-network
 
 
+  # "rustledger" kept alongside "gofeeler" (Branch 9) — the customer-bill
+  # endpoints (rustledger/src/bills.rs) are now part of the core GoFeeler
+  # task flow (PM creates a bill once a task reaches 'done'), not just the
+  # standalone analyst-payout proof of concept this started as. rustledger
+  # also owns Stripe collection directly (Checkout Sessions, webhook
+  # verification) — an earlier iteration split that into a separate
+  # billing-service Node platform-service in front of rustledger, folded
+  # back in since rustledger already owned the billing domain by name and
+  # by its existing analyst-payout ledger.
   microverse-rustledger:
-    profiles: ["rustledger"]
+    profiles: ["gofeeler", "rustledger"]
     build:
       context: ./domain-services/rustledger
     container_name: microverse-rustledger
@@ -356,15 +370,23 @@ services:
       KAFKA_BROKERS: microverse-kafka:9092
       DEFAULT_HOURLY_RATE_CENTS: ${RUSTLEDGER_HOURLY_RATE_CENTS}
       DEFAULT_CURRENCY: ${RUSTLEDGER_CURRENCY}
+      TASK_SERVICE_URL: http://microverse-task-service:3000
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      # Stripe Checkout's success/cancel redirect target — the nginx host
+      # fronting taskfusion, same origin every other browser-facing link
+      # in this stack resolves to locally.
+      APP_BASE_URL: ${APP_BASE_URL}
     depends_on:
       - microverse-postgis
       - microverse-kafka
+      - microverse-task-service
     networks:
       - microverse-network
 
 
   microverse-mailhog:
-    profiles: ["mailhog"]
+    profiles: ["gofeeler", "mailhog"]
     image: mailhog/mailhog:latest
     container_name: microverse-mailhog
     networks:
@@ -372,7 +394,7 @@ services:
 
 
   microverse-email-service:
-    profiles: ["email-service"]
+    profiles: ["gofeeler", "email-service"]
     build:
       context: ./platform-services/email-service
     container_name: microverse-email-service
@@ -385,11 +407,46 @@ services:
       - microverse-network
 
 
+  # Branch 7 — Kafka-driven notification pipeline (task-service.tasks,
+  # second consumer group alongside search-service's) + its own
+  # notifications table on the shared microverse-postgis instance.
   microverse-notification-service:
-    profiles: ["notification-service"]
+    profiles: ["gofeeler", "notification-service"]
     build:
       context: ./platform-services/notification-service
     container_name: microverse-notification-service
+    environment:
+      PORT: 4001
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@microverse-postgis:5432/${POSTGRES_DB}
+      KAFKA_BROKERS: microverse-kafka:9092
+      EMAIL_SERVICE_URL: http://microverse-email-service:3000
+      # "My Emails" (Profile page) — reads back sent mail via MailHog's
+      # own search API, scoped server-side to the caller's own email.
+      MAILHOG_API_URL: http://microverse-mailhog:8025
+    depends_on:
+      - microverse-postgis
+      - microverse-kafka
+      - microverse-email-service
+      - microverse-mailhog
+    networks:
+      - microverse-network
+
+
+  microverse-audit-service:
+    profiles: ["gofeeler", "audit-service"]
+    build:
+      context: ./platform-services/audit-service
+    container_name: microverse-audit-service
+    environment:
+      PORT: 4002
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@microverse-postgis:5432/${POSTGRES_DB}
+      # Third independent consumer group on task-service.tasks (Branch 8),
+      # alongside search-service's indexer and notification-service's
+      # notifier — plus gofeeler.sentiment, gofeeler's own new topic.
+      KAFKA_BROKERS: microverse-kafka:9092
+    depends_on:
+      - microverse-postgis
+      - microverse-kafka
     networks:
       - microverse-network
 

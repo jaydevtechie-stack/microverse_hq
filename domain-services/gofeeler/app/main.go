@@ -12,6 +12,7 @@ import (
 	"gofeeler/config"
 	"gofeeler/db"
 	"gofeeler/engine"
+	"gofeeler/events"
 	"gofeeler/handler"
 	"gofeeler/provider"
 	"gofeeler/store"
@@ -46,7 +47,9 @@ func main() {
 	}
 
 	assets := assetclient.New(cfg.AssetServiceURL)
-	sentimentHandler := handler.NewSentimentHandler(engines, results, assets)
+	eventsPublisher := events.NewPublisher(cfg.KafkaBrokers)
+	defer eventsPublisher.Close()
+	sentimentHandler := handler.NewSentimentHandler(engines, results, assets, eventsPublisher)
 	templatesHandler := handler.NewTemplatesHandler(templates)
 
 	router := gin.Default()
