@@ -53,7 +53,7 @@ New surface, not covered by the general model above:
 
 ## Known gaps (explicit, not hidden)
 
-- **JWT signature verification against Keycloak's JWKS — design locked, not yet built (see Authentication above).** Already the top-priority gap for human sessions; [docs/roadmap/2.0/intelligence.md](roadmap/2.0/intelligence.md)'s Phase 5 raises the stakes further — once agents hold write access via `mcp/`, a forged token risks impersonating a write-capable agent identity, not just a mostly-read human one. Worth closing before Phase 5 ships, not after.
+- **JWT signature verification against Keycloak's JWKS — design locked, not yet built (see Authentication above).** Already the top-priority gap for human sessions; [docs/roadmap/2.0/intelligence.md](roadmap/2.0/intelligence.md)'s Branch 5 raises the stakes further — once agents hold write access via `mcp/`, a forged token risks impersonating a write-capable agent identity, not just a mostly-read human one. Worth closing before Branch 5 ships, not after.
 - **No rate limiting anywhere in the stack.** Same gap, same elevated stakes once agents are live — a bug or a leaked agent client secret can hit the pool-claim query or spam actions at machine speed and volume no human session produces. GoFeeler's advanced engine (see "GoFeeler advanced engine" above) is the first place this gap has a direct dollar cost, not just an availability one.
 - **No prompt-injection screening on GoFeeler's advanced engine** — customer-submitted text flows into an LLM prompt unchecked. See "GoFeeler advanced engine" above.
 - Elasticsearch security disabled (`xpack.security.enabled: "false"`), acceptable only while access is fully mediated by `search-service`.

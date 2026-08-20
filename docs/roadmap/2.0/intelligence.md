@@ -16,7 +16,7 @@ Resolves [docs/architecture/1.0/core.md](../../architecture/1.0/core.md)'s open 
 |---|---|---|
 | `agents/` | Runnable | Each subfolder (gis-analyst, image-analyst, planner, qa-agent, report-writer, research-agent) is a real participant in the existing Analyst/PM/Reviewer role model — not a new tier, just an agentic occupant of tiers already designed for it. |
 | `ai-tools/` | Mostly artifact | Shared capability wrappers (classification, embeddings, extraction, ocr, summarization, vision) that agents call into — a library, not independently running services, unless/until enough agents share load that it's worth its own process. |
-| `knowledge/` | Artifact | Reference corpus. Starts empty — see Phase 6. |
+| `knowledge/` | Artifact | Reference corpus. Starts empty — see Branch 6. |
 | `memory/` | Undecided | Per-task agent working state. Could be a real backing store, or could reuse `task_comments` with a new visibility value. See Open questions. |
 | `models/` | Mostly artifact | Config referencing external providers, plus decision code like `models/scout.js`. Only becomes "runnable" if something needs a self-hosted served model rather than an API call. |
 | `prompts/` | Artifact | Versioned system prompts — text, no runtime behavior of its own. |
@@ -33,7 +33,7 @@ Resolves [docs/architecture/1.0/core.md](../../architecture/1.0/core.md)'s open 
 | `qa-agent` | `platform:reviewer` | Slots directly into the existing `analyst → reviewer → done` transition — no new workflow state needed. |
 | `report-writer` | Not a role in today's model | Analyst/PM/Reviewer are the only three today. Either folds into the analyst/reviewer step's existing note-authoring, or earns its own `platform:report-writer` role later once it's doing distinct enough work. Don't force this before it's needed. |
 | `research-agent` | Not a role in today's model | Same situation as report-writer — more likely a sub-step other agents call than a Task-workflow assignee in its own right. |
-| `agent-supervisor` *(new)* | `platform:agent-supervisor` | Not one of the original six `agents/` subfolders — needs adding. Distinct from PM on purpose (see [docs/business/2.0/intelligence.md](../../business/2.0/intelligence.md)). Human-or-agentic like every other role here, except the specific act of approving a Phase 7 proposal requires a human assignee — see Agent security model below. |
+| `agent-supervisor` *(new)* | `platform:agent-supervisor` | Not one of the original six `agents/` subfolders — needs adding. Distinct from PM on purpose (see [docs/business/2.0/intelligence.md](../../business/2.0/intelligence.md)). Human-or-agentic like every other role here, except the specific act of approving a Branch 7 proposal requires a human assignee — see Agent security model below. |
 
 ## What each agent actually does
 
@@ -65,12 +65,12 @@ The mapping table above says *which role* each agent fills. This is *what it doe
 - **Input:** the analyst's completed work — findings, notes, whatever was attached — plus the original Task context.
 - **Calls:** `ai-tools/classification` (pass/fail/flag judgment), `ai-tools/summarization` (condensing analyst notes into something it can reason over).
 - **Hands off:** an approve (`→ done`) or reject (`→ analyst`, with a new assignee picked immediately, matching the existing rejection rule) — the same state-machine effect a human reviewer produces.
-- **Open question, not yet resolved:** is the bar identical to a human reviewer's judgment, or a narrower automated-check subset (required fields present, format correct) rather than genuine quality judgment? This is Phase 4's open item, not settled here.
+- **Open question, not yet resolved:** is the bar identical to a human reviewer's judgment, or a narrower automated-check subset (required fields present, format correct) rather than genuine quality judgment? This is Branch 4's open item, not settled here.
 
 **`report-writer`**
 - **Trigger:** after a Task reaches `done` — or potentially folded into the analyst step itself rather than a separate pass, which is still unresolved (see the mapping table above).
 - **Input:** gis-analyst/image-analyst's structured findings, Task context, any customer-facing notes (`task_comments` where `visibility = 'customer'`).
-- **Calls:** `ai-tools/summarization` (primary), `ai-tools/extraction` (pulling specific stats/figures worth featuring), `knowledge/` (referencing past reports for tone/format consistency, once Phase 6 populates it).
+- **Calls:** `ai-tools/summarization` (primary), `ai-tools/extraction` (pulling specific stats/figures worth featuring), `knowledge/` (referencing past reports for tone/format consistency, once Branch 6 populates it).
 - **Hands off:** the actual Deliverable ([docs/business/1.0/overview.md](../../business/1.0/overview.md)'s glossary term) — attached via `asset-service`, unlocked for the customer once the Task hits `paid`.
 - **Reality check:** not an assignee in today's three-role model. Most likely a step other agents call rather than something holding its own `platform:*` claim — unless it earns one later, per the roadmap's open question.
 
@@ -85,7 +85,7 @@ The mapping table above says *which role* each agent fills. This is *what it doe
 
 | Tool | What it does | Called by |
 |---|---|---|
-| `classification` | Labels or categorizes content — sentiment tags, pass/fail checks, image content categories | GoFeeler's sentiment analysis (Phase 2 / [docs/roadmap/1.0/domain-services.md](../1.0/domain-services.md) Branch 5), `qa-agent`'s approve/reject judgment, `image-analyst`'s content categorization |
+| `classification` | Labels or categorizes content — sentiment tags, pass/fail checks, image content categories | GoFeeler's sentiment analysis (Branch 2 / [docs/roadmap/1.0/domain-services.md](../1.0/domain-services.md) Branch 5), `qa-agent`'s approve/reject judgment, `image-analyst`'s content categorization |
 | `embeddings` | Turns content into vectors for semantic similarity/search | `research-agent`'s `knowledge/` lookups; a plausible later input to smarter `planner` routing |
 | `extraction` | Pulls structured fields out of unstructured input | `gis-analyst` (coordinates/regions from raster data), `report-writer` (stats/figures worth featuring), `research-agent` (facts from source material) |
 | `ocr` | Reads text out of images or scanned documents | `image-analyst` (signage, labels, photographed documents); potentially GoFeeler if chat exports ever arrive as screenshots rather than text |
@@ -100,46 +100,46 @@ How an agent gets stopped from doing work it isn't authorized for, and from acti
 
 **Layer 1 — role-based pool filtering.** Already built, no new work: [docs/architecture/1.0/business-services.md](../../architecture/1.0/business-services.md)'s task pool query is `WHERE status = 'unassigned' AND service = ANY(:user_roles)`. Once an agent's Keycloak identity (see below) holds only `platform:analyst` + `service:springpix`, it structurally cannot see a GoFeeler task, let alone claim one — same query, same filter a human analyst hits. The discipline this needs isn't code, it's not over-granting roles to an agent's identity "in case it needs them later."
 
-**Layer 2 — `mcp/` scoping, narrower than the role would technically permit.** A human only ever sees actions the frontend chose to render; an agent has no frontend, only whatever endpoints its MCP server exposes. Phase 5's contract-endpoint exclusion for `planner` is the first instance of this: the role model would *also* block that action, but scoping the tool surface too means two independent reasons it fails, not one. Generalize it — every MCP server given to an agent exposes only the specific endpoints that agent's job needs, not the full surface its role would allow.
+**Layer 2 — `mcp/` scoping, narrower than the role would technically permit.** A human only ever sees actions the frontend chose to render; an agent has no frontend, only whatever endpoints its MCP server exposes. Branch 5's contract-endpoint exclusion for `planner` is the first instance of this: the role model would *also* block that action, but scoping the tool surface too means two independent reasons it fails, not one. Generalize it — every MCP server given to an agent exposes only the specific endpoints that agent's job needs, not the full surface its role would allow.
 
-**Layer 3 — blast radius, the rule for judging what needs a human.** Not "agents can't act" — a Task-level action (an analyst finishes work, a reviewer rejects) is bounded and reversible, and stays fully agentic. An action that compounds across every future Task (retuning a model, changing routing weights, approving another agent's supervisor action) needs a human, because getting it wrong doesn't cost one Task, it costs everything downstream. This is the reasoning already applied to Phase 7's approval gate and the contract boundary — stated here explicitly so the next new agent capability gets checked against a rule instead of re-argued from scratch.
+**Layer 3 — blast radius, the rule for judging what needs a human.** Not "agents can't act" — a Task-level action (an analyst finishes work, a reviewer rejects) is bounded and reversible, and stays fully agentic. An action that compounds across every future Task (retuning a model, changing routing weights, approving another agent's supervisor action) needs a human, because getting it wrong doesn't cost one Task, it costs everything downstream. This is the reasoning already applied to Branch 7's approval gate and the contract boundary — stated here explicitly so the next new agent capability gets checked against a rule instead of re-argued from scratch.
 
-**Layer 4 — attribution, for detection rather than prevention.** [docs/roadmap/1.0/domain-services.md](../1.0/domain-services.md) Branch 8's audit log already covers status/owner changes. Tagging actor identity as human-or-agent makes every logged action attributable after the fact — and it's what makes Phase 7's dark-task audit sampling meaningful in the first place, since sampling only works if there's a trustworthy log to sample from.
+**Layer 4 — attribution, for detection rather than prevention.** [docs/roadmap/1.0/domain-services.md](../1.0/domain-services.md) Branch 8's audit log already covers status/owner changes. Tagging actor identity as human-or-agent makes every logged action attributable after the fact — and it's what makes Branch 7's dark-task audit sampling meaningful in the first place, since sampling only works if there's a trustworthy log to sample from.
 
-**Agent identity, underneath all four layers: Keycloak service accounts.** Each agent is a Keycloak client with service accounts enabled, authenticating via the client-credentials grant rather than a login — and roles get assigned to that service account exactly like a human user, which is what makes [docs/architecture/1.0/core.md](../../architecture/1.0/core.md)'s "agents are simply assigned roles the same way" literally true at the mechanism level, not just a design intent. This also answers what used to be an open question here: whether an agentic Analyst/PM/Reviewer needs its own `users` row — yes, synced the same JIT way a human's is, once `syncUser`'s current requirement (present `sub`, `email`, `name`) is satisfied for a token type that doesn't carry those by default. That's a real implementation gap, not a footnote — see Phase 5. It's also what makes the human-vs-agent distinction for Phase 7's approval action mechanically real rather than a trusted flag: checkable from *how* a session authenticated (login vs. client-credentials), not a self-reported column an agent could misrepresent.
+**Agent identity, underneath all four layers: Keycloak service accounts.** Each agent is a Keycloak client with service accounts enabled, authenticating via the client-credentials grant rather than a login — and roles get assigned to that service account exactly like a human user, which is what makes [docs/architecture/1.0/core.md](../../architecture/1.0/core.md)'s "agents are simply assigned roles the same way" literally true at the mechanism level, not just a design intent. This also answers what used to be an open question here: whether an agentic Analyst/PM/Reviewer needs its own `users` row — yes, synced the same JIT way a human's is, once `syncUser`'s current requirement (present `sub`, `email`, `name`) is satisfied for a token type that doesn't carry those by default. That's a real implementation gap, not a footnote — see Branch 5. It's also what makes the human-vs-agent distinction for Branch 7's approval action mechanically real rather than a trusted flag: checkable from *how* a session authenticated (login vs. client-credentials), not a self-reported column an agent could misrepresent.
 
 **Where this raises the stakes on gaps [docs/security.md](../../security.md) already names** — not new problems, existing ones with a bigger blast radius once agents hold write access:
-- **JWT signature verification** — already flagged as the single highest-priority gap. Today a forged token risks impersonating a mostly-read human session; once Phase 5 ships, it risks impersonating a write-capable agent identity instead. Worth closing before Phase 5, not after.
+- **JWT signature verification** — already flagged as the single highest-priority gap. Today a forged token risks impersonating a mostly-read human session; once Branch 5 ships, it risks impersonating a write-capable agent identity instead. Worth closing before Branch 5, not after.
 - **No rate limiting anywhere in the stack** — a bug or a leaked agent client secret can hit the pool-claim query or spam actions at machine speed and volume no human session produces.
 - **Plaintext `.env` secrets** — agent client secrets are now write-capable machine credentials sitting in the same weak posture as everything else there, invoked programmatically rather than typed by a person.
 
 ## Phase plan
 
-**Phase 1 — planner (Scout's successor)**
+**Branch 1 — planner (Scout's successor)**
 - 🟡 v1: claim-and-assign, reusing Scout's existing availability heuristic as the first decision rule
 - ⚪ Needs real write access to task-service's assignment endpoint via `mcp/` — Scout today is read-only
 
-**Phase 2 — ai-tools/classification, via GoFeeler's LLM integration**
+**Branch 2 — ai-tools/classification, via GoFeeler's LLM integration**
 - 🟡 This *is* [docs/roadmap/1.0/domain-services.md](../1.0/domain-services.md)'s Branch 5 (real sentiment analysis replacing the naive keyword matcher) — building it as `intelligence/ai-tools/classification` from the start, rather than inline in GoFeeler's service code, is what makes it a reusable tool other agents can call later instead of a one-off.
 
-**Phase 3 — SpringPix + gis-analyst/image-analyst**
+**Branch 3 — SpringPix + gis-analyst/image-analyst**
 - ⚪ Blocked on SpringPix existing — still not yet planned in detail per [docs/roadmap/1.0/domain-services.md](../1.0/domain-services.md)
 - ⚪ `ai-tools/vision` — the shared capability both agents call into
 
-**Phase 4 — qa-agent as agentic reviewer**
+**Branch 4 — qa-agent as agentic reviewer**
 - ⚪ Needs the same `mcp/` write access as planner (approve/reject transitions)
 - ⚪ Needs a defined quality bar — same standard as a human reviewer, or a narrower automated-check subset? Not decided.
 
-**Phase 5 — mcp/ buildout**
+**Branch 5 — mcp/ buildout**
 - 🟡 The actual blocker for every branch above going beyond Scout's current read-only ceiling. Minimum viable: MCP servers for task-service (claim/assign/status-transition) and asset-service (read uploaded content).
 - 🟡 **Prerequisite: agent identity via Keycloak service accounts** — each agent as a Keycloak client (client-credentials grant), roles assigned to its service account like a human user. Needs `syncUser` to handle a token type that doesn't carry `email`/`name` by default (protocol mappers, or a relaxed sync requirement for service-account tokens specifically) — real implementation work, not just config. See Agent security model above.
 - 🟡 **Permission boundary, resolved and enforced at the tool layer:** whatever server gives `planner` write access must not expose any endpoint touching `accounts`/`projects` contract fields (`payment_terms`, project creation). `planner` assigns within an already-agreed Project; it never creates one or touches its terms. See [docs/business/2.0/intelligence.md](../../business/2.0/intelligence.md)'s "Business decisions stay human" — this is that boundary implemented, not just stated.
 
-**Phase 6 — memory/ + knowledge/**
+**Branch 6 — memory/ + knowledge/**
 - ⚪ Try reusing `task_comments` (new internal-only visibility value, as agent scratch notes) before building bespoke storage — cheaper, reuses infrastructure that already exists.
 - ⚪ `knowledge/` starts empty. First real candidates: GoFeeler's sentiment vocabulary (already an ES index, could be referenced rather than duplicated) and, later, a library of past reports for report-writer to match tone/format against.
 
-**Phase 7 — agent evaluation & reallocation loop**
+**Branch 7 — agent evaluation & reallocation loop**
 - ⚪ Efficiency scoring per agent, reusing [docs/roadmap/1.0/domain-services.md](../1.0/domain-services.md) Branch 8's event stream (once built) for throughput/turnaround, [docs/business/2.0/intelligence.md](../../business/2.0/intelligence.md)'s per-task compute cost, and `qa-agent`'s own approve/reject history as a quality proxy — not a new measurement system, existing signals repurposed.
 - ⚪ Two outputs, neither autonomous: a fine-tune flag (→ `prompts/`/`models/`) and a reallocation flag (→ `planner`'s routing weights). Both are proposals requiring approval from a human `platform:agent-supervisor` before landing — see [docs/business/2.0/intelligence.md](../../business/2.0/intelligence.md)'s "Agent evaluation and accountability" and the Agent security model above for how the human-only check is actually enforced.
 - ⚪ Dark-task audit sampling — pulling some percentage of fully-agentic Tasks for human spot-check after completion, so drift gets caught before this loop is deciding off unreviewed data. Rate and mechanism not decided.
@@ -147,7 +147,7 @@ How an agent gets stopped from doing work it isn't authorized for, and from acti
 
 ## Open questions
 
-- **Resolved, worth restating here:** individual Task execution stays fully agentic (`planner` → analyst-role agent → `qa-agent` → `report-writer`, no human required) — but the eval/reallocation loop that watches those agents over time (Phase 7) requires human approval before any change lands, and contract/payout/vendor decisions are never delegated to an agent at all, enforced at the `mcp/` tool layer (Phase 5). See [docs/business/2.0/intelligence.md](../../business/2.0/intelligence.md) for the reasoning behind where that line sits.
+- **Resolved, worth restating here:** individual Task execution stays fully agentic (`planner` → analyst-role agent → `qa-agent` → `report-writer`, no human required) — but the eval/reallocation loop that watches those agents over time (Branch 7) requires human approval before any change lands, and contract/payout/vendor decisions are never delegated to an agent at all, enforced at the `mcp/` tool layer (Branch 5). See [docs/business/2.0/intelligence.md](../../business/2.0/intelligence.md) for the reasoning behind where that line sits.
 - **`workflows/` vs. the `workflow` (Camunda) service** — same shape of risk as the earlier `messaging`/`event-bus` collision (see [docs/architecture/1.0/core.md](../../architecture/1.0/core.md)'s Recently resolved). Working assumption: `intelligence/workflows/` orchestrates steps *inside* a single Task state (research → classify → write, all still "analyst" from Camunda's point of view), while Camunda keeps owning the Task-level state machine. Not yet confirmed.
 - **report-writer / research-agent's place in the role model** — see the mapping table above; genuinely unresolved, not just unwritten.
 - **Cost/latency budget per agent step** — not discussed here; see [docs/business/2.0/intelligence.md](../../business/2.0/intelligence.md).

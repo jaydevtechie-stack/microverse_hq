@@ -24,7 +24,7 @@ Still open:
 
 ## Payouts (PMs and analysts)
 
-Flagged in [docs/roadmap/1.0/domain-services.md](../../roadmap/1.0/domain-services.md)'s Branch 9 as genuinely new, undesigned scope — collecting from customers and paying out to staff are different flows, not opposite sides of the same one.
+Flagged in [docs/roadmap/1.0/domain-services.md](../../roadmap/1.0/domain-services.md)'s Branch 9 as genuinely new, undesigned scope — collecting from customers and paying out to staff are different flows, not opposite sides of the same one. Deferred to 1.1 along with the rest of the non-GoFeeler domain-service work — see [docs/roadmap/1.1/domain-services.md](../../roadmap/1.1/domain-services.md) for the open questions.
 
 - **Mechanism** — Stripe Connect is the obvious candidate for payouts, but unconfirmed.
 - **Payout basis** — hourly rate from `elixtempo`'s tracked time? A per-task flat rate? Something else?

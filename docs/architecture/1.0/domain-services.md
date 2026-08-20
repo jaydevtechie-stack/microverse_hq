@@ -2,18 +2,14 @@
 
 Customer-facing, one specialist trick each, real brand names. See [core.md](core.md) for the tier test and the shared entity/roles/task-workflow model these all plug into.
 
+**1.0 scope is GoFeeler + TaskFusion, live — everything else moved to 1.1.** Of the original seven-service polyglot lineup, GoFeeler is the only one actually built out end-to-end; the rest were always further out. Rather than let that stay implicit, 1.0 is now scoped honestly to what's actually shipped: GoFeeler (this table) plus the platform/business services that make it work. The other six domain services live in [docs/architecture/1.1/domain-services.md](../1.1/domain-services.md).
+
 | Service | Tech | What it does | Status |
 |---|---|---|---|
 | GoFeeler | Go | Sentiment analysis on uploaded chats/emails/comments | Online — `basic` keyword engine + `advanced` LLM engine (OpenAI), see Branch 5 below |
-| elixtempo | Elixir | The trust layer between "work happened" and "money/accountability follows" — tracked time feeds customer billing, analyst payouts, and business-efficiency reporting alike (see [docs/business/1.0/product-strategy.md](../../business/1.0/product-strategy.md)'s product definition). OTP concurrency handles many cheap live sessions. | Designing |
-| rustledger | Rust | Billing ledger — analyst-payout line items (consumes elixtempo's time-entry events off Kafka) and customer bills, owns Stripe collection directly (Checkout Sessions, webhook verification, `async-stripe` crate) | Customer billing built (Branch 9); payouts still line-item groundwork only, no disbursement |
-| SpringPix | Java/Spring | Image and GIS processing — does the raster hotspot analysis, backed by PostGIS | Basic app |
-| PyReel | Python | Video processing | Basic app |
-| NetCruncher | .NET | Calculation engine | Exists |
-| Djaboard | Django (renamed from DjaPorts) | Reporting + kudos leaderboard — computes tiers/badges as JSON, React just renders it | Building |
-| RubyKudos | Ruby | Raw kudos event capture | Not started |
+| rustledger | Rust | Billing ledger — owns Stripe collection directly (Checkout Sessions, webhook verification, `async-stripe` crate) for GoFeeler's customer bills | Customer billing collection built and live-verified (Branch 9). Analyst/PM **payout** disbursement (the other half of rustledger's eventual scope, consuming elixtempo's time-entry events) is 1.1 — see [docs/roadmap/1.1/domain-services.md](../../roadmap/1.1/domain-services.md) |
 
-See [applications.md](applications.md) for GoFeeler's full end-to-end worked example, and [docs/roadmap/1.0/domain-services.md](../../roadmap/1.0/domain-services.md) for build status/branch plan per service.
+See [applications.md](applications.md) for GoFeeler's full end-to-end worked example, and [docs/roadmap/1.0/domain-services.md](../../roadmap/1.0/domain-services.md) for build status/branch plan.
 
 ## GoFeeler — engine abstraction (Branch 5) — ✅ built
 

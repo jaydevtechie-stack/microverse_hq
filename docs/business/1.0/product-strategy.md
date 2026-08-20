@@ -14,10 +14,8 @@ What's actually being sold, product by product — distinct from the domain-serv
 
 | Product | What it does for the customer | What it stands for | Status |
 |---|---|---|---|
-| GoFeeler | Not yet discussed | Not yet discussed | Not yet discussed |
-| SpringPix | Not yet discussed | Not yet discussed | Not yet discussed |
-| PyReel | Not yet discussed | Not yet discussed | Not yet discussed |
-| ... | | | |
+| GoFeeler | Not yet discussed | Not yet discussed | **1.0 — live** |
+| elixtempo, Djaboard, PyReel, NetCruncher, RubyKudos, SpringPix | Not yet discussed | Not yet discussed | 1.1 — see [docs/roadmap/1.1/domain-services.md](../../roadmap/1.1/domain-services.md) |
 
 ## Positioning
 

@@ -44,7 +44,7 @@ The stored `name` itself is now lowercased + trimmed at write time (`create_or_b
 
 ### Branch plan
 
-Development is branched — each branch below is a discrete unit of work, roughly in order.
+Development is branched — each branch below is a discrete unit of work, roughly in order. Kept as "Branch" rather than renamed to "Phase" — unlike every other roadmap section, GoFeeler's own numbering (Branch 1–9) is preserved for historical continuity: it's how this service's development has been referenced throughout its git history, commit messages, and PR titles since the start. Infrastructure's Phase 10/11 ([core.md](core.md)) and anything planned from here on (1.1's domain services once they get a real plan) use "Phase" instead — the terminology now deliberately differs between "GoFeeler as it was built" and "everything after."
 
 **Branch 3 — Create Order form functionality**
 - ✅ 3.1 Expand `asset-service` with MinIO (see [docs/roadmap/1.0/platform-services.md](platform-services.md) — shared bucket, presigned URLs)
@@ -148,20 +148,10 @@ Customer billing/collection only (scope decision: payouts split out below, defer
   - `APP_BASE_URL` (Stripe Checkout's success/cancel redirect target) was hardcoded to `http://localhost` directly in `docker-compose.yml` instead of reading `${APP_BASE_URL}` from `.env` — fixed in both files, now `https://microverse.local`.
   - Also worth remembering: `docker compose up -d --force-recreate <service>` recreates the *container* from whatever image is already cached — it does **not** rebuild the image. Several recreates this session ran against a stale binary (hours old, missing in-progress fixes) with no indication anything was wrong beyond "no new log output." `docker compose build <service>` (or `up -d --build --force-recreate`) is required to actually pick up source changes.
 
-*Open question, bigger scope than originally captured — Payouts (PMs and analysts), deferred out of this branch entirely:* collecting money (customer → Microverse) and paying it out (Microverse → analyst/PM) are different flows with different tooling. See [docs/business/1.0/overview.md](../../business/1.0/overview.md)'s Payouts section.
+*Open question, bigger scope than originally captured — Payouts (PMs and analysts), deferred out of 1.0 entirely:* collecting money (customer → Microverse) and paying it out (Microverse → analyst/PM) are different flows with different tooling. **Moved to 1.1** — see [docs/roadmap/1.1/domain-services.md](../1.1/domain-services.md) for the open questions (payout mechanism, basis, timing dependency) and [docs/business/1.0/overview.md](../../business/1.0/overview.md)'s Payouts section for the commercial framing.
 
-- ⚪ Payout mechanism — Stripe Connect is the assumed candidate, unconfirmed, nothing built
-- ⚪ Payout basis — hourly off elixtempo's tracked time (rustledger's existing `line_items` already prices a flat-rate v1 of this for analysts) vs. a per-task flat rate vs. something else
-- ⚪ Timing dependency — is a payout gated on the customer's bill actually clearing, or decoupled on Microverse's own schedule? Materially affects cash-flow risk, not a default to pick casually
-- ⚪ Needs its own design pass before this work starts, not just an extra bullet
+## 1.0 is now GoFeeler + TaskFusion only
 
-## Up next (not yet planned in detail)
+The other six domain services originally planned alongside GoFeeler (SpringPix, PyReel, elixtempo, NetCruncher, Djaboard, RubyKudos) never got past scaffolding or design — GoFeeler is the one that's actually live. Rather than carry them as an open-ended "up next" tail on the 1.0 roadmap, they've moved to their own milestone: **[docs/roadmap/1.1/domain-services.md](../1.1/domain-services.md)**. This lets 1.0 be claimed as done — GoFeeler + TaskFusion, live — without that claim being muddied by six services nobody's started.
 
-- SpringPix — raster/GIS hotspot analysis, PostGIS integration
-- PyReel — video processing
-- elixtempo — time tracking
-- rustledger — billing/invoices
-- Djaboard — leaderboard
-- RubyKudos — kudos capture
-
-See [docs/roadmap/1.0/business-services.md](business-services.md) for the business-service side of the queue (task-service pool claiming, workflow state machine).
+See [docs/roadmap/1.0/business-services.md](business-services.md) for the business-service side of what's still open in 1.0 itself (task-service pool claiming, workflow state machine) — that work stays in 1.0's scope, not 1.1's.
