@@ -7,6 +7,30 @@ on:
   push:
     branches: [develop, main]
   pull_request: {}
+  workflow_dispatch:
+    inputs:
+      service:
+        description: Service to scan (or "all")
+        type: choice
+        default: all
+        options:
+          - all
+          - nginx
+          - keycloak
+          - taskfusion
+          - search-service
+          - asset-service
+          - gofeeler
+          - netcruncher
+          - pyreel
+          - springpix
+          - elixtempo
+          - rustledger
+          - blog-service
+          - email-service
+          - notification-service
+          - audit-service
+          - task-service
 
 permissions:
   contents: read
@@ -16,12 +40,17 @@ jobs:
     name: Detect changed image build contexts
     runs-on: ubuntu-latest
     outputs:
-      services: ${{ steps.filter.outputs.changes }}
+      services: ${{ steps.resolve.outputs.services }}
     steps:
       - uses: actions/checkout@v4
+        if: github.event_name != 'workflow_dispatch'
 
+      # Skipped on a manual run — there's no push/PR diff to compare
+      # against, and the resolve step below picks the service straight
+      # from the dropdown instead.
       - uses: dorny/paths-filter@v3
         id: filter
+        if: github.event_name != 'workflow_dispatch'
         with:
           filters: |
             nginx:
@@ -56,6 +85,20 @@ jobs:
               - 'platform-services/audit-service/**'
             task-service:
               - 'business-services/task-service/**'
+
+      - name: Resolve services for this run
+        id: resolve
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ "${{ inputs.service }}" = "all" ]; then
+              services='["nginx","keycloak","taskfusion","search-service","asset-service","gofeeler","netcruncher","pyreel","springpix","elixtempo","rustledger","blog-service","email-service","notification-service","audit-service","task-service"]'
+            else
+              services='["${{ inputs.service }}"]'
+            fi
+          else
+            services='${{ steps.filter.outputs.changes }}'
+          fi
+          echo "services=$services" >> "$GITHUB_OUTPUT"
 
   scan:
     name: Build & scan ${{ matrix.service }}
