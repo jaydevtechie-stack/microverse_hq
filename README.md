@@ -64,8 +64,9 @@ Everything below lives under [`docs/`](docs/), organized two ways at once: by do
 - [docs/adr/](docs/adr/), [docs/api/](docs/api/), [docs/runbooks/](docs/runbooks/) — reserved for architecture decision records, API specs, and operational runbooks as they get written
 
 **Development:**
-- [docs/development/CONTRIBUTING.md](docs/development/CONTRIBUTING.md)
-- [docs/development/CODE_OF_CONDUCT.md](docs/development/CODE_OF_CONDUCT.md)
+- [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md)
+- [.github/CODE_OF_CONDUCT.md](.github/CODE_OF_CONDUCT.md)
+- [docs/development/TESTING.md](docs/development/TESTING.md)
 
 Per-service READMEs live alongside their code (e.g. [platform-services/asset-service/README.md](platform-services/asset-service/README.md), [domain-services/elixtempo/README.md](domain-services/elixtempo/README.md)) rather than under `docs/` — this index links out to the docs that cut across services, not service-local implementation notes.
 
