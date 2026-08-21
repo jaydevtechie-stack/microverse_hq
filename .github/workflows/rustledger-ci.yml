@@ -1,0 +1,42 @@
+name: RustLedger CI
+
+on:
+  push:
+    branches: [develop, main]
+    paths:
+      - 'domain-services/rustledger/**'
+      - '.github/workflows/rustledger-ci.yml'
+  pull_request:
+    paths:
+      - 'domain-services/rustledger/**'
+      - '.github/workflows/rustledger-ci.yml'
+
+defaults:
+  run:
+    working-directory: domain-services/rustledger
+
+jobs:
+  unit:
+    name: Build, clippy, unit test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: domain-services/rustledger
+
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends pkg-config libssl-dev
+
+      - run: cargo build --bin rustledger
+      # Not -D warnings: pre-existing clippy::field_reassign_with_default
+      # warnings in stripe_client.rs (from the generated async-stripe
+      # builder pattern) predate this workflow and are out of scope here —
+      # this surfaces new lint output in CI logs without blocking on debt
+      # this change didn't introduce.
+      - run: cargo clippy --bin rustledger
+      - run: cargo test --bin rustledger

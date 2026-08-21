@@ -537,10 +537,33 @@ time-in-status/duration values.
 Scope: `domain-services/rustledger` end to end (bill create/publish,
 Stripe Checkout Session creation, webhook-confirmed payment,
 task-service's new `bill.paid` consumer) and
-`platform-services/notification-service`'s `bill.published` handler. No
-automated test suite yet — `cargo check` only; this branch's real
-verification is manual, same "documented, not faked" posture as other
-gaps in this codebase rather than a mocked test standing in for one.
+`platform-services/notification-service`'s `bill.published` handler.
+
+## Automated — unit tests (`cargo test --bin rustledger`, CI `unit` job)
+
+No external services required — pure-function tests only, no
+Postgres/Kafka/Stripe network calls. CI: `.github/workflows/rustledger-ci.yml`,
+on any push/PR touching `domain-services/rustledger/**`.
+
+| Area | File | Covers |
+|---|---|---|
+| Stripe webhook parsing | `src/stripe_client.rs` (`tests` module) | `verify_signature`'s real HMAC-SHA256 check (via `parse_checkout_completed`, since the former is private): valid signature extracts `task_id`/`checkout_session_id`/`payment_intent_id`; wrong secret and tampered payload both fail closed as `"signature mismatch"`; a >300s-old timestamp is rejected even with a valid signature; a malformed `Stripe-Signature` header is rejected. Also locks in the untyped-JSON parsing behavior documented above `parse_checkout_completed` (added after a real API-version-drift bug broke the typed model): non-`checkout.session.completed` events and sessions with no `client_reference_id` both return `Ok(None)`, not an error; `payment_intent` as either a bare ID string or an expanded `{"id": ...}` object resolves to the same id. |
+
+Run locally (needs a Rust toolchain, or use the same `rust:1-slim-bookworm`
+image the Dockerfile builds with):
+
+```
+cd domain-services/rustledger
+cargo build --bin rustledger
+cargo test --bin rustledger
+```
+
+Everything below this point — bill create/publish, real Stripe Checkout,
+webhook-confirmed payment against a live `stripe listen` tunnel,
+cross-service consumers — has no automated coverage yet; this branch's
+verification of that path is manual, same "documented, not faked" posture
+as other gaps in this codebase rather than a mocked test standing in for
+one.
 
 ## Manual — end-to-end through the running stack
 
