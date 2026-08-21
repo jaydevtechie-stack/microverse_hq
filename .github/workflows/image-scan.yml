@@ -1,0 +1,177 @@
+name: Container image scan (Trivy)
+
+# Builds and scans only the service(s) whose Dockerfile/build-context
+# actually changed, rather than all 16 images on every push — see the
+# `changes` job's filter map for the full context->service list.
+on:
+  push:
+    branches: [develop, main]
+  pull_request: {}
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    name: Detect changed image build contexts
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.filter.outputs.changes }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            nginx:
+              - 'infrastructure/nginx/**'
+            keycloak:
+              - 'infrastructure/keycloak/**'
+            taskfusion:
+              - 'applications/taskfusion/**'
+            search-service:
+              - 'platform-services/search-service/**'
+            asset-service:
+              - 'platform-services/asset-service/**'
+            gofeeler:
+              - 'domain-services/gofeeler/**'
+            netcruncher:
+              - 'domain-services/netcruncher/**'
+            pyreel:
+              - 'domain-services/pyreel/**'
+            springpix:
+              - 'domain-services/springpix/**'
+            elixtempo:
+              - 'domain-services/elixtempo/**'
+            rustledger:
+              - 'domain-services/rustledger/**'
+            blog-service:
+              - 'platform-services/blog-service/**'
+            email-service:
+              - 'platform-services/email-service/**'
+            notification-service:
+              - 'platform-services/notification-service/**'
+            audit-service:
+              - 'platform-services/audit-service/**'
+            task-service:
+              - 'business-services/task-service/**'
+
+  scan:
+    name: Build & scan ${{ matrix.service }}
+    needs: changes
+    if: needs.changes.outputs.services != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJSON(needs.changes.outputs.services) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Most services build with their own directory as both context and
+      # Dockerfile location. nginx/keycloak/taskfusion are the exceptions —
+      # docker-compose.yml builds them from the repo root context so their
+      # Dockerfile can reach shared branding assets outside their own dir.
+      - name: Resolve build context and Dockerfile for this service
+        id: ctx
+        run: |
+          case "${{ matrix.service }}" in
+            nginx)
+              echo "context=./infrastructure/nginx" >> "$GITHUB_OUTPUT"
+              echo "dockerfile=./infrastructure/nginx/Dockerfile" >> "$GITHUB_OUTPUT"
+              ;;
+            keycloak)
+              echo "context=." >> "$GITHUB_OUTPUT"
+              echo "dockerfile=infrastructure/keycloak/Dockerfile" >> "$GITHUB_OUTPUT"
+              ;;
+            taskfusion)
+              echo "context=." >> "$GITHUB_OUTPUT"
+              echo "dockerfile=applications/taskfusion/Dockerfile" >> "$GITHUB_OUTPUT"
+              ;;
+            search-service)
+              echo "context=./platform-services/search-service" >> "$GITHUB_OUTPUT"
+              echo "dockerfile=./platform-services/search-service/Dockerfile" >> "$GITHUB_OUTPUT"
+              ;;
+            asset-service)
+              echo "context=./platform-services/asset-service" >> "$GITHUB_OUTPUT"
+              echo "dockerfile=./platform-services/asset-service/Dockerfile" >> "$GITHUB_OUTPUT"
+              ;;
+            gofeeler)
+              echo "context=./domain-services/gofeeler" >> "$GITHUB_OUTPUT"
+              echo "dockerfile=./domain-services/gofeeler/Dockerfile" >> "$GITHUB_OUTPUT"
+              ;;
+            netcruncher)
+              echo "context=./domain-services/netcruncher" >> "$GITHUB_OUTPUT"
+              echo "dockerfile=./domain-services/netcruncher/Dockerfile" >> "$GITHUB_OUTPUT"
+              ;;
+            pyreel)
+              echo "context=./domain-services/pyreel" >> "$GITHUB_OUTPUT"
+              echo "dockerfile=./domain-services/pyreel/Dockerfile" >> "$GITHUB_OUTPUT"
+              ;;
+            springpix)
+              echo "context=./domain-services/springpix" >> "$GITHUB_OUTPUT"
+              echo "dockerfile=./domain-services/springpix/Dockerfile" >> "$GITHUB_OUTPUT"
+              ;;
+            elixtempo)
+              echo "context=./domain-services/elixtempo" >> "$GITHUB_OUTPUT"
+              echo "dockerfile=./domain-services/elixtempo/Dockerfile" >> "$GITHUB_OUTPUT"
+              ;;
+            rustledger)
+              echo "context=./domain-services/rustledger" >> "$GITHUB_OUTPUT"
+              echo "dockerfile=./domain-services/rustledger/Dockerfile" >> "$GITHUB_OUTPUT"
+              ;;
+            blog-service)
+              echo "context=./platform-services/blog-service" >> "$GITHUB_OUTPUT"
+              echo "dockerfile=./platform-services/blog-service/Dockerfile" >> "$GITHUB_OUTPUT"
+              ;;
+            email-service)
+              echo "context=./platform-services/email-service" >> "$GITHUB_OUTPUT"
+              echo "dockerfile=./platform-services/email-service/Dockerfile" >> "$GITHUB_OUTPUT"
+              ;;
+            notification-service)
+              echo "context=./platform-services/notification-service" >> "$GITHUB_OUTPUT"
+              echo "dockerfile=./platform-services/notification-service/Dockerfile" >> "$GITHUB_OUTPUT"
+              ;;
+            audit-service)
+              echo "context=./platform-services/audit-service" >> "$GITHUB_OUTPUT"
+              echo "dockerfile=./platform-services/audit-service/Dockerfile" >> "$GITHUB_OUTPUT"
+              ;;
+            task-service)
+              echo "context=./business-services/task-service" >> "$GITHUB_OUTPUT"
+              echo "dockerfile=./business-services/task-service/Dockerfile" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "unknown service: ${{ matrix.service }}" >&2
+              exit 1
+              ;;
+          esac
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image (not pushed, loaded into the local daemon for scanning)
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ steps.ctx.outputs.context }}
+          file: ${{ steps.ctx.outputs.dockerfile }}
+          push: false
+          load: true
+          tags: image-scan/${{ matrix.service }}:${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+      # Pinned by commit SHA, not a version tag: aquasecurity/trivy-action
+      # had 76 of its 77 release tags force-pushed to malicious commits in
+      # a March 2026 supply-chain compromise (GHSA-69fq-xp46-6x23,
+      # CVE-2026-33634) that exfiltrated CI/CD secrets before running the
+      # scan. v0.35.0 was the one tag left intact, but tags are exactly
+      # what got hijacked here, so pin the commit it points to directly
+      # rather than trusting the tag not to move again.
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          image-ref: image-scan/${{ matrix.service }}:${{ github.sha }}
+          format: table
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
