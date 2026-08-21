@@ -8,6 +8,7 @@ import CreateBillPanel from './CreateBillPanel';
 import AnalysisPanel from './AnalysisPanel';
 import ReviewerPanel from './ReviewerPanel';
 import CustomerProgressPanel from './CustomerProgressPanel';
+import WorkTimerPanel from './WorkTimerPanel';
 import TaskComments from './TaskComments';
 import TaskFilesList from './TaskFilesList';
 import EditOrderForm from './EditOrderForm';
@@ -429,6 +430,12 @@ const TaskDetailContent = ({ id }) => {
           >
             <TaskComments taskId={task.id} visibility="customer" />
           </div>
+        </div>
+      )}
+
+      {isAnalyst && task.assignee === username && (
+        <div style={{ marginTop: 18 }}>
+          <WorkTimerPanel task={task} />
         </div>
       )}
 

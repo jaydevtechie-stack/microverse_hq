@@ -334,7 +334,13 @@ services:
 
 
   microverse-elixtempo:
-    profiles: ["elixtempo"]
+    # "gofeeler" added alongside its own profile (Phase 5) — the work
+    # timer widget now lives inside TaskFusion/gofeeler's task detail
+    # panel, and nginx's elixtempo-service.conf proxies to it
+    # unconditionally, so it needs to actually be up whenever the main
+    # dev stack is. Same reasoning Branch 6.2 already used to fold
+    # microverse-kafka into the gofeeler profile.
+    profiles: ["elixtempo", "gofeeler"]
     build:
       context: ./domain-services/elixtempo
     container_name: microverse-elixtempo
