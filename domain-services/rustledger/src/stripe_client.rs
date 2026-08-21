@@ -69,6 +69,7 @@ pub async fn create_checkout_session(bill: &Bill) -> Result<String, String> {
     session.url.ok_or_else(|| "Stripe returned no checkout URL".to_string())
 }
 
+#[derive(Debug)]
 pub struct CheckoutCompleted {
     pub task_id: String,
     pub checkout_session_id: String,
@@ -167,4 +168,146 @@ pub fn parse_checkout_completed(
         checkout_session_id,
         payment_intent_id,
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const SECRET: &str = "whsec_test_secret";
+
+    // Builds a real `t=...,v1=...` header the same way Stripe does, so
+    // tests exercise verify_signature's actual HMAC check rather than
+    // bypassing it.
+    fn sign(payload: &str, secret: &str, timestamp: i64) -> String {
+        let signed_payload = format!("{timestamp}.{payload}");
+        let mut mac = Hmac::<Sha256>::new_from_slice(secret.as_bytes()).unwrap();
+        mac.update(signed_payload.as_bytes());
+        let sig = hex::encode(mac.finalize().into_bytes());
+        format!("t={timestamp},v1={sig}")
+    }
+
+    fn checkout_completed_payload(session_object: &str) -> String {
+        format!(
+            r#"{{"type":"checkout.session.completed","data":{{"object":{session_object}}}}}"#
+        )
+    }
+
+    #[test]
+    fn valid_signature_and_checkout_completed_extracts_fields() {
+        let session = r#"{"id":"cs_123","client_reference_id":"task-1","payment_intent":"pi_123"}"#;
+        let payload = checkout_completed_payload(session);
+        let now = chrono::Utc::now().timestamp();
+        let sig = sign(&payload, SECRET, now);
+
+        let result = parse_checkout_completed(&payload, &sig, SECRET).unwrap();
+        let completed = result.expect("expected Some(CheckoutCompleted)");
+        assert_eq!(completed.task_id, "task-1");
+        assert_eq!(completed.checkout_session_id, "cs_123");
+        assert_eq!(completed.payment_intent_id, "pi_123");
+    }
+
+    #[test]
+    fn payment_intent_as_expanded_object_extracts_its_id() {
+        let session = r#"{"id":"cs_123","client_reference_id":"task-1","payment_intent":{"id":"pi_expanded","status":"succeeded"}}"#;
+        let payload = checkout_completed_payload(session);
+        let now = chrono::Utc::now().timestamp();
+        let sig = sign(&payload, SECRET, now);
+
+        let completed = parse_checkout_completed(&payload, &sig, SECRET)
+            .unwrap()
+            .expect("expected Some(CheckoutCompleted)");
+        assert_eq!(completed.payment_intent_id, "pi_expanded");
+    }
+
+    #[test]
+    fn missing_payment_intent_defaults_to_empty_string() {
+        let session = r#"{"id":"cs_123","client_reference_id":"task-1"}"#;
+        let payload = checkout_completed_payload(session);
+        let now = chrono::Utc::now().timestamp();
+        let sig = sign(&payload, SECRET, now);
+
+        let completed = parse_checkout_completed(&payload, &sig, SECRET)
+            .unwrap()
+            .expect("expected Some(CheckoutCompleted)");
+        assert_eq!(completed.payment_intent_id, "");
+    }
+
+    #[test]
+    fn wrong_signature_is_rejected() {
+        let session = r#"{"id":"cs_123","client_reference_id":"task-1"}"#;
+        let payload = checkout_completed_payload(session);
+        let now = chrono::Utc::now().timestamp();
+        let sig = sign(&payload, "a-different-secret", now);
+
+        let err = parse_checkout_completed(&payload, &sig, SECRET).unwrap_err();
+        assert_eq!(err, "signature mismatch");
+    }
+
+    #[test]
+    fn tampered_payload_is_rejected() {
+        let session = r#"{"id":"cs_123","client_reference_id":"task-1"}"#;
+        let payload = checkout_completed_payload(session);
+        let now = chrono::Utc::now().timestamp();
+        let sig = sign(&payload, SECRET, now);
+
+        let tampered = payload.replace("task-1", "task-attacker-controlled");
+        let err = parse_checkout_completed(&tampered, &sig, SECRET).unwrap_err();
+        assert_eq!(err, "signature mismatch");
+    }
+
+    #[test]
+    fn stale_timestamp_is_rejected_even_with_valid_signature() {
+        let session = r#"{"id":"cs_123","client_reference_id":"task-1"}"#;
+        let payload = checkout_completed_payload(session);
+        let old_timestamp = chrono::Utc::now().timestamp() - 301; // just over the 300s window
+        let sig = sign(&payload, SECRET, old_timestamp);
+
+        let err = parse_checkout_completed(&payload, &sig, SECRET).unwrap_err();
+        assert_eq!(err, "signature timestamp too old");
+    }
+
+    #[test]
+    fn malformed_signature_header_is_rejected() {
+        let payload = checkout_completed_payload(r#"{"id":"cs_123"}"#);
+
+        let err = parse_checkout_completed(&payload, "not-a-valid-header", SECRET).unwrap_err();
+        assert_eq!(err, "missing timestamp in stripe-signature header");
+    }
+
+    #[test]
+    fn non_checkout_event_type_returns_none_not_error() {
+        let payload = r#"{"type":"payment_intent.created","data":{"object":{}}}"#;
+        let now = chrono::Utc::now().timestamp();
+        let sig = sign(payload, SECRET, now);
+
+        let result = parse_checkout_completed(payload, &sig, SECRET).unwrap();
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn missing_client_reference_id_returns_none_not_error() {
+        // Not every Checkout Session was created by rustledger (or is one
+        // rustledger cares about) — no client_reference_id means there's
+        // nothing to bill against, so this is a deliberate no-op, not a
+        // parse failure.
+        let session = r#"{"id":"cs_123"}"#;
+        let payload = checkout_completed_payload(session);
+        let now = chrono::Utc::now().timestamp();
+        let sig = sign(&payload, SECRET, now);
+
+        let result = parse_checkout_completed(&payload, &sig, SECRET).unwrap();
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn missing_session_id_is_a_hard_error() {
+        let session = r#"{"client_reference_id":"task-1"}"#;
+        let payload = checkout_completed_payload(session);
+        let now = chrono::Utc::now().timestamp();
+        let sig = sign(&payload, SECRET, now);
+
+        let err = parse_checkout_completed(&payload, &sig, SECRET).unwrap_err();
+        assert_eq!(err, "checkout session had no id");
+    }
 }
