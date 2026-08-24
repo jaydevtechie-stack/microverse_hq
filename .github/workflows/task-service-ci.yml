@@ -1,0 +1,40 @@
+name: task-service CI
+
+on:
+  push:
+    branches: [develop, main]
+    paths:
+      - 'business-services/task-service/**'
+      - '.github/workflows/task-service-ci.yml'
+  pull_request:
+    paths:
+      - 'business-services/task-service/**'
+      - '.github/workflows/task-service-ci.yml'
+
+defaults:
+  run:
+    working-directory: business-services/task-service
+
+jobs:
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+
+    # No real Postgres/Kafka needed — the current test suite (auth
+    # middleware, kafka-producer's taskToEvent mapping, route helpers)
+    # is pure-function unit tests. db.js's Pool and kafka-producer.js's
+    # Kafka client are both lazy (connect on first use, not on
+    # require()), so importing the modules under test doesn't touch
+    # either service. Add service containers here if a future test
+    # needs a real connection, matching gofeeler-ci.yml/
+    # rustledger-ci.yml's pattern.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - run: npm ci
+
+      - run: npm test
