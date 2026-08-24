@@ -1,6 +1,7 @@
 -- Dummy Gofeeler tasks for local dev — lets the gofeeler landing page
 -- (applications/taskfusion/src/pages/GofeelerPage.js) show something
--- real without order-service/task-creation existing yet.
+-- real without a customer actually having submitted an Order (a real
+-- task-service task) yet.
 --
 -- Assignee/owner use the real Keycloak usernames of the four local
 -- test accounts (see ARCHITECTURE.md's assignee/owner table for which

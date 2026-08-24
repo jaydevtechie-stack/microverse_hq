@@ -1,6 +1,7 @@
 {
   "listPanel": {
-    "header": "Orders & tasks",
+    "headerOrders": "Orders",
+    "headerTasks": "Tasks",
     "newLink": "+ New",
     "loadError": "Couldn't load tasks: {{error}}",
     "loading": "Loading tasks…",

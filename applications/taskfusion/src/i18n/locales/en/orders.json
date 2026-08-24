@@ -29,9 +29,5 @@
   "createPage": {
     "eyebrow": "Gofeeler · New order",
     "heading": "Create sentiment analysis order"
-  },
-  "pmOrdersPlaceholder": {
-    "title": "Orders",
-    "note": "Coming soon — PM-scoped order list, plus the shared-pool claim mechanism from Branch 4's 4.1.2, land here once designed."
   }
 }

@@ -105,7 +105,7 @@ services:
     # GoFeeler's home: raw uploaded content (chat/email/comment exports)
     # varies too much in shape for relational columns, and the sentiment
     # result is just metadata riding alongside it — Mongo's sweet spot.
-    # task-service/rustledger/order-service stay on Postgres on purpose
+    # task-service/rustledger stay on Postgres on purpose
     # (row locking, ACID, relational joins).
     profiles: ["gofeeler", "mongodb"]
     image: mongo:latest

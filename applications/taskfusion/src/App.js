@@ -17,7 +17,6 @@ import ProjectHubPage from './pages/ProjectHubPage';
 import MyProfilePage from './pages/MyProfilePage';
 import ServiceLandingPage from './pages/ServiceLandingPage';
 import InactiveUserScrim from './components/InactiveUserScrim';
-import PmOrdersPage from './pages/PmOrdersPage';
 import DeliveryTeamPage from './pages/DeliveryTeamPage';
 import AccountsManagePage from './pages/AccountsManagePage';
 import BillsPage from './pages/BillsPage';
@@ -249,17 +248,11 @@ const App = () => {
               }
             />
 
-            <Route
-              path="/pm/orders"
-              element={
-                <PrivateRoute
-                  element={<PmOrdersPage />}
-                  keycloak={keycloak}
-                  roles={['platform:project-manager']}
-                  customCheck={hasAnyServiceScope}
-                />
-              }
-            />
+            {/* Superseded by /tasks below — /pm/orders was a
+                placeholder (no real order/task list existed yet).
+                Kept as a redirect for anything bookmarked/linked
+                during 4.3. */}
+            <Route path="/pm/orders" element={<Navigate to="/tasks" replace />} />
 
             <Route path="/pm/delivery-team" element={<Navigate to="/pm/delivery-team/analysts" replace />} />
             <Route
@@ -331,6 +324,26 @@ const App = () => {
                 field once other domain services have tasks too. */}
             <Route
               path="/task/:id"
+              element={<PrivateRoute element={<GofeelerSplitView />} keycloak={keycloak} roles={['service:gofeeler']} />}
+            />
+
+            {/* /orders and /tasks are the same list (GofeelerSplitView's
+                list panel already scopes what's visible per role — PM
+                sees every task, analyst/reviewer see only their own,
+                customer sees their own orders), reachable from any host,
+                same gate as /task/:id above. Two paths, not one, because
+                the label a viewer should see depends on which side of
+                the counter they're on — "Orders" for a customer, "Tasks"
+                for everyone else (GofeelerListPanel/Navbar both key off
+                platform:customer to decide, not the path itself) — see
+                docs/architecture/1.0/business-services.md: an Order
+                *is* a task-service task, not a separate entity. */}
+            <Route
+              path="/orders"
+              element={<PrivateRoute element={<GofeelerSplitView />} keycloak={keycloak} roles={['service:gofeeler']} />}
+            />
+            <Route
+              path="/tasks"
               element={<PrivateRoute element={<GofeelerSplitView />} keycloak={keycloak} roles={['service:gofeeler']} />}
             />
           </Routes>

@@ -7,7 +7,7 @@ import React from 'react';
 // buttons). No margin of its own — callers embedding this as tab
 // content inside an already-margined shell (AdminPage.js,
 // DeliveryTeamPage.js) would otherwise get it doubled; standalone-page
-// callers (PmOrdersPage.js etc.) supply their own margin wrapper.
+// callers (AdminAuditLogPage.js etc.) supply their own margin wrapper.
 const PlaceholderPage = ({ title, note }) => (
   <div
     style={{

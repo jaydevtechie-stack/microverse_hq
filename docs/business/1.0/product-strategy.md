@@ -1,6 +1,6 @@
 # Microverse — product strategy
 
-What the business is, not what the code is. Distinct from [docs/architecture/1.0/business-services.md](../../architecture/1.0/business-services.md)/[docs/roadmap/1.0/business-services.md](../../roadmap/1.0/business-services.md), which are about the `business-services` *tier* (order-service, task-service, workflow) — this file is about actual business decisions: what each product does, what it stands for, and what's being sold. See [docs/business/1.0/overview.md](overview.md) for the commercial/operational policy side (accounts, contracts, payouts, pricing mechanics).
+What the business is, not what the code is. Distinct from [docs/architecture/1.0/business-services.md](../../architecture/1.0/business-services.md)/[docs/roadmap/1.0/business-services.md](../../roadmap/1.0/business-services.md), which are about the `business-services` *tier* (task-service, workflow) — this file is about actual business decisions: what each product does, what it stands for, and what's being sold. See [docs/business/1.0/overview.md](overview.md) for the commercial/operational policy side (accounts, contracts, payouts, pricing mechanics).
 
 Scaffolded — not yet discussed in detail. Sections below are placeholders to fill in.
 
