@@ -18,7 +18,7 @@ Microverse is organized into five tiers — see [docs/architecture/1.0/core.md](
 |---|---|---|
 | Applications | [`applications/`](applications/) | The front doors — TaskFusion, Admin, shared UI |
 | Domain services | [`domain-services/`](domain-services/) | One specialist trick each, customer-facing brand names (GoFeeler, SpringPix, PyReel, ...) |
-| Business services | [`business-services/`](business-services/) | The narrator — owns the Order/Task/Project plot (order-service, task-service, workflow) |
+| Business services | [`business-services/`](business-services/) | The narrator — owns the Order/Task/Project plot (task-service, workflow) |
 | Platform services | [`platform-services/`](platform-services/) | Plumbing, zero business opinions, fully generic (asset-service, notification-service, ...) |
 | Infrastructure | [`infrastructure/`](infrastructure/) | The ground everything stands on — Keycloak, Postgres/PostGIS, MongoDB, Redis, RabbitMQ, MinIO, nginx |
 

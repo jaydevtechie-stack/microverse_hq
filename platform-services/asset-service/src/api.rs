@@ -13,15 +13,19 @@ use crate::{minio, task_client};
 // necessary ways:
 //  - `service` is an explicit request field/query param everywhere,
 //    not inferred from the object key or a lookup — there's no
-//    cross-service order registry to resolve "which service does this
-//    order_id belong to," so whoever's calling (which already knows
-//    it's dealing with, say, a gofeeler task) has to say so.
+//    cross-service registry to resolve "which service does this
+//    order_id (task-service's tasks.id — there's no separate Order
+//    entity, see docs/architecture/1.0/business-services.md) belong
+//    to," so whoever's calling (which already knows it's dealing
+//    with, say, a gofeeler task) has to say so.
 //  - Listing/download resolve the exact object by scanning the
 //    service's objects and filtering for this order_id (see
 //    minio::list_order_objects) rather than a direct key lookup,
 //    since `company_id` (here: username) sits before `order_id` in
 //    the key and there's no way to know a customer's username from
-//    the order_id alone without a real order-service to ask.
+//    the order_id alone without a task-service round trip to ask —
+//    the same call task_client::fetch_status already makes for
+//    status, just not wired up to return it yet.
 // Statuses during which the customer can add/remove files here — same
 // window as task-service's own title/context/tags edit window
 // (EDITABLE_STATUSES in task-routes.js). 5.7.2 briefly narrowed this to
