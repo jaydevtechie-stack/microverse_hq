@@ -1,9 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { IconSearch } from '@tabler/icons-react';
 import { getKeycloak, authHeaders } from '../services/keycloak';
 import TaskStatusBadge from './TaskStatusBadge';
 import TaskStatusFilter from './TaskStatusFilter';
+
+// Client-side, same as TaskStatusFilter's status narrowing below — the
+// full task set is already fetched in one shot (see the effect below),
+// so paging/searching narrow the already-loaded array rather than a
+// server round trip. Distinct from SearchResultsPage's Prev/Next (that
+// one pages a real search-service query, page/size/total from the
+// server) — this list has no equivalent paged endpoint, task-service's
+// GET /api/tasks?service= always returns every row.
+const PAGE_SIZE = 20;
 
 // The master list — shared by the old full-page Gofeeler landing (now
 // retired in favor of GofeelerSplitView) and the split view's list
@@ -25,6 +35,8 @@ const GofeelerListPanel = ({ selectedId, refreshKey }) => {
   const [tasks, setTasks] = useState(null);
   const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     fetch('/api/tasks?service=gofeeler', { headers: authHeaders() })
@@ -46,8 +58,24 @@ const GofeelerListPanel = ({ selectedId, refreshKey }) => {
         isCustomer ? task.customer_id === userId : task.assignee === username
       );
 
+  const trimmedQuery = searchQuery.trim().toLowerCase();
+  const searchedTasks = trimmedQuery
+    ? visibleTasks?.filter((task) => task.title?.toLowerCase().includes(trimmedQuery))
+    : visibleTasks;
+
   const filteredTasks =
-    statusFilter === 'all' ? visibleTasks : visibleTasks?.filter((task) => task.status === statusFilter);
+    statusFilter === 'all' ? searchedTasks : searchedTasks?.filter((task) => task.status === statusFilter);
+
+  // Whenever the filtered set's basis changes — a new search term, a
+  // different status chip, or a fresh fetch — page 2 of the *previous*
+  // filter would otherwise silently persist and could land past the
+  // end of the new, usually-shorter result set.
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, searchQuery, refreshKey]);
+
+  const totalPages = filteredTasks ? Math.max(1, Math.ceil(filteredTasks.length / PAGE_SIZE)) : 1;
+  const pagedTasks = filteredTasks?.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -82,7 +110,43 @@ const GofeelerListPanel = ({ selectedId, refreshKey }) => {
       </div>
 
       {visibleTasks && visibleTasks.length > 0 && (
-        <div style={{ padding: '10px 16px', borderBottom: '0.5px solid var(--mv-border)' }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 10,
+            padding: '10px 16px',
+            borderBottom: '0.5px solid var(--mv-border)',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              background: 'var(--mv-bg)',
+              border: '0.5px solid var(--mv-border)',
+              borderRadius: 999,
+              padding: '6px 12px',
+            }}
+          >
+            <IconSearch size={14} color="var(--mv-text-muted)" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t('listPanel.searchPlaceholder')}
+              style={{
+                flex: 1,
+                border: 'none',
+                background: 'none',
+                outline: 'none',
+                fontSize: 12,
+                color: 'var(--mv-text)',
+                minWidth: 0,
+              }}
+            />
+          </div>
           <TaskStatusFilter active={statusFilter} onChange={setStatusFilter} />
         </div>
       )}
@@ -116,7 +180,7 @@ const GofeelerListPanel = ({ selectedId, refreshKey }) => {
           </p>
         )}
 
-        {filteredTasks?.map((task) => {
+        {pagedTasks?.map((task) => {
           const isSelected = String(task.id) === String(selectedId);
           return (
             <Link
@@ -149,6 +213,57 @@ const GofeelerListPanel = ({ selectedId, refreshKey }) => {
           );
         })}
       </div>
+
+      {filteredTasks && filteredTasks.length > PAGE_SIZE && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 14,
+            padding: '10px 16px',
+            borderTop: '0.5px solid var(--mv-border)',
+          }}
+        >
+          <button
+            type="button"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            style={{
+              padding: '5px 12px',
+              fontSize: 11,
+              borderRadius: 'var(--mv-radius)',
+              border: '0.5px solid var(--mv-border)',
+              background: 'transparent',
+              color: page <= 1 ? 'var(--mv-text-muted)' : 'var(--mv-text)',
+              cursor: page <= 1 ? 'default' : 'pointer',
+              opacity: page <= 1 ? 0.5 : 1,
+            }}
+          >
+            {t('listPanel.prevPage')}
+          </button>
+          <span style={{ fontSize: 11, color: 'var(--mv-text-muted)' }}>
+            {t('listPanel.pageOf', { page, totalPages })}
+          </span>
+          <button
+            type="button"
+            disabled={page >= totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            style={{
+              padding: '5px 12px',
+              fontSize: 11,
+              borderRadius: 'var(--mv-radius)',
+              border: '0.5px solid var(--mv-border)',
+              background: 'transparent',
+              color: page >= totalPages ? 'var(--mv-text-muted)' : 'var(--mv-text)',
+              cursor: page >= totalPages ? 'default' : 'pointer',
+              opacity: page >= totalPages ? 0.5 : 1,
+            }}
+          >
+            {t('listPanel.nextPage')}
+          </button>
+        </div>
+      )}
     </div>
   );
 };
