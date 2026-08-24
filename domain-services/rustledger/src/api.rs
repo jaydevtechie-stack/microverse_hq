@@ -458,3 +458,76 @@ async fn stripe_webhook(
 
     Ok(StatusCode::OK)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::Utc;
+
+    fn bill_for_customer(customer_id: Uuid) -> Bill {
+        Bill {
+            id: Uuid::new_v4(),
+            task_id: Uuid::new_v4(),
+            customer_id,
+            amount_cents: 1000,
+            currency: "USD".to_string(),
+            status: "unpaid".to_string(),
+            stripe_checkout_session_id: None,
+            stripe_payment_intent_id: None,
+            created_at: Utc::now(),
+            created_by_id: None,
+            published_at: None,
+            paid_at: None,
+        }
+    }
+
+    #[test]
+    fn is_staff_true_for_each_staff_role() {
+        assert!(is_staff(&Claims::for_test(&["platform:project-manager"], None, None)));
+        assert!(is_staff(&Claims::for_test(&["platform:account-manager"], None, None)));
+        assert!(is_staff(&Claims::for_test(&["platform:admin"], None, None)));
+    }
+
+    #[test]
+    fn is_staff_false_for_customer_or_no_roles() {
+        assert!(!is_staff(&Claims::for_test(&["platform:customer"], None, None)));
+        assert!(!is_staff(&Claims::for_test(&[], None, None)));
+    }
+
+    #[test]
+    fn staff_are_never_forbidden_regardless_of_sub() {
+        let bill = bill_for_customer(Uuid::new_v4());
+        let claims = Claims::for_test(&["platform:admin"], None, Some("not-even-a-uuid"));
+        assert!(!forbidden_for_customer(&claims, &bill));
+    }
+
+    #[test]
+    fn customer_matching_bills_owner_is_not_forbidden() {
+        let customer_id = Uuid::new_v4();
+        let bill = bill_for_customer(customer_id);
+        let claims = Claims::for_test(&["platform:customer"], None, Some(&customer_id.to_string()));
+        assert!(!forbidden_for_customer(&claims, &bill));
+    }
+
+    #[test]
+    fn customer_with_different_sub_is_forbidden() {
+        let bill = bill_for_customer(Uuid::new_v4());
+        let other_id = Uuid::new_v4();
+        let claims = Claims::for_test(&["platform:customer"], None, Some(&other_id.to_string()));
+        assert!(forbidden_for_customer(&claims, &bill));
+    }
+
+    #[test]
+    fn customer_with_no_sub_claim_is_forbidden() {
+        let bill = bill_for_customer(Uuid::new_v4());
+        let claims = Claims::for_test(&["platform:customer"], None, None);
+        assert!(forbidden_for_customer(&claims, &bill));
+    }
+
+    #[test]
+    fn customer_with_non_uuid_sub_is_forbidden() {
+        let bill = bill_for_customer(Uuid::new_v4());
+        let claims = Claims::for_test(&["platform:customer"], None, Some("not-a-uuid"));
+        assert!(forbidden_for_customer(&claims, &bill));
+    }
+}
