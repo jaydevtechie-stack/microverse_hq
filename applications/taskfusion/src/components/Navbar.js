@@ -85,24 +85,36 @@ const Navbar = ({ keycloak }) => {
       </PlatformNavLink>
 
       {isCustomer && (
-        <PlatformNavLink to="/accounts/view" active={pathname === '/accounts/view'}>
-          {t('accounts')}
-        </PlatformNavLink>
+        <>
+          <PlatformNavLink to="/accounts/view" active={pathname === '/accounts/view'}>
+            {t('accounts')}
+          </PlatformNavLink>
+          {/* Same list as PM's Tasks link below (GofeelerSplitView,
+              scoped to this customer's own orders) — "Orders" is the
+              label a customer sees for it, "Tasks" is everyone else's,
+              see docs/architecture/1.0/business-services.md: an Order
+              *is* a task-service task, not a separate entity. */}
+          <PlatformNavLink to="/orders" active={pathname === '/orders'}>
+            {t('orders')}
+          </PlatformNavLink>
+        </>
       )}
 
-      {/* 4.3 — supersedes the single "Projects" link: Projects/Orders
-          (PM-scoped, moved from Admin)/Delivery team. Delivery team's
-          Analysts/Reviewers live as an in-page Subnav on
-          DeliveryTeamPage.js (see platform_projects_hub_and_admin.html's
-          #subnav pattern), not a navbar dropdown. See
-          docs/architecture/1.0/nav-config.json. */}
+      {/* 4.3 — supersedes the single "Projects" link: Projects/Tasks/
+          Delivery team. Tasks (formerly /pm/orders, a placeholder) now
+          points at the real GofeelerSplitView list, same page as the
+          customer Orders link above — see docs/architecture/1.0/
+          business-services.md. Delivery team's Analysts/Reviewers live
+          as an in-page Subnav on DeliveryTeamPage.js (see
+          platform_projects_hub_and_admin.html's #subnav pattern), not a
+          navbar dropdown. See docs/architecture/1.0/nav-config.json. */}
       {isPMWithServiceScope && (
         <>
           <PlatformNavLink to="/projects/list" active={pathname === '/projects/list'}>
             {t('projects')}
           </PlatformNavLink>
-          <PlatformNavLink to="/pm/orders" active={pathname === '/pm/orders'}>
-            {t('orders')}
+          <PlatformNavLink to="/tasks" active={pathname === '/tasks'}>
+            {t('tasks')}
           </PlatformNavLink>
           <PlatformNavLink to="/pm/delivery-team/analysts" active={pathname.startsWith('/pm/delivery-team')}>
             {t('deliveryTeam')}

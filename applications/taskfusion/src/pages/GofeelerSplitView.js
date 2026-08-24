@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import GofeelerListPanel from '../components/GofeelerListPanel';
 import TaskDetailContent from '../components/TaskDetailContent';
 import CreateOrderForm from '../components/CreateOrderForm';
+import { getKeycloak } from '../services/keycloak';
 import useIsMobile from '../hooks/useIsMobile';
 import usePageMeta from '../hooks/usePageMeta';
 
@@ -18,15 +19,23 @@ const MAX_SPLIT = 60;
 // the divider between them is draggable (20-60% bounds, matching the
 // mockup). Mobile: opening something replaces the list entirely, no
 // resizer; "← Back" returns to it. Panel is derived from the URL
-// (/, /task/:id, /create) rather than local-only state, so links stay
+// (/task/:id = detail, /create = create, anything else — /, /orders,
+// /tasks — is the list) rather than local-only state, so links stay
 // shareable and browser back/forward works — the mockup's demo used
-// local state instead, but a real app needs addressable routes.
+// local state instead, but a real app needs addressable routes. /orders
+// and /tasks render this same list — see App.js's comment on those
+// routes for why there are two paths to the same content.
 const GofeelerSplitView = () => {
   const { t } = useTranslation(['common', 'orders']);
-  usePageMeta({ title: 'Microverse - Gofeeler' });
   const { pathname } = useLocation();
   const { id } = useParams();
   const isMobile = useIsMobile();
+  // Same role check GofeelerListPanel uses to decide the Orders-vs-Tasks
+  // label, reused here so the back link from a detail/create panel
+  // returns to whichever path is this viewer's own, not always "/".
+  const isCustomer = getKeycloak()?.hasRealmRole('platform:customer');
+  const listPath = isCustomer ? '/orders' : '/tasks';
+  usePageMeta({ title: isCustomer ? 'Microverse - Orders' : 'Microverse - Tasks' });
 
   const [splitRatio, setSplitRatio] = useState(50);
   const containerRef = useRef(null);
@@ -35,7 +44,7 @@ const GofeelerSplitView = () => {
   // so it wouldn't otherwise refetch and show the new order.
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const panel = pathname === '/' ? 'list' : pathname.startsWith('/task/') ? 'detail' : 'create';
+  const panel = pathname.startsWith('/task/') ? 'detail' : pathname === '/create' ? 'create' : 'list';
   const splitOpen = panel !== 'list' && !isMobile;
   const listWidth = panel === 'list' ? '100%' : isMobile ? '0' : `${splitRatio}%`;
   const rightPanelFlex = panel === 'list' ? '0 0 0px' : splitOpen ? `0 0 ${100 - splitRatio}%` : '1 1 0%';
@@ -109,7 +118,7 @@ const GofeelerSplitView = () => {
         {panel !== 'list' && (
           <div style={{ padding: '16px 18px', minWidth: isMobile ? 'auto' : 280 }}>
             <Link
-              to="/"
+              to={listPath}
               style={{ color: 'var(--mv-color-primary)', fontSize: 12, textDecoration: 'none' }}
             >
               {t('common:back')}

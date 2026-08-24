@@ -61,7 +61,7 @@ const GofeelerListPanel = ({ selectedId, refreshKey }) => {
         }}
       >
         <span style={{ color: 'var(--mv-text)', fontSize: 13, fontWeight: 500 }}>
-          {t('listPanel.header')}
+          {isCustomer ? t('listPanel.headerOrders') : t('listPanel.headerTasks')}
         </span>
         {isCustomer && (
           <Link
