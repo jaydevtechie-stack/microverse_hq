@@ -8,7 +8,11 @@
     "emptyPm": "No tasks yet.",
     "emptyCustomer": "You haven't submitted any orders yet.",
     "emptyOther": "No tasks assigned to you right now.",
-    "emptyFiltered": "No tasks match this filter."
+    "emptyFiltered": "No tasks match this filter.",
+    "searchPlaceholder": "Search by title…",
+    "prevPage": "Previous",
+    "nextPage": "Next",
+    "pageOf": "Page {{page}} of {{totalPages}}"
   },
   "taskDetail": {
     "share": {
