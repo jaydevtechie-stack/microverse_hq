@@ -85,4 +85,4 @@ function requireAnyRealmRole(...roles) {
   };
 }
 
-module.exports = { syncUser, requireRealmRole, requireAnyRealmRole };
+module.exports = { syncUser, requireRealmRole, requireAnyRealmRole, claimsFromHeader };

@@ -76,4 +76,4 @@ async function publishTaskEvent(eventName, task) {
   }
 }
 
-module.exports = { publishTaskEvent, TOPIC };
+module.exports = { publishTaskEvent, TOPIC, taskToEvent };
