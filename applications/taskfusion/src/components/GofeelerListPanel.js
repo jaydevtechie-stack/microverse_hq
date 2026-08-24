@@ -13,7 +13,14 @@ import TaskStatusFilter from './TaskStatusFilter';
 // one pages a real search-service query, page/size/total from the
 // server) — this list has no equivalent paged endpoint, task-service's
 // GET /api/tasks?service= always returns every row.
-const PAGE_SIZE = 20;
+//
+// Configurable via REACT_APP_TASK_LIST_PAGE_SIZE (TASKFUSION_TASK_LIST_PAGE_SIZE
+// in .env, see docker-compose.yml's build args) — a CRA build-time env
+// var, baked in at image build, not runtime-tunable without a rebuild,
+// same as REACT_APP_KEYCLOAK_URL and friends. Falls back to 20 if unset
+// or not a positive integer.
+const configuredPageSize = Number(process.env.REACT_APP_TASK_LIST_PAGE_SIZE);
+const PAGE_SIZE = Number.isInteger(configuredPageSize) && configuredPageSize > 0 ? configuredPageSize : 20;
 
 // The master list — shared by the old full-page Gofeeler landing (now
 // retired in favor of GofeelerSplitView) and the split view's list
