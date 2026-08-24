@@ -39,8 +39,7 @@ pub async fn bill_stopped_session(
         }
     };
 
-    let amount_cents =
-        ((elapsed_seconds as f64 / 3600.0) * rate_card.cents_per_hour as f64).round() as i64;
+    let amount_cents = compute_amount_cents(elapsed_seconds, rate_card.cents_per_hour);
 
     let result = sqlx::query(
         r#"
@@ -73,4 +72,49 @@ pub async fn bill_stopped_session(
     }
 
     Ok(())
+}
+
+// Pulled out of bill_stopped_session so the rounding behavior (money math,
+// worth pinning down exactly) can be tested without a PgPool.
+fn compute_amount_cents(elapsed_seconds: i64, cents_per_hour: i64) -> i64 {
+    ((elapsed_seconds as f64 / 3600.0) * cents_per_hour as f64).round() as i64
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn exact_hour_bills_full_rate() {
+        assert_eq!(compute_amount_cents(3600, 5000), 5000);
+    }
+
+    #[test]
+    fn zero_elapsed_seconds_bills_nothing() {
+        assert_eq!(compute_amount_cents(0, 5000), 0);
+    }
+
+    #[test]
+    fn half_hour_bills_half_rate() {
+        assert_eq!(compute_amount_cents(1800, 5000), 2500);
+    }
+
+    #[test]
+    fn rounds_to_nearest_cent_up() {
+        // 1s at $50/hr = 1.3888...c, rounds up to 1c.
+        assert_eq!(compute_amount_cents(1, 5000), 1);
+    }
+
+    #[test]
+    fn rounds_to_nearest_cent_down() {
+        // 61s at $1/hr = 1.694...c, rounds down to 2c (nearest, not up-only).
+        assert_eq!(compute_amount_cents(61, 100), 2);
+    }
+
+    #[test]
+    fn large_session_does_not_overflow() {
+        // ~24h at a high rate — sanity check the f64 round-trip stays exact
+        // at magnitudes this billing model will actually see.
+        assert_eq!(compute_amount_cents(86_400, 1_000_000), 24_000_000);
+    }
 }

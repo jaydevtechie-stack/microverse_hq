@@ -636,4 +636,9 @@ router.post('/tasks/:id/comments', async (req, res) => {
   }
 });
 
+// Exposed on the router (rather than a separate named export) so
+// server.js's plain `require('./routes/task-routes')` keeps working
+// unchanged — tests reach it as `taskRoutes.isCustomerOnly`.
+router.isCustomerOnly = isCustomerOnly;
+
 module.exports = router;
