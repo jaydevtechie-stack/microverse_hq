@@ -1,0 +1,36 @@
+name: notification-service CI
+
+on:
+  push:
+    branches: [develop, main]
+    paths:
+      - 'platform-services/notification-service/**'
+      - '.github/workflows/notification-service-ci.yml'
+  pull_request:
+    paths:
+      - 'platform-services/notification-service/**'
+      - '.github/workflows/notification-service-ci.yml'
+
+defaults:
+  run:
+    working-directory: platform-services/notification-service
+
+jobs:
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+
+    # No real Postgres/Kafka/MailHog needed — the current test suite
+    # (claimsFromHeader/claimsFromSocketToken) is pure-function unit
+    # tests, same posture as task-service-ci.yml. Add service containers
+    # here if a future test needs a real connection.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - run: npm ci
+
+      - run: npm test
