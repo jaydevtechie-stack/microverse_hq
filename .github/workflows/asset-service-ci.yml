@@ -1,0 +1,42 @@
+name: asset-service CI
+
+on:
+  push:
+    branches: [develop, main]
+    paths:
+      - 'platform-services/asset-service/**'
+      - '.github/workflows/asset-service-ci.yml'
+  pull_request:
+    paths:
+      - 'platform-services/asset-service/**'
+      - '.github/workflows/asset-service-ci.yml'
+
+defaults:
+  run:
+    working-directory: platform-services/asset-service
+
+jobs:
+  unit:
+    name: Build, clippy, unit test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: platform-services/asset-service
+
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends pkg-config libssl-dev
+
+      - run: cargo build --bin asset-service
+      - run: cargo clippy --bin asset-service
+      # No real MinIO/task-service needed — the test suite covers pure
+      # functions only (auth claim extraction, object-key building, the
+      # is_staff/owns_key/in_edit_window predicates api.rs's handlers
+      # call), same "no service containers" posture as
+      # task-service-ci.yml/notification-service-ci.yml.
+      - run: cargo test --bin asset-service
