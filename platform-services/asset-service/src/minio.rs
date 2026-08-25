@@ -72,6 +72,24 @@ pub fn blog_object_key(post_id: &str, filename: &str) -> String {
     format!("blog/{post_id}/{filename}")
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn object_key_builds_the_documented_layout() {
+        assert_eq!(
+            object_key("gofeeler", "acme-forestry", "1f0a3c9e", "chat-export.txt"),
+            "gofeeler/acme-forestry/1f0a3c9e/v1/chat-export.txt"
+        );
+    }
+
+    #[test]
+    fn blog_object_key_builds_the_documented_layout() {
+        assert_eq!(blog_object_key("post-1", "cover.png"), "blog/post-1/cover.png");
+    }
+}
+
 pub async fn ensure_bucket(client: &Client) {
     let bucket = bucket_name();
     if client.head_bucket().bucket(&bucket).send().await.is_err() {
