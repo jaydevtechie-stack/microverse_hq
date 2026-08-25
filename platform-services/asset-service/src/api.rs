@@ -6,7 +6,7 @@ use axum::Router;
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use crate::auth::claims_from_headers;
+use crate::auth::{claims_from_headers, Claims};
 use crate::{minio, task_client};
 
 // Deviates from ROADMAP.md's originally-sketched shape in two small,
@@ -109,7 +109,7 @@ async fn upload_url(
         .await
         .map_err(|e| (StatusCode::BAD_GATEWAY, e))?
     {
-        if !EDIT_WINDOW_STATUSES.contains(&status.as_str()) {
+        if !in_edit_window(&status) {
             return Err((
                 StatusCode::FORBIDDEN,
                 "files can only be added while the order is still open for edits".into(),
@@ -149,6 +149,22 @@ const STAFF_ROLES: [&str; 3] = [
     "platform:reviewer",
 ];
 
+fn is_staff(claims: &Claims) -> bool {
+    STAFF_ROLES.iter().any(|r| claims.has_role(r))
+}
+
+// An object key is always {service}/{username}/{order_id}/v1/{filename}
+// (minio::object_key) — a customer owns a key iff their own username
+// sits in that segment. String-contains rather than a real path split
+// since "/" can't appear inside username/order_id/filename themselves.
+fn owns_key(username: &str, key: &str) -> bool {
+    key.contains(&format!("/{username}/"))
+}
+
+fn in_edit_window(status: &str) -> bool {
+    EDIT_WINDOW_STATUSES.contains(&status)
+}
+
 // Auth is role AND status, not just role (ROADMAP.md's "paid unlocks
 // download"): staff with the matching service scope can always
 // download (they need the raw content to do the work); a customer
@@ -166,10 +182,10 @@ async fn download_url(
         return Err((StatusCode::FORBIDDEN, format!("requires {service_role}")));
     }
 
-    let is_staff = STAFF_ROLES.iter().any(|r| claims.has_role(r));
+    let staff = is_staff(&claims);
     let is_customer = claims.has_role("platform:customer");
 
-    if !is_staff && !is_customer {
+    if !staff && !is_customer {
         return Err((StatusCode::FORBIDDEN, "no eligible platform role".into()));
     }
 
@@ -187,11 +203,11 @@ async fn download_url(
         .find(|k| k.ends_with(&format!("/{}", query.filename)))
         .ok_or((StatusCode::NOT_FOUND, "no matching file for this order".into()))?;
 
-    if is_customer && !is_staff {
+    if is_customer && !staff {
         let username = claims
             .username()
             .ok_or((StatusCode::UNAUTHORIZED, "token has no preferred_username".into()))?;
-        if !matching_key.contains(&format!("/{username}/")) {
+        if !owns_key(username, &matching_key) {
             return Err((StatusCode::FORBIDDEN, "not this customer's order".into()));
         }
 
@@ -244,9 +260,9 @@ async fn content(
         return Err((StatusCode::FORBIDDEN, format!("requires {service_role}")));
     }
 
-    let is_staff = STAFF_ROLES.iter().any(|r| claims.has_role(r));
+    let staff = is_staff(&claims);
     let is_customer = claims.has_role("platform:customer");
-    if !is_staff && !is_customer {
+    if !staff && !is_customer {
         return Err((StatusCode::FORBIDDEN, "no eligible platform role".into()));
     }
 
@@ -260,11 +276,11 @@ async fn content(
         .find(|k| k.ends_with(&format!("/{}", query.filename)))
         .ok_or((StatusCode::NOT_FOUND, "no matching file for this order".into()))?;
 
-    if is_customer && !is_staff {
+    if is_customer && !staff {
         let username = claims
             .username()
             .ok_or((StatusCode::UNAUTHORIZED, "token has no preferred_username".into()))?;
-        if !matching_key.contains(&format!("/{username}/")) {
+        if !owns_key(username, &matching_key) {
             return Err((StatusCode::FORBIDDEN, "not this customer's order".into()));
         }
 
@@ -331,9 +347,9 @@ async fn list_assets(
         return Err((StatusCode::FORBIDDEN, format!("requires {service_role}")));
     }
 
-    let is_staff = STAFF_ROLES.iter().any(|r| claims.has_role(r));
+    let staff = is_staff(&claims);
     let is_customer = claims.has_role("platform:customer");
-    if !is_staff && !is_customer {
+    if !staff && !is_customer {
         return Err((StatusCode::FORBIDDEN, "no eligible platform role".into()));
     }
 
@@ -341,7 +357,7 @@ async fn list_assets(
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    let owned_prefix = if is_customer && !is_staff {
+    let owned_prefix = if is_customer && !staff {
         let username = claims
             .username()
             .ok_or((StatusCode::UNAUTHORIZED, "token has no preferred_username".into()))?;
@@ -404,7 +420,7 @@ async fn delete_asset(
         .await
         .map_err(|e| (StatusCode::BAD_GATEWAY, e))?
         .ok_or((StatusCode::NOT_FOUND, "order not found".into()))?;
-    if !EDIT_WINDOW_STATUSES.contains(&status.as_str()) {
+    if !in_edit_window(&status) {
         return Err((
             StatusCode::FORBIDDEN,
             "files can only be removed while the order is still open for edits".into(),
@@ -421,7 +437,7 @@ async fn delete_asset(
         .find(|k| k.ends_with(&format!("/{}", query.filename)))
         .ok_or((StatusCode::NOT_FOUND, "no matching file for this order".into()))?;
 
-    if !matching_key.contains(&format!("/{username}/")) {
+    if !owns_key(username, &matching_key) {
         return Err((StatusCode::FORBIDDEN, "not this customer's order".into()));
     }
 
@@ -525,4 +541,57 @@ async fn blog_delete(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn is_staff_true_for_each_staff_role() {
+        assert!(is_staff(&Claims::for_test(&["platform:project-manager"], None)));
+        assert!(is_staff(&Claims::for_test(&["platform:analyst"], None)));
+        assert!(is_staff(&Claims::for_test(&["platform:reviewer"], None)));
+    }
+
+    #[test]
+    fn is_staff_false_for_customer_or_no_roles() {
+        assert!(!is_staff(&Claims::for_test(&["platform:customer"], None)));
+        assert!(!is_staff(&Claims::for_test(&[], None)));
+    }
+
+    #[test]
+    fn owns_key_true_when_username_segment_matches() {
+        let key = "gofeeler/acme-forestry/1f0a3c9e/v1/chat-export.txt";
+        assert!(owns_key("acme-forestry", key));
+    }
+
+    #[test]
+    fn owns_key_false_for_a_different_username() {
+        let key = "gofeeler/acme-forestry/1f0a3c9e/v1/chat-export.txt";
+        assert!(!owns_key("someone-else", key));
+    }
+
+    #[test]
+    fn owns_key_false_for_a_username_that_is_only_a_substring() {
+        // "acme" is a substring of "acme-forestry" but not the actual
+        // path segment — the surrounding slashes in owns_key's needle
+        // are what stop a shorter, unrelated username from matching.
+        let key = "gofeeler/acme-forestry/1f0a3c9e/v1/chat-export.txt";
+        assert!(!owns_key("acme", key));
+    }
+
+    #[test]
+    fn in_edit_window_true_for_unassigned_and_analyst() {
+        assert!(in_edit_window("unassigned"));
+        assert!(in_edit_window("analyst"));
+    }
+
+    #[test]
+    fn in_edit_window_false_for_other_statuses() {
+        assert!(!in_edit_window("reviewer"));
+        assert!(!in_edit_window("done"));
+        assert!(!in_edit_window("paid"));
+        assert!(!in_edit_window("closed"));
+    }
 }
