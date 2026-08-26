@@ -10,9 +10,14 @@ RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Install dependencies
+# Install dependencies, then drop pip itself - build-time tool only (this
+# app starts via `uvicorn`'s own console-script entry point, not pip),
+# and pip vendors its own copy of msgpack for internal use that
+# otherwise shows up as an unfixable-by-us CVE in image scans despite
+# this app's code never importing msgpack.
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt && \
+    rm -rf /usr/local/lib/python3.14/site-packages/pip* /usr/local/bin/pip /usr/local/bin/pip3
 
 # Copy app code
 COPY app/ ./app/
