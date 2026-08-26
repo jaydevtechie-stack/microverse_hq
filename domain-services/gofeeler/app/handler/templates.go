@@ -1,16 +1,14 @@
 package handler
 
 import (
-	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 
+	"gofeeler/auth"
 	"gofeeler/model"
 	"gofeeler/store"
 )
@@ -58,7 +56,10 @@ func (h *TemplatesHandler) CreateTemplate(c *gin.Context) {
 		return
 	}
 
-	createdBy := subFromAuthHeader(c.GetHeader("Authorization"))
+	var createdBy *string
+	if claims := auth.ClaimsFromHeader(c.GetHeader("Authorization")); claims != nil && claims.Subject != "" {
+		createdBy = &claims.Subject
+	}
 
 	tpl, err := h.templates.Create(c.Request.Context(), req, createdBy)
 	if err != nil {
@@ -103,32 +104,4 @@ func (h *TemplatesHandler) UpdateTemplate(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, tpl)
-}
-
-// subFromAuthHeader is unverified claim extraction — no signature check
-// against Keycloak's JWKS, same interim trust posture as task-service's
-// auth.js/asset-service's auth.rs (docs/security.md). Returns nil if the
-// header is missing/malformed rather than rejecting the request; a
-// template created without an identified author just gets a null
-// created_by.
-func subFromAuthHeader(authHeader string) *string {
-	const prefix = "Bearer "
-	if !strings.HasPrefix(authHeader, prefix) {
-		return nil
-	}
-	parts := strings.Split(strings.TrimPrefix(authHeader, prefix), ".")
-	if len(parts) != 3 {
-		return nil
-	}
-	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
-	if err != nil {
-		return nil
-	}
-	var claims struct {
-		Sub string `json:"sub"`
-	}
-	if err := json.Unmarshal(payload, &claims); err != nil || claims.Sub == "" {
-		return nil
-	}
-	return &claims.Sub
 }
