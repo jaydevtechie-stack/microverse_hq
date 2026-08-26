@@ -7,9 +7,8 @@ defmodule ElixTempo.Application do
 
   @impl true
   def start(_type, _args) do
-    :ok = ElixTempo.KafkaProducer.start_client()
-
     children = [
+      ElixTempo.KafkaProducer,
       ElixTempo.Sessions.Store,
       ElixTempoWeb.Telemetry,
       {DNSCluster, query: Application.get_env(:elixtempo, :dns_cluster_query) || :ignore},
