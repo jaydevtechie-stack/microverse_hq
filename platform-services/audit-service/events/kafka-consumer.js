@@ -95,4 +95,4 @@ function startConsumer() {
   })();
 }
 
-module.exports = { startConsumer };
+module.exports = { startConsumer, rowForTaskEvent, rowForSentimentEvent };

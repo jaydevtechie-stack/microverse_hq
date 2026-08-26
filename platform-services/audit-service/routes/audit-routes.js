@@ -34,4 +34,10 @@ router.get('/metrics/reaction-time', async (req, res) => {
   res.json(metrics);
 });
 
+// Exposed on the router (rather than a separate named export) so
+// server.js's plain `require('./routes/audit-routes')` keeps working
+// unchanged — tests reach it as `auditRoutes.parseWindow`, same pattern
+// as task-service's routes/task-routes.js.
+router.parseWindow = parseWindow;
+
 module.exports = router;
