@@ -1,0 +1,36 @@
+name: audit-service CI
+
+on:
+  push:
+    branches: [develop, main]
+    paths:
+      - 'platform-services/audit-service/**'
+      - '.github/workflows/audit-service-ci.yml'
+  pull_request:
+    paths:
+      - 'platform-services/audit-service/**'
+      - '.github/workflows/audit-service-ci.yml'
+
+defaults:
+  run:
+    working-directory: platform-services/audit-service
+
+jobs:
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+
+    # No real Postgres/Kafka needed — the current test suite (auth claim
+    # extraction, the Kafka event -> audit_log row mappers, the
+    # metrics-window query parser) is pure-function unit tests, same
+    # posture as task-service-ci.yml/notification-service-ci.yml.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - run: npm ci
+
+      - run: npm test
