@@ -47,16 +47,17 @@ impl IntoResponse for ApiError {
 // (docs/security.md: rustledger had zero auth, unlike every other
 // service) without guessing at that unbuilt design; revisit once
 // Branch 9's payout-visibility model actually exists.
-fn require_admin(headers: &HeaderMap) -> Result<Claims, ApiError> {
-    require_any_role(headers, &["platform:admin"])
+async fn require_admin(headers: &HeaderMap) -> Result<Claims, ApiError> {
+    require_any_role(headers, &["platform:admin"]).await
 }
 
 // Generalized for the bill endpoints below, which need PM/customer/admin
 // combinations rather than admin-only — same claim-extraction, just a
 // list of acceptable roles instead of one. Returns the parsed Claims so
 // callers can read email/sub off it without extracting twice.
-fn require_any_role(headers: &HeaderMap, roles: &[&str]) -> Result<Claims, ApiError> {
+async fn require_any_role(headers: &HeaderMap, roles: &[&str]) -> Result<Claims, ApiError> {
     let claims = claims_from_headers(headers)
+        .await
         .ok_or_else(|| ApiError::new(StatusCode::UNAUTHORIZED, "missing or malformed token"))?;
     if !roles.iter().any(|role| claims.has_role(role)) {
         return Err(ApiError::new(
@@ -103,7 +104,7 @@ async fn list_line_items(
     headers: HeaderMap,
     Query(query): Query<LineItemsQuery>,
 ) -> Result<Json<Vec<LineItem>>, ApiError> {
-    require_admin(&headers)?;
+    require_admin(&headers).await?;
 
     let rows = match query.analyst_id {
         Some(analyst_id) => sqlx::query_as::<_, LineItem>(
@@ -132,7 +133,7 @@ async fn analyst_total(
     headers: HeaderMap,
     Path(analyst_id): Path<String>,
 ) -> Result<Json<AnalystTotal>, ApiError> {
-    require_admin(&headers)?;
+    require_admin(&headers).await?;
 
     let rate_card = RateCard::from_env();
 
@@ -214,7 +215,7 @@ async fn create_bill(
     headers: HeaderMap,
     Json(body): Json<CreateBillBody>,
 ) -> Result<Json<Bill>, ApiError> {
-    let claims = require_any_role(&headers, &["platform:project-manager", "platform:admin"])?;
+    let claims = require_any_role(&headers, &["platform:project-manager", "platform:admin"]).await?;
 
     if body.amount_cents <= 0 {
         return Err(ApiError::new(StatusCode::BAD_REQUEST, "amount_cents must be positive"));
@@ -270,7 +271,7 @@ async fn publish_bill(
     headers: HeaderMap,
     Path(task_id): Path<Uuid>,
 ) -> Result<Json<Bill>, ApiError> {
-    require_any_role(&headers, &["platform:account-manager", "platform:admin"])?;
+    require_any_role(&headers, &["platform:account-manager", "platform:admin"]).await?;
 
     let bill = bills::publish_bill(&state.pool, task_id)
         .await
@@ -297,7 +298,8 @@ async fn list_bills(
     let claims = require_any_role(
         &headers,
         &["platform:project-manager", "platform:account-manager", "platform:admin"],
-    )?;
+    )
+    .await?;
 
     let result = if claims.has_role("platform:account-manager") || claims.has_role("platform:admin") {
         bills::list_all_bills(&state.pool).await
@@ -360,7 +362,8 @@ async fn get_bill_by_task(
     let claims = require_any_role(
         &headers,
         &["platform:project-manager", "platform:customer", "platform:admin"],
-    )?;
+    )
+    .await?;
 
     fetch_authorized_bill(&state.pool, &claims, task_id).await.map(Json)
 }
@@ -381,7 +384,7 @@ async fn create_checkout_session(
     headers: HeaderMap,
     Path(task_id): Path<Uuid>,
 ) -> Result<Json<CheckoutSessionResponse>, ApiError> {
-    let claims = require_any_role(&headers, &["platform:customer"])?;
+    let claims = require_any_role(&headers, &["platform:customer"]).await?;
 
     let bill = fetch_authorized_bill(&state.pool, &claims, task_id).await?;
     if bill.status == "paid" {

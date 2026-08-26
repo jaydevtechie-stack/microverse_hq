@@ -92,6 +92,7 @@ async fn upload_url(
     Json(body): Json<UploadUrlRequest>,
 ) -> Result<Json<UploadUrlResponse>, (StatusCode, String)> {
     let claims = claims_from_headers(&headers)
+        .await
         .ok_or((StatusCode::UNAUTHORIZED, "missing or malformed token".into()))?;
 
     if !claims.has_role("platform:customer") {
@@ -176,6 +177,7 @@ async fn download_url(
     Query(query): Query<DownloadUrlQuery>,
 ) -> Result<Json<DownloadUrlResponse>, (StatusCode, String)> {
     let claims = claims_from_headers(&headers)
+        .await
         .ok_or((StatusCode::UNAUTHORIZED, "missing or malformed token".into()))?;
     let service_role = format!("service:{}", query.service);
     if !claims.has_role(&service_role) {
@@ -254,6 +256,7 @@ async fn content(
     Query(query): Query<ContentQuery>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
     let claims = claims_from_headers(&headers)
+        .await
         .ok_or((StatusCode::UNAUTHORIZED, "missing or malformed token".into()))?;
     let service_role = format!("service:{}", query.service);
     if !claims.has_role(&service_role) {
@@ -341,6 +344,7 @@ async fn list_assets(
     Query(query): Query<ListAssetsQuery>,
 ) -> Result<Json<Vec<AssetSummary>>, (StatusCode, String)> {
     let claims = claims_from_headers(&headers)
+        .await
         .ok_or((StatusCode::UNAUTHORIZED, "missing or malformed token".into()))?;
     let service_role = format!("service:{}", query.service);
     if !claims.has_role(&service_role) {
@@ -403,6 +407,7 @@ async fn delete_asset(
     Query(query): Query<DeleteAssetQuery>,
 ) -> Result<StatusCode, (StatusCode, String)> {
     let claims = claims_from_headers(&headers)
+        .await
         .ok_or((StatusCode::UNAUTHORIZED, "missing or malformed token".into()))?;
 
     if !claims.has_role("platform:customer") {
@@ -473,6 +478,7 @@ async fn blog_upload_url(
     Json(body): Json<BlogUploadUrlRequest>,
 ) -> Result<Json<UploadUrlResponse>, (StatusCode, String)> {
     let claims = claims_from_headers(&headers)
+        .await
         .ok_or((StatusCode::UNAUTHORIZED, "missing or malformed token".into()))?;
     if !MARKETING_ROLES.iter().any(|r| claims.has_role(r)) {
         return Err((
@@ -527,6 +533,7 @@ async fn blog_delete(
     Path((post_id, filename)): Path<(String, String)>,
 ) -> Result<StatusCode, (StatusCode, String)> {
     let claims = claims_from_headers(&headers)
+        .await
         .ok_or((StatusCode::UNAUTHORIZED, "missing or malformed token".into()))?;
     if !MARKETING_ROLES.iter().any(|r| claims.has_role(r)) {
         return Err((
