@@ -1,9 +1,7 @@
-import base64
-import binascii
-import json
 import os
 from datetime import datetime, timezone
 
+import jwt
 from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel
 from elasticsearch import Elasticsearch
@@ -116,23 +114,56 @@ def ensure_blog_index():
     es.indices.create(index=BLOG_INDEX, mappings=BLOG_MAPPINGS)
 
 
-# Permission-scoped search (6.4) — unverified claim extraction, same
-# interim trust posture as task-service's auth.js and asset-service's
-# auth.rs (Bearer <token> -> split on "." -> base64url-decode the payload
-# segment -> parse; no JWKS signature check anywhere in the stack yet,
-# see docs/security.md). This follows that existing posture rather than
-# being the first service to diverge from it.
+# Permission-scoped search (6.4) — real signature verification against
+# Keycloak's JWKS, closing the gap docs/security.md flagged as the
+# top-priority item ("claim extraction is currently unverified"). This
+# is the actual access-control boundary for search (resolve_scope,
+# below, decides which task indices a caller can see) — a forged token
+# claiming a service:<name> role used to be enough to search that
+# service's task content. PyJWKClient (part of PyJWT itself, no extra
+# dependency) handles JWKS fetch/cache/refresh by kid.
+KEYCLOAK_INTERNAL_URL = os.environ.get("KEYCLOAK_INTERNAL_URL", "http://microverse-keycloak:8080")
+KEYCLOAK_REALM = os.environ.get("KEYCLOAK_REALM", "microverse")
+
+
+def _jwks_url() -> str:
+    return f"{KEYCLOAK_INTERNAL_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/certs"
+
+
+_jwks_client: jwt.PyJWKClient | None = None
+
+
+def _get_jwks_client() -> jwt.PyJWKClient:
+    global _jwks_client
+    if _jwks_client is None:
+        _jwks_client = jwt.PyJWKClient(_jwks_url(), cache_keys=True, lifespan=600)
+    return _jwks_client
+
+
+# Test-only seam: points this module at a local mock JWKS server instead
+# of real Keycloak, so signature verification itself is exercised with a
+# real keypair rather than mocked away. Never called outside tests.
+def set_jwks_url_for_tests(url: str | None) -> None:
+    global _jwks_client
+    _jwks_client = jwt.PyJWKClient(url, cache_keys=True, lifespan=600) if url else None
+
+
 def claims_from_header(authorization: str | None) -> dict | None:
     if not authorization or not authorization.startswith("Bearer "):
         return None
-    parts = authorization[len("Bearer "):].split(".")
-    if len(parts) < 2:
-        return None
-    segment = parts[1]
-    padded = segment + "=" * (-len(segment) % 4)
+    token = authorization[len("Bearer "):]
     try:
-        return json.loads(base64.urlsafe_b64decode(padded))
-    except (binascii.Error, ValueError, json.JSONDecodeError):
+        signing_key = _get_jwks_client().get_signing_key_from_jwt(token)
+        # verify_aud=False: PyJWT's decode() raises InvalidAudienceError
+        # on any token carrying an aud claim unless an expected audience
+        # is passed — Keycloak issues aud: "account" on every token, so
+        # without this every real token would be rejected outright. Same
+        # surprise hit (and fixed the same way) in the sibling Rust
+        # implementation of this fix (asset-service/rustledger) — this
+        # service only cares that the signature and expiry check out,
+        # matching every other service's verification here.
+        return jwt.decode(token, signing_key.key, algorithms=["RS256"], options={"verify_aud": False})
+    except Exception:
         return None
 
 

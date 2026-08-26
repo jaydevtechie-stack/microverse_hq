@@ -1,8 +1,13 @@
-import base64
+import http.server
 import json
+import threading
+import time
 import uuid
 
+import jwt as pyjwt
 import pytest
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi.testclient import TestClient
 
 from app.main import (
@@ -14,11 +19,81 @@ from app.main import (
     es,
     resolve_scope,
     service_index_name,
+    set_jwks_url_for_tests,
 )
+
+_TEST_KID = "test-key-1"
+
+
+def _b64url_uint(n: int) -> str:
+    length = (n.bit_length() + 7) // 8
+    from base64 import urlsafe_b64encode
+
+    return urlsafe_b64encode(n.to_bytes(length, "big")).rstrip(b"=").decode()
+
+
+class _JWKSHandler(http.server.BaseHTTPRequestHandler):
+    public_numbers = None  # set per-server instance below
+
+    def do_GET(self):  # noqa: N802 - stdlib naming
+        body = json.dumps(
+            {
+                "keys": [
+                    {
+                        "kty": "RSA",
+                        "kid": _TEST_KID,
+                        "use": "sig",
+                        "alg": "RS256",
+                        "n": _b64url_uint(self.public_numbers.n),
+                        "e": _b64url_uint(self.public_numbers.e),
+                    }
+                ]
+            }
+        ).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, *args):
+        pass  # keep test output quiet
+
+
+_current_private_key = None  # set by the jwks_keypair fixture below
+
+
+@pytest.fixture(scope="module", autouse=True)
+def jwks_keypair():
+    # Real RSA keypair + a real local HTTP server standing in for
+    # Keycloak's JWKS endpoint, so signature verification (6.4) is
+    # exercised against real crypto rather than mocked away entirely —
+    # module-scoped and autouse so every test in this file shares one
+    # running mock server and one key without each test needing to
+    # request this fixture explicitly (kept _bearer_token's original
+    # call signature — `_bearer_token(roles)` — unchanged everywhere
+    # else in this file).
+    global _current_private_key
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    _current_private_key = private_key
+
+    handler = type("Handler", (_JWKSHandler,), {"public_numbers": private_key.public_key().public_numbers()})
+    server = http.server.HTTPServer(("127.0.0.1", 0), handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+
+    url = f"http://127.0.0.1:{server.server_port}/certs"
+    set_jwks_url_for_tests(url)
+    try:
+        yield private_key
+    finally:
+        server.shutdown()
+        set_jwks_url_for_tests(None)
+        _current_private_key = None
 
 
 @pytest.fixture(scope="module")
-def client():
+def client(jwks_keypair):
     # Context-manager form triggers the startup events (ensure_index,
     # ensure_tasks_template) against the real Elasticsearch instance —
     # same "integration, not mocked" posture as gofeeler's tests.
@@ -26,20 +101,35 @@ def client():
         yield c
 
 
-def _bearer_token(roles):
-    # Unverified-decode posture (6.4) — only the payload segment matters
-    # for these tests, header/signature are throwaway since nothing here
-    # checks them (see claims_from_header's docstring comment in main.py).
-    payload = base64.urlsafe_b64encode(json.dumps({"realm_access": {"roles": roles}}).encode()).rstrip(b"=")
-    return b"Bearer header." + payload + b".sig"
+def _sign(private_key, claims: dict, kid: str = _TEST_KID, expires_in: float = 300) -> str:
+    private_pem = private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+    payload = {"exp": int(time.time() + expires_in), **claims}
+    return pyjwt.encode(payload, private_pem, algorithm="RS256", headers={"kid": kid})
+
+
+def _bearer_token(roles, private_key=None, **kwargs):
+    # Real Keycloak access tokens always carry aud: "account" — included
+    # by default so this suite exercises the same shape a real token
+    # has. A sibling Rust implementation of this exact fix shipped a
+    # real bug where the JWT library's default validation silently
+    # rejected every real token over this exact field, caught only
+    # because a live check happened to include it — baking it in here
+    # so that class of bug can't hide behind this test suite either.
+    claims = {"sub": "user-1", "aud": "account", "realm_access": {"roles": roles}}
+    token = _sign(private_key or _current_private_key, claims, **kwargs)
+    return f"Bearer {token}".encode()
 
 
 def test_service_index_name():
     assert service_index_name("gofeeler") == "tasks-gofeeler"
 
 
-def test_claims_from_header_decodes_unverified_payload():
-    token = _bearer_token(["platform:analyst", "service:gofeeler"]).decode()
+def test_claims_from_header_verifies_a_real_token(jwks_keypair):
+    token = _bearer_token(["platform:analyst", "service:gofeeler"], jwks_keypair).decode()
     claims = claims_from_header(token)
     assert claims["realm_access"]["roles"] == ["platform:analyst", "service:gofeeler"]
 
@@ -47,6 +137,24 @@ def test_claims_from_header_decodes_unverified_payload():
 @pytest.mark.parametrize("authorization", [None, "", "not-a-bearer-token", "Bearer onlyonepart"])
 def test_claims_from_header_rejects_malformed_input(authorization):
     assert claims_from_header(authorization) is None
+
+
+def test_claims_from_header_rejects_a_forged_token(jwks_keypair):
+    other_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    # Signed with a different key than the one the mock JWKS serves
+    # under this kid — the actual forged-token scenario this fix closes.
+    forged = _bearer_token(["platform:admin"], other_key).decode()
+    assert claims_from_header(forged) is None
+
+
+def test_claims_from_header_rejects_an_expired_token(jwks_keypair):
+    expired = _bearer_token(["platform:admin"], jwks_keypair, expires_in=-3600).decode()
+    assert claims_from_header(expired) is None
+
+
+def test_claims_from_header_rejects_an_unrecognized_kid(jwks_keypair):
+    token = _bearer_token(["platform:admin"], jwks_keypair, kid="not-the-real-kid").decode()
+    assert claims_from_header(token) is None
 
 
 def test_resolve_scope_admin_has_no_scope():
