@@ -19,7 +19,12 @@ RUN go build -o gofeeler main.go
 # Step 2: Final image
 FROM alpine:latest
 
-RUN apk --no-cache add ca-certificates
+# alpine:latest's own cached layers lag behind Alpine's package repo (the
+# "fix published upstream, not yet in a fresh image build" gap Trivy
+# caught on nginx/taskfusion) - upgrading in-place at build time picks up
+# whatever's actually current instead of waiting on the base image tag to
+# be rebuilt.
+RUN apk update && apk upgrade --no-cache && apk --no-cache add ca-certificates
 
 WORKDIR /root/
 
