@@ -1,5 +1,10 @@
 FROM node:22-alpine
 
+# node:22-alpine's own cached layers lag behind Alpine's package repo -
+# upgrading in-place at build time picks up whatever's actually current
+# instead of waiting on the base image tag to be rebuilt.
+RUN apk update && apk upgrade --no-cache
+
 WORKDIR /app
 
 COPY package.json package-lock.json* ./

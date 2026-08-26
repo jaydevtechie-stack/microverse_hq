@@ -2,6 +2,11 @@
 # (RangeError: shortOffset out of range) — needs a current Node runtime
 FROM node:22-slim
 
+# node:22-slim's own cached layers lag behind Debian's package repo -
+# upgrading in-place at build time picks up whatever's actually current
+# instead of waiting on the base image tag to be rebuilt.
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
+
 # Set the working directory in the container
 WORKDIR /usr/src/app
 

@@ -3,6 +3,11 @@
 # ----------------------
 FROM python:3.14-slim
 
+# python:3.14-slim's own cached layers lag behind Debian's package repo -
+# upgrading in-place at build time picks up whatever's actually current
+# instead of waiting on the base image tag to be rebuilt.
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Install dependencies
