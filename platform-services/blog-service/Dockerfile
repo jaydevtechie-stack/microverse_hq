@@ -9,7 +9,14 @@ WORKDIR /usr/src/app
 
 COPY package*.json ./
 
-RUN npm install
+# Install, then drop the npm CLI itself - build-time tool only (this app
+# starts via `node index.js` directly), and its own vendored copies of
+# brace-expansion/ip-address/picomatch/sigstore/tar otherwise show up as
+# unfixable-by-us CVEs in image scans despite this app's code never
+# importing them. Upgrading npm only chases whichever version has the
+# fewest residual bundled CVEs at any moment; deleting it reaches zero.
+RUN npm install && \
+    rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 COPY . .
 

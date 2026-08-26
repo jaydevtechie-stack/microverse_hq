@@ -13,8 +13,16 @@ WORKDIR /usr/src/app
 # Copy package.json and package-lock.json for better cache layer handling
 COPY package*.json ./
 
-# Install the dependencies
-RUN npm install
+# Install the dependencies, then drop the npm CLI itself - it's a
+# build-time tool only (the app starts via `node server.js` directly,
+# below), and its own vendored copies of brace-expansion/ip-address/
+# picomatch/sigstore/tar otherwise show up as unfixable-by-us CVEs in
+# image scans despite this app's code never importing them. Verified:
+# upgrading npm only chases whichever version has the fewest residual
+# bundled CVEs at any moment (didn't reach zero); deleting it outright
+# does.
+RUN npm install && \
+    rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 # Copy the rest of the application files
 COPY . .
@@ -22,5 +30,6 @@ COPY . .
 # Expose the port the app will run on
 EXPOSE 3000
 
-# Start the application
-CMD ["npm", "start"]
+# Start the application directly - not `npm start`, npm no longer exists
+# in this image (see above)
+CMD ["node", "server.js"]
