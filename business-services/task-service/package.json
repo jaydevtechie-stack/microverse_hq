@@ -17,5 +17,8 @@
     "kafkajs": "^2.2.4",
     "node-cron": "^4.6.0",
     "pg": "^8.13.1"
+  },
+  "overrides": {
+    "path-to-regexp": "^8.4.0"
   }
 }
