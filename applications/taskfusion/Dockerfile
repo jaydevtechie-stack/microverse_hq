@@ -81,6 +81,13 @@ RUN npx react-scripts build
 # Stage 2: Serve the app using Nginx
 FROM nginx:alpine
 
+# nginx:alpine's own cached layers lag behind Alpine's package repo (same
+# "fix published upstream, not yet in a fresh image build" gap as
+# infrastructure/nginx's own CVE fix) - upgrading in-place at build time
+# picks up whatever's actually current instead of waiting on the base
+# image tag to be rebuilt.
+RUN apk update && apk upgrade --no-cache
+
 # SPA fallback so client-side routes (e.g. /dashboard) survive a direct load/refresh
 COPY applications/taskfusion/nginx.conf /etc/nginx/conf.d/default.conf
 
