@@ -18,6 +18,37 @@
         <java.version>25</java.version>
     </properties>
 
+    <!-- Netty and httpcore5 aren't direct dependencies - both come in
+         transitively via software.amazon.awssdk:s3 (netty-nio-client's
+         async client, apache5-client's sync client). Pinned here to
+         patched versions ahead of what the SDK's own POM currently
+         requests (CVE-2026-59901/55831/55833/56745/56819 for netty,
+         CVE-2026-54399/54428 for httpcore5) - Netty's own BOM is
+         imported rather than listing each netty-* submodule
+         individually, since Netty documents that mixing submodule
+         versions within one app is unsupported. -->
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-bom</artifactId>
+                <version>4.2.16.Final</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents.core5</groupId>
+                <artifactId>httpcore5</artifactId>
+                <version>5.4.3</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents.core5</groupId>
+                <artifactId>httpcore5-h2</artifactId>
+                <version>5.4.3</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
         <!-- Spring Boot Web -->
         <dependency>
