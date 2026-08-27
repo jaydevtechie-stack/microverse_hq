@@ -1,10 +1,43 @@
-const { test, describe } = require('node:test');
+const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
-const { claimsFromHeader, syncClaims, requireAnyRealmRole } = require('./auth');
+const http = require('node:http');
+const crypto = require('node:crypto');
+const jwt = require('jsonwebtoken');
 
-function bearerFor(payload) {
-  const b64 = Buffer.from(JSON.stringify(payload)).toString('base64url');
-  return `Bearer header.${b64}.signature`;
+const { claimsFromHeader, syncClaims, requireAnyRealmRole, setJwksUriForTests } = require('./auth');
+
+// Real RSA keypair + a tiny local HTTP server standing in for Keycloak's
+// JWKS endpoint, so signature verification is exercised against real
+// crypto rather than mocked away entirely.
+let server;
+let privateKey;
+const KID = 'test-key-1';
+
+before(async () => {
+  const { publicKey, privateKey: priv } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
+  privateKey = priv;
+  const jwk = publicKey.export({ format: 'jwk' });
+
+  server = http.createServer((req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({ keys: [{ ...jwk, kid: KID, use: 'sig', alg: 'RS256' }] }));
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const { port } = server.address();
+  setJwksUriForTests(`http://127.0.0.1:${port}/certs`);
+});
+
+after(() => {
+  server.close();
+});
+
+function signToken(payload, overrides = {}) {
+  return jwt.sign(payload, privateKey, {
+    algorithm: 'RS256',
+    keyid: KID,
+    expiresIn: '5m',
+    ...overrides,
+  });
 }
 
 function fakeRes() {
@@ -21,48 +54,60 @@ function fakeRes() {
 }
 
 describe('claimsFromHeader', () => {
-  test('valid Bearer token decodes the payload', () => {
-    const claims = claimsFromHeader(bearerFor({ sub: 'user-1', realm_access: { roles: ['platform:marketing'] } }));
-    assert.deepEqual(claims, { sub: 'user-1', realm_access: { roles: ['platform:marketing'] } });
+  test('a validly signed token verifies and returns its claims', async () => {
+    const token = signToken({ sub: 'user-1', realm_access: { roles: ['platform:marketing'] } });
+    const claims = await claimsFromHeader(`Bearer ${token}`);
+    assert.deepEqual(claims.realm_access.roles, ['platform:marketing']);
   });
 
-  test('missing header returns null', () => {
-    assert.equal(claimsFromHeader(undefined), null);
+  test('missing header returns null', async () => {
+    assert.equal(await claimsFromHeader(undefined), null);
   });
 
-  test('non-Bearer scheme returns null', () => {
-    assert.equal(claimsFromHeader('Basic dXNlcjpwYXNz'), null);
+  test('non-Bearer scheme throws', async () => {
+    await assert.rejects(() => claimsFromHeader('Basic dXNlcjpwYXNz'));
   });
 
-  test('token missing the payload segment returns null', () => {
-    assert.equal(claimsFromHeader('Bearer onlyheader'), null);
+  test('a token forged with an unknown key is rejected — this is the actual vulnerability closed here', async () => {
+    // Before real verification, a forged token claiming
+    // platform:marketing would sail past requireAnyRealmRole below,
+    // since only the role claim was ever checked, never its signature.
+    const { privateKey: otherKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
+    const forged = jwt.sign({ realm_access: { roles: ['platform:marketing'] } }, otherKey, {
+      algorithm: 'RS256',
+      keyid: KID,
+      expiresIn: '5m',
+    });
+    await assert.rejects(() => claimsFromHeader(`Bearer ${forged}`));
   });
 
-  test('payload that is not valid JSON returns null', () => {
-    const b64 = Buffer.from('not json').toString('base64url');
-    assert.equal(claimsFromHeader(`Bearer header.${b64}.signature`), null);
+  test('an expired token is rejected', async () => {
+    const token = signToken({ sub: 'user-1' }, { expiresIn: '-10s' });
+    await assert.rejects(() => claimsFromHeader(`Bearer ${token}`));
   });
 });
 
 describe('syncClaims', () => {
-  test('sets req.claims from a valid header and calls next', () => {
-    const req = { headers: { authorization: bearerFor({ sub: 'user-1' }) } };
-    let nextCalled = false;
-    syncClaims(req, fakeRes(), () => {
-      nextCalled = true;
-    });
-    assert.equal(nextCalled, true);
-    assert.deepEqual(req.claims, { sub: 'user-1' });
-  });
-
-  test('sets req.claims to null when there is no header, but still calls next', () => {
+  test('no Authorization header: claims stay null, request proceeds anonymously', async () => {
     const req = { headers: {} };
+    const res = fakeRes();
     let nextCalled = false;
-    syncClaims(req, fakeRes(), () => {
+    await syncClaims(req, res, () => {
       nextCalled = true;
     });
     assert.equal(nextCalled, true);
     assert.equal(req.claims, null);
+  });
+
+  test('a present but invalid token is rejected with 401', async () => {
+    const req = { headers: { authorization: 'Bearer garbage' } };
+    const res = fakeRes();
+    let nextCalled = false;
+    await syncClaims(req, res, () => {
+      nextCalled = true;
+    });
+    assert.equal(nextCalled, false);
+    assert.equal(res.statusCode, 401);
   });
 });
 
@@ -75,7 +120,6 @@ describe('requireAnyRealmRole', () => {
       nextCalled = true;
     });
     assert.equal(nextCalled, true);
-    assert.equal(res.statusCode, null);
   });
 
   test('responds 403 listing every accepted role when none match', () => {

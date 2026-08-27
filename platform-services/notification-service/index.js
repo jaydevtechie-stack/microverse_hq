@@ -84,14 +84,28 @@ app.get('/emails', async (req, res) => {
 
 // A connecting client has no Authorization header to attach — it passes
 // the token via `io(url, { auth: { token } })` instead (see
-// NotificationBell.js). No token, or an unparseable one, leaves the
-// socket connected but joined to no room: same "incomplete claims just
-// don't get the extra behavior, not blocked outright" posture as
-// task-service's auth.js.
+// NotificationBell.js). No token at all leaves the socket connected but
+// joined to no room, same "incomplete claims just don't get the extra
+// behavior" posture as task-service's auth.js — but a token that IS
+// presented and fails verification gets the connection itself rejected
+// (io.use middleware, not the 'connection' handler below), not silently
+// downgraded to anonymous: this room join is keyed by claims.email, so
+// a forged token claiming someone else's email used to be able to join
+// their room and read their real-time notifications.
+io.use(async (socket, next) => {
+  const token = socket.handshake.auth?.token;
+  if (!token) return next();
+  try {
+    socket.claims = await claimsFromSocketToken(token);
+    next();
+  } catch {
+    next(new Error('Invalid or expired token'));
+  }
+});
+
 io.on('connection', (socket) => {
-  const claims = claimsFromSocketToken(socket.handshake.auth?.token);
-  if (claims?.email) {
-    socket.join(claims.email);
+  if (socket.claims?.email) {
+    socket.join(socket.claims.email);
   }
 });
 

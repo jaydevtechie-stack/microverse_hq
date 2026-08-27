@@ -1,19 +1,67 @@
 // business-services/task-service/middleware/auth.js
+const jwt = require('jsonwebtoken');
+const jwksClient = require('jwks-rsa');
 const { upsertFromClaims } = require('../models/user');
 
-// Unverified claim extraction — no signature check against Keycloak's
-// JWKS, same interim trust posture as asset-service's auth.rs (nginx +
-// frontend are the only gatekeepers so far; task-service still has no
-// real auth enforcement of its own — this only keeps `users` in sync).
-function claimsFromHeader(authHeader) {
-  if (!authHeader?.startsWith('Bearer ')) return null;
-  const payload = authHeader.slice('Bearer '.length).split('.')[1];
-  if (!payload) return null;
-  try {
-    return JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
-  } catch {
-    return null;
+// Real signature verification against Keycloak's JWKS, closing the gap
+// docs/security.md flagged as the top-priority item ("claim extraction
+// is currently unverified"). A syntactically valid but forged/unsigned
+// token used to be trusted outright; now jwt.verify checks it against
+// Keycloak's actual signing key before anything in it is trusted.
+//
+// jwks-rsa's own cache (keyed by kid) handles key rotation for free: a
+// kid it hasn't seen is a cache miss, which triggers exactly one fetch
+// from Keycloak before failing — not a blind trust, and not a refetch
+// storm on a genuinely bad kid either (rateLimit caps that).
+const KEYCLOAK_INTERNAL_URL = process.env.KEYCLOAK_INTERNAL_URL || 'http://microverse-keycloak:8080';
+const KEYCLOAK_REALM = process.env.KEYCLOAK_REALM || 'microverse';
+
+function buildJwksClient(jwksUri) {
+  return jwksClient({
+    jwksUri,
+    cache: true,
+    cacheMaxAge: 10 * 60 * 1000,
+    rateLimit: true,
+    jwksRequestsPerMinute: 10,
+  });
+}
+
+let jwks = buildJwksClient(`${KEYCLOAK_INTERNAL_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs`);
+
+// Test-only seam: points the client at a local mock JWKS server instead
+// of real Keycloak, so signature verification itself is exercised with
+// a real keypair rather than mocked away. Never called outside tests.
+function setJwksUriForTests(jwksUri) {
+  jwks = buildJwksClient(jwksUri);
+}
+
+function getSigningKey(header, callback) {
+  jwks.getSigningKey(header.kid, (err, key) => {
+    if (err) return callback(err);
+    callback(null, key.getPublicKey());
+  });
+}
+
+function verifyToken(token) {
+  return new Promise((resolve, reject) => {
+    jwt.verify(token, getSigningKey, { algorithms: ['RS256'] }, (err, decoded) => {
+      if (err) return reject(err);
+      resolve(decoded);
+    });
+  });
+}
+
+// Returns null only when no token was presented at all (anonymous
+// access to a public route, unchanged from before). A token that IS
+// presented but fails verification — bad signature, expired, malformed,
+// wrong algorithm, unrecognized kid — throws, which syncUser below
+// turns into a hard 401. No fallback to unverified decoding.
+async function claimsFromHeader(authHeader) {
+  if (!authHeader) return null;
+  if (!authHeader.startsWith('Bearer ')) {
+    throw new Error('Authorization header is not a Bearer token');
   }
+  return verifyToken(authHeader.slice('Bearer '.length));
 }
 
 // req.path is relative to this middleware's mount point ('/api', see
@@ -23,10 +71,9 @@ function claimsFromHeader(authHeader) {
 // this lives here rather than as a separate mechanism.
 const ACTIVE_CHECK_ALLOWLIST = ['/users/me'];
 
-// Stashes the decoded claims on req.claims — routes that need to know
+// Stashes the verified claims on req.claims — routes that need to know
 // "who's asking" (e.g. the Project Hub's PM-scoped queries) read that
-// directly rather than re-decoding the header themselves. Still
-// unverified, same trust posture as everywhere else in task-service.
+// directly rather than re-decoding the header themselves.
 //
 // A user with an incomplete token (missing standard OIDC claims) just
 // doesn't get synced and isn't blocked either — there's no `active`
@@ -36,7 +83,12 @@ const ACTIVE_CHECK_ALLOWLIST = ['/users/me'];
 // fire-and-forget: the upsert has to be awaited so `active` is known
 // before deciding whether to let the request through.
 async function syncUser(req, res, next) {
-  const claims = claimsFromHeader(req.headers.authorization);
+  let claims;
+  try {
+    claims = await claimsFromHeader(req.headers.authorization);
+  } catch {
+    return res.status(401).json({ message: 'Invalid or expired token' });
+  }
   req.claims = claims;
 
   if (!(claims?.sub && claims?.email && claims?.name)) {
@@ -59,7 +111,7 @@ async function syncUser(req, res, next) {
 // .includes(...)` check project-routes.js already duplicates for
 // platform:account-manager/platform:customer — worth the one-function
 // extraction now that service-routes.js needs the same check a third
-// time. Still reads the same unverified req.claims syncUser sets.
+// time. Reads the now-verified req.claims syncUser sets.
 function requireRealmRole(role) {
   return (req, res, next) => {
     const roles = req.claims?.realm_access?.roles || [];
@@ -85,4 +137,10 @@ function requireAnyRealmRole(...roles) {
   };
 }
 
-module.exports = { syncUser, requireRealmRole, requireAnyRealmRole, claimsFromHeader };
+module.exports = {
+  syncUser,
+  requireRealmRole,
+  requireAnyRealmRole,
+  claimsFromHeader,
+  setJwksUriForTests,
+};
