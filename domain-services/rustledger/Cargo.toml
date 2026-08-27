@@ -21,3 +21,8 @@ async-stripe = { version = "0.41.0", features = ["runtime-tokio-hyper-rustls-web
 hmac = "0.12"
 sha2 = "0.10"
 hex = "0.4"
+jsonwebtoken = "9"
+
+[dev-dependencies]
+rsa = "0.9"
+rand = "0.8"
