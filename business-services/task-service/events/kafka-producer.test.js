@@ -43,6 +43,14 @@ describe('taskToEvent', () => {
     });
   });
 
+  test('carries the event name through for task.claimed (analyst pool self-claim)', () => {
+    const task = baseTask({ assignee: 'analyst@example.com', owner: 'analyst@example.com' });
+    const event = taskToEvent('task.claimed', task);
+    assert.equal(event.event, 'task.claimed');
+    assert.deepEqual(event.assignee_ids, ['analyst@example.com']);
+    assert.equal(event.status, 'analyst');
+  });
+
   test('a null assignee becomes an empty assignee_ids array', () => {
     const task = baseTask({ assignee: null });
     const event = taskToEvent('task.approved', task);

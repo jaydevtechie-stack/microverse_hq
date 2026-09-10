@@ -40,20 +40,52 @@ async function findById(id) {
   return rows[0] || null;
 }
 
-// unassigned -> analyst, real PM assignment (4.1) — not the pool-claim
-// query from ARCHITECTURE.md's "The task pool" (that's a separate,
-// not-yet-built mechanism tracked in ROADMAP's business-services.md,
-// for an analyst self-claiming from the shared queue). The WHERE
-// status = 'unassigned' guard makes this a no-op
-// (returns null, not an error) if the task was already claimed between
-// the caller reading it and this UPDATE running — cheap protection
-// against a double-assign race without needing row locking here.
+// unassigned -> analyst, real PM assignment (4.1) — the PM-picks-a-
+// specific-analyst path. The analyst-self-claim path from ARCHITECTURE.md's
+// "The task pool" is claimTask below; both share this same atomic
+// conditional-UPDATE shape. The WHERE status = 'unassigned' guard makes
+// this a no-op (returns null, not an error) if the task was already
+// assigned/claimed between the caller reading it and this UPDATE
+// running — cheap protection against a double-assign race without
+// needing row locking here.
 async function assignAnalyst(id, email) {
   const { rows } = await pool.query(
     `UPDATE tasks SET status = 'analyst', assignee = $2, owner = $2, assigned_at = now()
      WHERE id = $1 AND status = 'unassigned'
      RETURNING *`,
     [id, email]
+  );
+  return rows[0] || null;
+}
+
+// The shared task pool (ARCHITECTURE.md's "The task pool") — every
+// unassigned order for a service, oldest first. Read-only, no row lock:
+// this feeds the analyst's "Open pool" list, and the actual claim
+// (claimTask) re-checks status atomically, so a stale row in this list
+// just fails the claim with a 409 rather than needing a lock held
+// across the user's think-time.
+async function listPool(service) {
+  const { rows } = await pool.query(
+    "SELECT * FROM tasks WHERE status = 'unassigned' AND service = $1 ORDER BY created_at",
+    [service]
+  );
+  return rows;
+}
+
+// unassigned -> analyst, analyst self-claim from the pool. Same atomic
+// conditional-UPDATE shape as assignAnalyst — the WHERE status =
+// 'unassigned' guard means two analysts racing for the same task: one
+// gets the row, the other gets null (-> 409), no row locking needed.
+// service is matched too so a claim can't cross service boundaries even
+// if the id is guessed. assignee and owner both become the claiming
+// analyst (owner follows the active assignee, per ARCHITECTURE.md's
+// assignee/owner table).
+async function claimTask(id, service, email) {
+  const { rows } = await pool.query(
+    `UPDATE tasks SET status = 'analyst', assignee = $3, owner = $3, assigned_at = now()
+     WHERE id = $1 AND service = $2 AND status = 'unassigned'
+     RETURNING *`,
+    [id, service, email]
   );
   return rows[0] || null;
 }
@@ -209,6 +241,8 @@ module.exports = {
   findById,
   create,
   assignAnalyst,
+  listPool,
+  claimTask,
   updateOrderDetails,
   moveToReview,
   reassignReviewer,

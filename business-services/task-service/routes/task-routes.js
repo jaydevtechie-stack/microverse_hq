@@ -7,6 +7,8 @@ const {
   findById,
   create,
   assignAnalyst,
+  listPool,
+  claimTask,
   updateOrderDetails,
   moveToReview,
   reassignReviewer,
@@ -52,6 +54,18 @@ function isCustomerOnly(req) {
   return roles.includes('platform:customer') && !roles.includes('platform:project-manager');
 }
 
+// Can this caller self-claim this task from the pool? The same
+// two-dimensional check the PM-assign route applies to the *assignee*
+// (ARCHITECTURE.md's Roles and permissions), here applied to the caller
+// claiming for themselves: platform:analyst plus service scope matching
+// the task's own service. requireRealmRole('platform:analyst') on the
+// route already covers the platform-function half; this adds the
+// service-scope half, which is per-task so it can't live in middleware.
+function canClaim(req, task) {
+  const roles = req.claims?.realm_access?.roles || [];
+  return roles.includes('platform:analyst') && roles.includes(`service:${task.service}`);
+}
+
 // Fetch tasks tagged with a given domain service, e.g. ?service=gofeeler.
 router.get('/tasks', async (req, res) => {
   const { service } = req.query;
@@ -68,6 +82,34 @@ router.get('/tasks', async (req, res) => {
     res.status(200).json(tasks);
   } catch (err) {
     res.status(500).json({ message: 'Error fetching tasks', error: err.message });
+  }
+});
+
+// The shared task pool (ARCHITECTURE.md's "The task pool") — every
+// unassigned order in a service the calling analyst is scoped to, so
+// they can browse and claim one themselves rather than waiting for a PM
+// to assign. Registered ahead of GET /tasks/:id so Express doesn't
+// match "pool" as an :id (same ordering concern as PATCH
+// /notifications/read-all in notification-service). Analyst-only:
+// requireRealmRole covers the platform function, and the service-scope
+// check here covers the other half of ARCHITECTURE.md's two-dimensional
+// model.
+router.get('/tasks/pool', requireRealmRole('platform:analyst'), async (req, res) => {
+  const { service } = req.query;
+  if (!service) {
+    return res.status(400).json({ message: 'Missing required "service" query param' });
+  }
+
+  const roles = req.claims?.realm_access?.roles || [];
+  if (!roles.includes(`service:${service}`)) {
+    return res.status(403).json({ message: `Requires service:${service}` });
+  }
+
+  try {
+    const tasks = await listPool(service);
+    res.status(200).json(tasks);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching task pool', error: err.message });
   }
 });
 
@@ -302,6 +344,42 @@ router.patch('/tasks/:id', requireRealmRole('platform:project-manager'), async (
     res.status(200).json(updated);
   } catch (err) {
     res.status(500).json({ message: 'Error assigning task', error: err.message });
+  }
+});
+
+// Analyst self-claims a specific unassigned task from the pool
+// (ARCHITECTURE.md's "The task pool") — the analyst-pull counterpart to
+// PATCH /tasks/:id's PM-push. Pick-from-list, not a blind "grab next":
+// the analyst has already seen this task in GET /tasks/pool and is
+// claiming it by id. claimTask's atomic WHERE status = 'unassigned'
+// guard handles two analysts racing for the same row (loser gets 409),
+// so no FOR UPDATE SKIP LOCKED / transaction is needed here — same
+// reasoning as assignAnalyst. Inactive users are already blocked
+// upstream by syncUser's active check.
+router.post('/tasks/:id/claim', requireRealmRole('platform:analyst'), async (req, res) => {
+  const email = req.claims?.email;
+  if (!email) {
+    return res.status(401).json({ message: 'Missing or unparseable Authorization token' });
+  }
+
+  try {
+    const task = await findById(req.params.id);
+    if (!task) return res.status(404).json({ message: 'Task not found' });
+    if (task.status !== 'unassigned') {
+      return res.status(409).json({ message: `Task is already "${task.status}", not unassigned` });
+    }
+    if (!canClaim(req, task)) {
+      return res.status(403).json({ message: `Requires platform:analyst and service:${task.service}` });
+    }
+
+    const updated = await claimTask(task.id, task.service, email);
+    if (!updated) {
+      return res.status(409).json({ message: 'Task was claimed by someone else just now' });
+    }
+    await publishTaskEvent('task.claimed', updated);
+    res.status(200).json(updated);
+  } catch (err) {
+    res.status(500).json({ message: 'Error claiming task', error: err.message });
   }
 });
 
@@ -640,5 +718,6 @@ router.post('/tasks/:id/comments', async (req, res) => {
 // server.js's plain `require('./routes/task-routes')` keeps working
 // unchanged — tests reach it as `taskRoutes.isCustomerOnly`.
 router.isCustomerOnly = isCustomerOnly;
+router.canClaim = canClaim;
 
 module.exports = router;

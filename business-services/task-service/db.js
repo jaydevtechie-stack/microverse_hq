@@ -217,6 +217,15 @@ async function ensureSchema() {
     ALTER TABLE tasks ADD COLUMN IF NOT EXISTS closed_at TIMESTAMPTZ;
   `);
   await pool.query('CREATE INDEX IF NOT EXISTS idx_tasks_tags ON tasks USING GIN (tags);');
+  // Partial index for the shared task pool (business-services.md's "The
+  // task pool") — the analyst self-claim list/claim query only ever
+  // touches status = 'unassigned' rows, ordered by created_at within a
+  // service. Partial keeps it tiny (most tasks aren't unassigned) and
+  // matches ARCHITECTURE.md's note about not fragmenting insert-heavy
+  // tables.
+  await pool.query(
+    "CREATE INDEX IF NOT EXISTS idx_tasks_pool ON tasks (service, created_at) WHERE status = 'unassigned';"
+  );
 
   // A customer-created project starts 'dormant' — not visible/actionable
   // as a real engagement until an account-manager approves it — and
