@@ -6,7 +6,8 @@
 // notification-service (Branch 7). Event names published here:
 // task.created, task.assigned, task.claimed (analyst pool self-claim),
 // task.moved-to-review, task.reviewer-reassigned, task.approved,
-// task.rejected, task.no-index-changed. Mirrors elixtempo's KafkaProducer
+// task.rejected, task.no-index-changed, task.paid, task.closed (workflow's
+// paid -> closed auto-close sweep). Mirrors elixtempo's KafkaProducer
 // wrapper around :brod for the same producer-owns-its-topic shape.
 
 const { Kafka } = require('kafkajs');

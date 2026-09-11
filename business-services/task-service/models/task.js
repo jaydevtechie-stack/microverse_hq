@@ -201,10 +201,40 @@ async function rejectTask(id, reviewerEmail, newAnalystEmail) {
 // events/kafka-consumer.js, task-service's first ever consumer.
 // WHERE status = 'done' makes this idempotent the same way approveTask's
 // WHERE guard does: a redelivered event just no-ops (rows[0] is null)
-// rather than double-applying.
+// rather than double-applying. paid_at stamps when — the workflow
+// slice's auto-close sweep (cron/task-polling.js's initAutoClose) reads
+// it to know how long a task has sat in 'paid'.
 async function markPaid(id) {
   const { rows } = await pool.query(
-    `UPDATE tasks SET status = 'paid' WHERE id = $1 AND status = 'done' RETURNING *`,
+    `UPDATE tasks SET status = 'paid', paid_at = now() WHERE id = $1 AND status = 'done' RETURNING *`,
+    [id]
+  );
+  return rows[0] || null;
+}
+
+// paid -> closed, read side of the workflow slice's auto-close sweep —
+// every task that's been sitting in 'paid' longer than the configured
+// grace period (cron/task-polling.js's initAutoClose, TASK_AUTO_CLOSE_DAYS).
+// Read-only, no lock: the sweep is single-writer (one cron job), and
+// closeTask below re-checks status atomically anyway, so a stale row
+// here just no-ops there rather than needing one held across the query.
+async function listStalePaid(days) {
+  const { rows } = await pool.query(
+    `SELECT * FROM tasks WHERE status = 'paid' AND paid_at < now() - ($1 || ' days')::interval`,
+    [days]
+  );
+  return rows;
+}
+
+// paid -> closed. Same atomic conditional-update shape as every other
+// transition in this file (assignAnalyst, claimTask, markPaid) — the
+// WHERE status = 'paid' guard makes a double-close a no-op rather than
+// an error, matching this stack's other terminal-transition guards. The
+// sweep is the only caller today, but this stays idempotent the same
+// way regardless, same reasoning as everywhere else here.
+async function closeTask(id) {
+  const { rows } = await pool.query(
+    `UPDATE tasks SET status = 'closed', closed_at = now() WHERE id = $1 AND status = 'paid' RETURNING *`,
     [id]
   );
   return rows[0] || null;
@@ -249,6 +279,8 @@ module.exports = {
   approveTask,
   rejectTask,
   markPaid,
+  listStalePaid,
+  closeTask,
   setNoIndex,
   pollingCounts,
 };

@@ -7,7 +7,7 @@ const userRoutes = require('./routes/user-routes');
 const accountRoutes = require('./routes/account-routes');
 const projectRoutes = require('./routes/project-routes');
 const serviceRoutes = require('./routes/service-routes');
-const { initPolling } = require('./cron/task-polling');
+const { initPolling, initAutoClose } = require('./cron/task-polling');
 const { ensureSchema } = require('./db');
 const { syncUser } = require('./middleware/auth');
 const { startConsumer } = require('./events/kafka-consumer');
@@ -36,6 +36,7 @@ ensureSchema()
   .then(() => {
     console.log('Connected to Postgres, tasks table ready');
     initPolling(); // Start task polling logic
+    initAutoClose(); // Workflow slice 1 — paid -> closed auto-close sweep
     startConsumer(); // Branch 9 — bill.paid off rustledger.bills
   })
   .catch((error) => {

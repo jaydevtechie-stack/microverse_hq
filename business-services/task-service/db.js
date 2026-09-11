@@ -206,15 +206,20 @@ async function ensureSchema() {
     ALTER TABLE tasks ADD COLUMN IF NOT EXISTS context TEXT;
     ALTER TABLE tasks ADD COLUMN IF NOT EXISTS tags TEXT[];
   `);
-  // When the task reached a terminal status (done/paid/closed). Column
-  // only — nothing sets it yet, same "stub now, build later" posture as
-  // 4.0.3's Services tab: the real status-transition endpoints (submit
-  // for review, approve, bill) are Branch 6-9 work that doesn't exist
-  // in task-service yet, so there's no real event to stamp this from.
-  // Exists now so the schema/API/UI don't need another round-trip once
-  // those transitions land — they'll just start setting it.
+  // When the task reached a terminal status (done/paid/closed). Was
+  // column-only for a while — see the workflow README's note on the
+  // paid -> closed auto-close sweep (cron/task-polling.js's
+  // initAutoClose) that now actually sets it.
   await pool.query(`
     ALTER TABLE tasks ADD COLUMN IF NOT EXISTS closed_at TIMESTAMPTZ;
+  `);
+  // When the task was marked paid (Branch 9's rustledger bill.paid
+  // consumer, models/task.js's markPaid) — the auto-close sweep needs
+  // this to know how long a task has sat in 'paid' before closing it,
+  // which assigned_at (stamped once, on unassigned -> analyst) can't
+  // answer.
+  await pool.query(`
+    ALTER TABLE tasks ADD COLUMN IF NOT EXISTS paid_at TIMESTAMPTZ;
   `);
   await pool.query('CREATE INDEX IF NOT EXISTS idx_tasks_tags ON tasks USING GIN (tags);');
   // Partial index for the shared task pool (business-services.md's "The
