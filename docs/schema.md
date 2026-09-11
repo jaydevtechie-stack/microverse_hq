@@ -36,8 +36,9 @@ CREATE TABLE IF NOT EXISTS tasks (
   assigned_at  TIMESTAMPTZ,  -- set on unassigned -> analyst, via PM assign (4.1) or an analyst's own pool claim; Scout's (4.1.1) v1 availability signal
   customer_id  UUID REFERENCES users(id),  -- who submitted the order (4.2) — see users below, not a separate customers table
   account_id   UUID REFERENCES accounts(id),  -- denormalized copy of users.account_id at creation time, feeds the MinIO key (4.2)
-  closed_at    TIMESTAMPTZ,  -- when the task reached a terminal status (done/paid/closed) — column only, nothing sets it yet
-  no_index     BOOLEAN NOT NULL DEFAULT false  -- excluded from search-service's index (6.3) — a delete against the ES doc, not a mapping concern
+  closed_at    TIMESTAMPTZ,  -- when the task reached 'closed' — set by the workflow slice's paid -> closed auto-close sweep (cron/task-polling.js's initAutoClose)
+  no_index     BOOLEAN NOT NULL DEFAULT false,  -- excluded from search-service's index (6.3) — a delete against the ES doc, not a mapping concern
+  paid_at      TIMESTAMPTZ  -- set on done -> paid (markPaid, Branch 9's rustledger bill.paid consumer); the auto-close sweep's grace-period clock starts here
 );
 
 CREATE INDEX IF NOT EXISTS idx_tasks_tags ON tasks USING GIN (tags);
