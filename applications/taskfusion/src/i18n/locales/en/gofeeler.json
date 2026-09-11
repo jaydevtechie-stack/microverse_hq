@@ -9,6 +9,9 @@
     "emptyCustomer": "You haven't submitted any orders yet.",
     "emptyOther": "No tasks assigned to you right now.",
     "emptyFiltered": "No tasks match this filter.",
+    "emptyPool": "No unassigned orders in the pool right now.",
+    "myTasksTab": "My tasks",
+    "openPoolTab": "Open pool",
     "searchPlaceholder": "Search by title…",
     "prevPage": "Previous",
     "nextPage": "Next",
@@ -145,6 +148,12 @@
       "chooseAnalyst": "Choose an analyst...",
       "assign": "Assign",
       "assignTo": "Assign to {{name}}"
+    },
+    "claim": {
+      "prompt": "This order is unassigned. Claim it to start working on it.",
+      "claim": "Claim this task",
+      "claiming": "Claiming…",
+      "claimError": "Couldn't claim: {{error}}"
     },
     "createBill": {
       "loading": "Checking for an existing bill…",
