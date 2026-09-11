@@ -24,3 +24,26 @@ describe('isCustomerOnly', () => {
     assert.equal(taskRoutes.isCustomerOnly({}), false);
   });
 });
+
+describe('canClaim', () => {
+  const task = { service: 'gofeeler' };
+
+  test('true for an analyst holding the matching service scope', () => {
+    const req = { claims: { realm_access: { roles: ['platform:analyst', 'service:gofeeler'] } } };
+    assert.equal(taskRoutes.canClaim(req, task), true);
+  });
+
+  test('false for an analyst scoped to a different service', () => {
+    const req = { claims: { realm_access: { roles: ['platform:analyst', 'service:springpix'] } } };
+    assert.equal(taskRoutes.canClaim(req, task), false);
+  });
+
+  test('false when holding the service scope but not platform:analyst', () => {
+    const req = { claims: { realm_access: { roles: ['platform:project-manager', 'service:gofeeler'] } } };
+    assert.equal(taskRoutes.canClaim(req, task), false);
+  });
+
+  test('false when req.claims is missing', () => {
+    assert.equal(taskRoutes.canClaim({}, task), false);
+  });
+});

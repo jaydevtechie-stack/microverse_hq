@@ -4,6 +4,7 @@ import { IconLink, IconMail, IconPencil, IconShare2 } from '@tabler/icons-react'
 import { getKeycloak, authHeaders } from '../services/keycloak';
 import TaskStatusBadge from './TaskStatusBadge';
 import PmAssignPanel from './PmAssignPanel';
+import ClaimPanel from './ClaimPanel';
 import CreateBillPanel from './CreateBillPanel';
 import AnalysisPanel from './AnalysisPanel';
 import ReviewerPanel from './ReviewerPanel';
@@ -42,6 +43,13 @@ const EDITABLE_STATUSES = ['unassigned', 'analyst'];
 function actionPanelFor({ task, isPM, isAnalyst, isReviewer, isCustomer, username, userId, onTaskUpdated }) {
   if (isPM && task.status === 'unassigned') {
     return <PmAssignPanel task={task} onAssigned={onTaskUpdated} />;
+  }
+  // Analyst-pull counterpart to the PM's assign picker above — a pure
+  // analyst (PM check is first, so a PM+analyst still gets PmAssignPanel)
+  // claims an unassigned order from the pool themselves. Service-scope is
+  // re-checked server-side; the button just 403s cleanly if they lack it.
+  if (isAnalyst && task.status === 'unassigned') {
+    return <ClaimPanel task={task} onClaimed={onTaskUpdated} />;
   }
   if (isPM && task.status === 'done' && task.owner === username) {
     return <CreateBillPanel task={task} onBilled={onTaskUpdated} />;

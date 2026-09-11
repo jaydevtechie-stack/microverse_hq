@@ -36,14 +36,23 @@ const GofeelerListPanel = ({ selectedId, refreshKey }) => {
   const keycloak = getKeycloak();
   const isPM = keycloak?.hasRealmRole('platform:project-manager');
   const isCustomer = keycloak?.hasRealmRole('platform:customer');
+  const isAnalyst = keycloak?.hasRealmRole('platform:analyst');
   const username = keycloak?.tokenParsed?.preferred_username;
   const userId = keycloak?.tokenParsed?.sub;
+
+  // A pure analyst (not also a PM or customer) gets the "My tasks / Open
+  // pool" toggle — the pool view is every 'unassigned' order they could
+  // claim (task-service's GET /api/tasks?service= already returns those
+  // rows to a non-customer caller, so this filters the loaded set rather
+  // than hitting the dedicated GET /api/tasks/pool endpoint).
+  const isPoolAnalyst = isAnalyst && !isPM && !isCustomer;
 
   const [tasks, setTasks] = useState(null);
   const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
+  const [poolView, setPoolView] = useState(false);
 
   useEffect(() => {
     fetch('/api/tasks?service=gofeeler', { headers: authHeaders() })
@@ -61,9 +70,11 @@ const GofeelerListPanel = ({ selectedId, refreshKey }) => {
   // assignee/owner.
   const visibleTasks = isPM
     ? tasks
-    : tasks?.filter((task) =>
-        isCustomer ? task.customer_id === userId : task.assignee === username
-      );
+    : tasks?.filter((task) => {
+        if (isCustomer) return task.customer_id === userId;
+        if (isPoolAnalyst && poolView) return task.status === 'unassigned';
+        return task.assignee === username;
+      });
 
   const trimmedQuery = searchQuery.trim().toLowerCase();
   const searchedTasks = trimmedQuery
@@ -79,7 +90,7 @@ const GofeelerListPanel = ({ selectedId, refreshKey }) => {
   // end of the new, usually-shorter result set.
   useEffect(() => {
     setPage(1);
-  }, [statusFilter, searchQuery, refreshKey]);
+  }, [statusFilter, searchQuery, refreshKey, poolView]);
 
   const totalPages = filteredTasks ? Math.max(1, Math.ceil(filteredTasks.length / PAGE_SIZE)) : 1;
   const pagedTasks = filteredTasks?.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -115,6 +126,43 @@ const GofeelerListPanel = ({ selectedId, refreshKey }) => {
           </Link>
         )}
       </div>
+
+      {isPoolAnalyst && tasks && (
+        <div
+          style={{
+            display: 'flex',
+            gap: 6,
+            padding: '10px 16px',
+            borderBottom: '0.5px solid var(--mv-border)',
+          }}
+        >
+          {[
+            ['myTasksTab', false],
+            ['openPoolTab', true],
+          ].map(([key, value]) => {
+            const active = poolView === value;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setPoolView(value)}
+                style={{
+                  padding: '4px 10px',
+                  fontSize: 11,
+                  borderRadius: 'var(--mv-radius)',
+                  border: active ? '1.5px solid var(--mv-color-primary)' : '0.5px solid var(--mv-border)',
+                  background: active ? 'var(--mv-bg-elevated)' : 'transparent',
+                  color: active ? 'var(--mv-text)' : 'var(--mv-text-muted)',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {t(`listPanel.${key}`)}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {visibleTasks && visibleTasks.length > 0 && (
         <div
@@ -177,7 +225,9 @@ const GofeelerListPanel = ({ selectedId, refreshKey }) => {
               ? t('listPanel.emptyPm')
               : isCustomer
                 ? t('listPanel.emptyCustomer')
-                : t('listPanel.emptyOther')}
+                : isPoolAnalyst && poolView
+                  ? t('listPanel.emptyPool')
+                  : t('listPanel.emptyOther')}
           </p>
         )}
 

@@ -21,18 +21,20 @@ const kafka = new Kafka({
 
 // Recipient resolution per event type this branch cares about —
 // task.created notifies the account's PM(s), task.assigned notifies the
-// new assignee, bill.published notifies the task's customer (the first
-// customer-facing trigger this service has ever had — every recipient
-// elsewhere here is internal staff). bill.published fires when the PM
-// explicitly releases a bill (rustledger's publish_bill), a separate
-// action from creating it — a draft bill notifies nobody. Every other
-// lifecycle event on task-service.tasks (moved-to-review, reviewer-
-// reassigned, approved, rejected, no-index-changed) and bill.paid on
-// rustledger.bills is consumed and ignored: generalizing to "notify on
-// every transition" is Branch 8's audit-trail territory, not this
-// branch's roadmap bullets.
+// new assignee, task.claimed notifies the account's PM(s) that an
+// analyst pulled an order off the pool themselves (task-service's
+// analyst self-claim — the pull counterpart to a PM's push assign),
+// bill.published notifies the task's customer (the first customer-facing
+// trigger this service has ever had — every recipient elsewhere here is
+// internal staff). bill.published fires when the PM explicitly releases
+// a bill (rustledger's publish_bill), a separate action from creating
+// it — a draft bill notifies nobody. Every other lifecycle event on
+// task-service.tasks (moved-to-review, reviewer-reassigned, approved,
+// rejected, no-index-changed) and bill.paid on rustledger.bills is
+// consumed and ignored: generalizing to "notify on every transition" is
+// Branch 8's audit-trail territory, not this branch's roadmap bullets.
 async function recipientsFor(event) {
-  if (event.event === 'task.created') {
+  if (event.event === 'task.created' || event.event === 'task.claimed') {
     if (!event.account_id) return [];
     return pmsForAccountAndService(event.account_id, event.service);
   }
@@ -47,9 +49,14 @@ async function recipientsFor(event) {
   return [];
 }
 
-function messageFor(event) {
+async function messageFor(event) {
   if (event.event === 'task.created') {
     return `New order "${event.title}" needs an analyst assigned.`;
+  }
+  if (event.event === 'task.claimed') {
+    const claimer = event.assignee_ids?.[0];
+    const claimerName = claimer ? await nameForEmail(claimer) : 'An analyst';
+    return `${claimerName} claimed order "${event.title}" from the pool.`;
   }
   if (event.event === 'bill.published') {
     const amount = (event.amount_cents / 100).toFixed(2);
@@ -63,7 +70,7 @@ async function notifyRecipient(io, event, recipientEmail) {
     recipientEmail,
     type: event.event,
     taskId: event.task_id,
-    message: messageFor(event),
+    message: await messageFor(event),
   });
 
   // Live push for a currently-open tab — REST GET /notifications stays
