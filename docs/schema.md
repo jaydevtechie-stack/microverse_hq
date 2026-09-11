@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   context      TEXT,
   tags         TEXT[],
   project_id   UUID REFERENCES projects(id),  -- additive, 4.0.2 — see projects below
-  assigned_at  TIMESTAMPTZ,  -- set on unassigned -> analyst (4.1); Scout's (4.1.1) v1 availability signal
+  assigned_at  TIMESTAMPTZ,  -- set on unassigned -> analyst, via PM assign (4.1) or an analyst's own pool claim; Scout's (4.1.1) v1 availability signal
   customer_id  UUID REFERENCES users(id),  -- who submitted the order (4.2) — see users below, not a separate customers table
   account_id   UUID REFERENCES accounts(id),  -- denormalized copy of users.account_id at creation time, feeds the MinIO key (4.2)
   closed_at    TIMESTAMPTZ,  -- when the task reached a terminal status (done/paid/closed) — column only, nothing sets it yet
@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS tasks (
 );
 
 CREATE INDEX IF NOT EXISTS idx_tasks_tags ON tasks USING GIN (tags);
+CREATE INDEX IF NOT EXISTS idx_tasks_pool ON tasks (service, created_at) WHERE status = 'unassigned';
 ```
 
 **`assigned_at` — set once, on assignment, not a general status-transition log.** Scout's recommendation query (`models/scout.js`) uses it as a proxy for analyst availability: no active task → fully available; among analysts with one, the longer since `assigned_at`, the more available they're assumed to be. This is explicitly a starting signal, not real response-time measurement — there's no `completed_at` or first-action timestamp on `tasks` itself. Real response-time tracking is the `audit_log` table below (Branch 8) — it doesn't need a new `tasks` column, since `task.assigned`'s own Kafka event timestamp becomes the reaction-time baseline.
