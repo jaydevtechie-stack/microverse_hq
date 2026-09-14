@@ -8,7 +8,7 @@ Ordered roughly by business priority, least-first.
 
 - ElixTempo — time tracking. Also the near-term dependency for the Payouts item below. See its own section below — it's the first of this group to actually get a phase plan.
 - DjaBoard — leaderboard
-- PyReel — video processing
+- PyReel — video analysis. See its own section below.
 - NetCruncher — calculation engine
 - RubyKudos — kudos capture
 - SpringPix — raster/GIS hotspot analysis, PostGIS integration. **Lowest business priority of the six** — build last.
@@ -54,6 +54,33 @@ Ahead of where [docs/architecture/1.1/domain-services.md](../../architecture/1.1
   - Live-verified end to end: rebuilt/recreated elixtempo, taskfusion, and nginx against the running stack, confirmed nginx routes both prefixes through to real ElixTempo responses, then clicked through start/pause/resume/stop in a real browser session against a real analyst-assigned task — confirmed working.
 
 All five phases of this plan are now done. ElixTempo is session-lifecycle-complete, crash-recoverable, queryable, quest-validated, and has a working frontend widget.
+
+## PyReel
+
+**Status key:** ✅ Done · 🟢 Now · 🟡 Next · ⚪ Later (see [docs/roadmap/1.0/core.md](../1.0/core.md))
+
+### Business framing
+
+Microverse's founding idea is one AI-analysis thesis applied across media types — different models for different kinds of content, not six unrelated polyglot demo services. GoFeeler proved it for text (customer-submitted chat/email content → LLM sentiment analysis → analyst review). PyReel is the same thesis for video: a customer submits their own customer-service call recordings or video interactions, and Microverse's analysts — backed by a PyReel→GoFeeler pipeline (PyReel transcribes, GoFeeler's *existing* sentiment engine analyzes the transcript, no duplicate analysis logic) — deliver a sentiment/quality report. Deliberately the same customer-service angle GoFeeler already took, not testimonials/marketing or purely-internal QA.
+
+Workflow-wise this is a new first-class `service:pyreel` task type in the shared pool, not an attachment bolted onto an unrelated task type — [docs/architecture/1.0/core.md](../1.0/core.md)'s tier test ("does exactly one specialist trick, with a real opinion about what it's analyzing") is exactly why this is a domain service, same tier as GoFeeler, not a platform service. Same lifecycle as every other service (`unassigned → analyst → reviewer → done → paid`), billed through rustledger the same way gofeeler tasks are.
+
+### Current state
+
+`domain-services/pyreel/` is a demo scaffold, not real analysis yet: a FastAPI app (`main.py`), a fake `analyze_video()` (`video_analyzer.py`) that returns `random.uniform()` for duration and a hardcoded `["car", "person", "cat"]` object list, and a RabbitMQ consumer stub (`rabbitmq_consumer.py`) that's never actually reachable — RabbitMQ isn't deployed anywhere in `docker-compose.yml`. Wired into `docker-compose.yml` behind its own `pyreel` profile (`microverse-pyreel`), but nothing calls it for real, and nothing consumes real video today.
+
+### Open questions
+
+- **Upload path — assumed, not yet confirmed.** Working assumption is PyReel reuses asset-service's existing MinIO upload flow rather than inventing a second one, which needs `video/*` added to the content-type allowlist enforced in [infrastructure/nginx/conf.d/assets.conf](../../../infrastructure/nginx/conf.d/assets.conf) (currently `text/`, `image/`, `application/json`, `application/pdf` only). Small, but a genuine cross-service dependency — revisit if a different upload shape turns out to be needed.
+- **Transcription model/API — deferred to Phase 3, not picked yet.** Same weight as GoFeeler's own `Provider` interface decision was; shouldn't be decided casually as a side effect of Phase 1.
+- **Task "context" shape for a video task — not yet decided.** Reuse the same generic task content model GoFeeler's tasks use, or does a video task need its own shape (e.g. a MinIO object key instead of inline text)?
+
+### Phase plan
+
+- 🟢 **Phase 1 — Basic engine, real video handling.** Real metadata via ffprobe (duration, resolution, codec, has_audio) replacing the fake `random.uniform()` stub — no transcription, no external model dependency yet. Async via Kafka, reusing the existing broker task-service already runs (dropping the current pika/RabbitMQ stub, which was never deployed) rather than standing up a second message broker — same "don't add infra for one gap" reasoning [business-services/workflow](../../../business-services/workflow/README.md) used to justify staying inside task-service's existing cron pattern instead of standing up a first-ever Java service. Proves real video handling and event wiring end to end before any transcription-model decision is needed.
+- ⚪ **Phase 2 — `service:pyreel` wired into the shared task pool.** Own task type, same lifecycle as every other service, billed through rustledger the same way gofeeler tasks are. Resolves the open questions above (upload path, task context shape) as part of actually wiring a real caller, rather than guessing ahead of one.
+- ⚪ **Phase 3 — Advanced engine: transcription → GoFeeler pipeline.** Real speech-to-text (model/API TBD) piped into GoFeeler's existing `/analyze` endpoint — the actual video→text→sentiment pipeline this service exists for, reusing GoFeeler's analysis engine rather than building a second one.
+- ⚪ **Phase 4 — Frontend wiring, live-verified in browser.** Same bar ElixTempo's Phase 5 held itself to — nothing counts as done here until it's been clicked through in a real browser session against the running stack.
 
 ## Payouts (PMs and analysts)
 
