@@ -7,7 +7,7 @@ The narrator — services that know what a Task or a Quest *is*, owning the plot
 | Service | Tech | Role |
 |---|---|---|
 | task-service | Node.js/Express | Owns the shared task pool (see below); customer creates an Order (a Task) and uploads media, a PM assigns Tasks to analysts |
-| workflow | Java (Camunda/Zeebe) | Orchestrates the full Task (Order → analyst → reviewer → done) → time → bill → kudos sequence as an explicit state machine |
+| workflow | Java (Camunda/Zeebe) — target design, not yet built | Orchestrates the full Task (Order → analyst → reviewer → done) → time → bill → kudos sequence as an explicit state machine. See "workflow — slice 1" below for what's actually live today. |
 
 ## The task pool — ✅ built
 
@@ -23,5 +23,12 @@ The narrator — services that know what a Task or a Quest *is*, owning the plot
 - No separate pooling service or permission layer needed — the service-scope check is a route-level check against the caller's own claims, same as everywhere else in task-service.
 - Coexists with the PM-push assignment path (4.1, `PATCH /tasks/:id`) — a task can be picked up either way; nothing about this restricts the other.
 - Publishes `task.claimed` on the same `task-service.tasks` topic every other transition uses — search-service's indexing consumer reindexes it with no code change (it upserts on any event name), and notification-service notifies the account's PM(s) that an analyst self-claimed.
+
+## workflow — slice 1 built, the real engine still deferred
+
+The `unassigned → analyst → reviewer → done → paid` chain in the table row above already works — built and live-verified entirely inside **task-service**'s own route handlers across GoFeeler Branches 4-9, no external engine involved. The only leg of the state machine that was genuinely missing was `paid → closed` (kudos is 1.1 scope — DjaBoard/RubyKudos aren't started, so that leg is out of reach regardless).
+
+- **Built:** `paid → closed` is now automatic and time-based — task-service's `cron/task-polling.js` (`initAutoClose`, a sibling scheduled job to the existing `initPolling` sweep) closes any task that's sat in `paid` longer than `TASK_AUTO_CLOSE_DAYS` (default 30), stamping `closed_at` and publishing `task.closed` on the usual `task-service.tasks` topic — same fire-and-forget posture as every other event here, picked up by search-service's indexer with zero code change. `tasks.paid_at` (new) gives the sweep something to measure the grace period from; `markPaid` stamps it.
+- **Deliberately not built:** a real Camunda/Zeebe engine and its own Java service. `business-services/workflow/` stays a placeholder — see its README — until a second real consumer of the Task state machine actually needs one (the leading candidate being [docs/architecture/2.0/intelligence.md](../2.0/intelligence.md)'s agentic workforce). Standing up a first-ever Java service (new build tooling, base image, CI) purely to run a daily column-flip would have been disproportionate to what was actually missing.
 
 See [core.md](core.md)'s Task workflow section for the full status state machine `workflow` orchestrates, and [docs/roadmap/1.0/business-services.md](../../roadmap/1.0/business-services.md) for build status.

@@ -563,6 +563,9 @@ services:
       # Lifecycle-aware indexing consumer (6.2) — publishes to
       # task-service.tasks, consumed by search-service
       KAFKA_BROKERS: microverse-kafka:9092
+      # Workflow slice 1 (cron/task-polling.js's initAutoClose) — grace
+      # period in days after 'paid' before a task auto-closes.
+      TASK_AUTO_CLOSE_DAYS: ${TASK_AUTO_CLOSE_DAYS}
     depends_on:
       - microverse-postgis
       - microverse-kafka

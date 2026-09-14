@@ -43,6 +43,14 @@ describe('taskToEvent', () => {
     });
   });
 
+  test('carries the event name through for task.closed (workflow auto-close sweep)', () => {
+    const task = baseTask({ status: 'closed', assignee: null, owner: null });
+    const event = taskToEvent('task.closed', task);
+    assert.equal(event.event, 'task.closed');
+    assert.equal(event.status, 'closed');
+    assert.deepEqual(event.assignee_ids, []);
+  });
+
   test('carries the event name through for task.claimed (analyst pool self-claim)', () => {
     const task = baseTask({ assignee: 'analyst@example.com', owner: 'analyst@example.com' });
     const event = taskToEvent('task.claimed', task);
