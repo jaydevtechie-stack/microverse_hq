@@ -303,14 +303,14 @@ services:
 
 
   microverse-pyreel:
-    profiles: ["pyreel"]
+    profiles: ["pyreel", "gofeeler"]
     build:
       context: ./domain-services/pyreel
     container_name: microverse-pyreel
     environment:
-      RABBITMQ_HOST: microverse-rabbitmq
+      KAFKA_BROKERS: microverse-kafka:9092
     depends_on:
-      - microverse-rabbitmq
+      - microverse-kafka
     networks:
       - microverse-network
 
