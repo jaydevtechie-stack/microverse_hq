@@ -14,8 +14,25 @@ const { startConsumer } = require('./events/kafka-consumer');
 
 const app = express();
 
+// task-service isn't published on its own host (see
+// infrastructure/nginx/conf.d/services/task-service.conf) — the browser
+// always reaches it same-origin through nginx, so this allowlist is
+// defense-in-depth against anything that bypasses that proxy, not a fix
+// for a live cross-origin path. Mirrors applications.conf's own
+// server_name list exactly.
+const ALLOWED_ORIGINS = [
+  'https://microverse.local',
+  'https://gofeeler.microverse.local',
+  'https://springpix.microverse.local',
+  'https://pyreel.microverse.local',
+  'https://djaboard.microverse.local',
+  'https://elixtempo.microverse.local',
+  'https://rustledger.microverse.local',
+  'https://rubykudos.microverse.local',
+];
+
 // Middleware
-app.use(cors());
+app.use(cors({ origin: ALLOWED_ORIGINS }));
 app.use(express.json());  // for parsing application/json
 
 // Routes
