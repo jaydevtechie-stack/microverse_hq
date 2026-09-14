@@ -1,10 +1,13 @@
 from pydantic import BaseModel
 
-class VideoAnalysisRequest(BaseModel):
-    video_url: str  # URL to video or filename
 
-class VideoAnalysisResponse(BaseModel):
-    filename: str
+class VideoAnalysisResult(BaseModel):
     duration_seconds: float
-    frames_analyzed: int
-    detected_objects: list
+    resolution: str
+    codec: str
+    has_audio: bool
+
+
+class AsyncAnalysisAccepted(BaseModel):
+    request_id: str
+    status: str = "queued"
