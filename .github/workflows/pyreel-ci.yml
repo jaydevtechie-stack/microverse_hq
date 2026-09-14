@@ -1,0 +1,36 @@
+name: pyreel CI
+
+on:
+  push:
+    branches: [develop, main]
+    paths:
+      - 'domain-services/pyreel/**'
+      - '.github/workflows/pyreel-ci.yml'
+  pull_request:
+    paths:
+      - 'domain-services/pyreel/**'
+      - '.github/workflows/pyreel-ci.yml'
+
+defaults:
+  run:
+    working-directory: domain-services/pyreel
+
+jobs:
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+
+    # No real ffmpeg/Kafka needed — video_analyzer's tests mock
+    # subprocess.run directly, and the Kafka producer/consumer tests
+    # inject a fake client (see tests/test_kafka_*.py), same posture as
+    # task-service-ci.yml's pure-function unit tests.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - run: pip install -r requirements.txt
+
+      - run: python -m pytest tests/ -v
