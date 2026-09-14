@@ -2,4 +2,5 @@ fastapi==0.141.1
 uvicorn[standard]==0.52.1
 pydantic==2.13.4
 python-multipart==0.0.32  # for video file uploads
-pika==1.4.2  # RabbitMQ consumer
+kafka-python-ng==2.2.3  # matches search-service's existing Python Kafka client, not a second one
+pytest==8.3.5
