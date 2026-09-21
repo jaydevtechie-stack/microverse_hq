@@ -140,7 +140,7 @@ services:
 
 
   microverse-kafka:
-    profiles: ["gofeeler", "kafka"]
+    profiles: ["gofeeler", "kafka", "pyreel"]
     image: apache/kafka:latest
     container_name: microverse-kafka
 
